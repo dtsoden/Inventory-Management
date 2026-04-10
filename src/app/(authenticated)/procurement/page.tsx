@@ -165,7 +165,7 @@ export default function PurchaseOrdersPage() {
 
       <div className="mt-6">
         <Tabs
-          defaultValue="ALL"
+          defaultValue={initialStatus}
           onValueChange={(val) => setActiveTab(val as string)}
         >
           <TabsList variant="line">
