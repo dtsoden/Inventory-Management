@@ -218,11 +218,11 @@ export default function OrganizationSettingsPage() {
     <div className="card-base rounded-xl p-6">
       <Tabs defaultValue="details">
         <TabsList className="border-b w-full justify-start rounded-none bg-transparent p-0 mb-6">
-          <TabsTrigger value="details" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">
+          <TabsTrigger value="details" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-active:!bg-brand-green data-active:!text-white">
             <Building2 className="h-4 w-4" />
             Details
           </TabsTrigger>
-          <TabsTrigger value="branding" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">
+          <TabsTrigger value="branding" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-active:!bg-brand-green data-active:!text-white">
             <Palette className="h-4 w-4" />
             Branding
           </TabsTrigger>
