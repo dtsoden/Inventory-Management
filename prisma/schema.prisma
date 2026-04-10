@@ -25,12 +25,16 @@ model SetupState {
 
 // Key-value store for system-wide configuration
 model SystemConfig {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String
-  isSecret  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  isSecret    Boolean  @default(false)
+  category    String   @default("platform")
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
 }
 
 // ---------------------------------------------------------------------------
