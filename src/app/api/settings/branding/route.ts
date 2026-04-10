@@ -92,20 +92,39 @@ export async function PUT(req: NextRequest) {
       updatedBranding,
     );
 
+    // Verify tenant exists before updating
+    const tenantExists = await prisma.tenant.findUnique({
+      where: { id: ctx.tenantId },
+      select: { id: true },
+    });
+
+    if (!tenantExists) {
+      console.error('Branding save: tenant not found for ID:', ctx.tenantId);
+      return NextResponse.json(
+        { success: false, error: 'Tenant not found. Try signing out and back in.' },
+        { status: 404 },
+      );
+    }
+
     await prisma.tenant.update({
       where: { id: ctx.tenantId },
       data: { settings: newSettings },
     });
 
-    await prisma.auditLog.create({
-      data: {
-        tenantId: ctx.tenantId,
-        userId: ctx.userId,
-        action: 'UPDATE',
-        entity: 'Branding',
-        details: 'Updated tenant branding settings',
-      },
-    });
+    try {
+      await prisma.auditLog.create({
+        data: {
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          action: 'UPDATE',
+          entity: 'Branding',
+          details: 'Updated tenant branding settings',
+        },
+      });
+    } catch (auditErr) {
+      // Audit log failure should not block branding save
+      console.error('Audit log failed:', auditErr);
+    }
 
     const result: ApiResponse = { success: true, data: updatedBranding };
     return NextResponse.json(result);
