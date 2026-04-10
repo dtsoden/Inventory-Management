@@ -42,12 +42,13 @@ export function Header() {
       <div className="flex items-center gap-2">
         {/* AI Assistant toggle */}
         <Button
-          variant="ghost"
-          size="icon"
+          variant="outline"
+          size="sm"
           onClick={togglePanel}
-          aria-label="Open AI Assistant"
+          className="gap-1.5"
         >
-          <Bot className="h-5 w-5" />
+          <Bot className="h-4 w-4" />
+          <span className="hidden sm:inline">AI Assistant</span>
         </Button>
 
         {/* Theme toggle */}
