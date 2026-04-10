@@ -582,8 +582,7 @@ export default function IntegrationsSettingsPage() {
 
   /* ---- Active tab styling ---- */
 
-  const tabTriggerBase =
-    'min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:shadow-sm';
+  const tabTriggerBase = 'min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-active:!bg-brand-green data-active:!text-white';
 
   /* ---- Render ---- */
 

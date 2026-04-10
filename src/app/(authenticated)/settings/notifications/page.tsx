@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Settings } from 'lucide-react';
 import {
   Bell,
   Mail,
@@ -135,8 +137,15 @@ export default function NotificationSettingsPage() {
               SMTP Not Configured
             </div>
             <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-500">
-              Email notifications require SMTP settings. Configure SMTP in Settings &gt; Integrations to enable notifications.
+              Email notifications require SMTP settings to be configured.
             </p>
+            <Link
+              href="/settings/integrations"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-400 border border-yellow-500/30 hover:bg-yellow-100 dark:hover:bg-yellow-950/40 transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+              Configure SMTP Settings
+            </Link>
           </div>
         )}
 
