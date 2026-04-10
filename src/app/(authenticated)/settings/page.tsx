@@ -5,6 +5,7 @@ import { Building2, Upload, Palette, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useBranding } from '@/components/providers/BrandingProvider';
 
@@ -201,18 +202,26 @@ export default function OrganizationSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Organization Details */}
-      <div className="card-base rounded-xl p-6">
-        <h2 className="section-title flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Organization Details
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage your organization profile.
-        </p>
+    <div className="card-base rounded-xl p-6">
+      <Tabs defaultValue="details">
+        <TabsList className="mb-6">
+          <TabsTrigger value="details" className="gap-2">
+            <Building2 className="h-4 w-4" />
+            Details
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2">
+            <Palette className="h-4 w-4" />
+            Branding
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="mt-6 space-y-4 max-w-lg">
+        <TabsContent value="details">
+          <h2 className="section-title">Organization Details</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your organization profile.
+          </p>
+
+          <div className="mt-6 space-y-4 max-w-lg">
           <div>
             <Label htmlFor="tenantName">Organization Name</Label>
             <Input
@@ -269,17 +278,13 @@ export default function OrganizationSettingsPage() {
             {saving ? 'Saving...' : 'Save Organization'}
           </Button>
         </div>
-      </div>
+        </TabsContent>
 
-      {/* Branding Section */}
-      <div className="card-base rounded-xl p-6">
-        <h2 className="section-title flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Branding
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Customize your platform appearance with custom colors and logo.
-        </p>
+        <TabsContent value="branding">
+          <h2 className="section-title">Branding</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Customize your platform appearance with custom colors and logo.
+          </p>
 
         <div className="mt-6 space-y-6 max-w-lg">
           {/* App Name */}
@@ -461,7 +466,8 @@ export default function OrganizationSettingsPage() {
             {savingBranding ? 'Saving...' : 'Save Branding'}
           </Button>
         </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
