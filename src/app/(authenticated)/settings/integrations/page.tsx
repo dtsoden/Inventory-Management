@@ -219,9 +219,9 @@ export default function IntegrationsSettingsPage() {
 
   return (
     <Tabs defaultValue="ai" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="ai">AI</TabsTrigger>
-        <TabsTrigger value="catalog-api">Catalog API</TabsTrigger>
+      <TabsList className="border-b w-full justify-start rounded-none bg-transparent p-0">
+        <TabsTrigger value="ai" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">AI Integration</TabsTrigger>
+        <TabsTrigger value="catalog-api" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">Catalog API</TabsTrigger>
       </TabsList>
 
       {/* AI Tab */}
