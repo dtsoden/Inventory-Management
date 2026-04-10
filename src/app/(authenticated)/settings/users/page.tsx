@@ -130,7 +130,7 @@ function RolesManager() {
   const isDefaultRole = DEFAULT_ROLE_KEYS.includes(selectedRoleKey);
 
   function handlePermissionToggle(perm: string) {
-    if (isSuperAdmin) return;
+    if (isAdmin) return;
     setEditPermissions((prev) => ({ ...prev, [perm]: !prev[perm] }));
     setDirty(true);
   }
@@ -146,7 +146,7 @@ function RolesManager() {
   }
 
   async function handleSave() {
-    if (!selectedRole || isSuperAdmin) return;
+    if (!selectedRole || isAdmin) return;
     setSaving(true);
     try {
       const res = await fetch('/api/settings/roles', {
@@ -217,7 +217,7 @@ function RolesManager() {
       const data = await res.json();
       if (data.success) {
         setRoles(data.data);
-        setSelectedRoleKey('SUPER_ADMIN');
+        setSelectedRoleKey('ADMIN');
         toast.success('Role deleted');
       } else {
         toast.error(data.error || 'Failed to delete role');
@@ -240,14 +240,14 @@ function RolesManager() {
   return (
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
-        Select a role to view and edit its permissions. SUPER_ADMIN always has full access.
+        Select a role to view and edit its permissions. ADMIN always has full access.
       </p>
 
       {/* Role selector pills */}
       <div className="flex flex-wrap items-center gap-2">
         {roles.map((role) => {
           const isActive = role.value === selectedRoleKey;
-          const isSA = role.value === 'SUPER_ADMIN';
+          const isSA = role.value === 'ADMIN';
           return (
             <button
               key={role.value}
@@ -283,7 +283,7 @@ function RolesManager() {
                 <Label htmlFor="role-name" className="text-xs text-muted-foreground">
                   Role Name
                 </Label>
-                {isSuperAdmin ? (
+                {isAdmin ? (
                   <p className="mt-1 font-medium flex items-center gap-2">
                     <Lock className="h-4 w-4 text-muted-foreground" />
                     {selectedRole.label}
@@ -301,7 +301,7 @@ function RolesManager() {
                 <Label htmlFor="role-desc" className="text-xs text-muted-foreground">
                   Description
                 </Label>
-                {isSuperAdmin ? (
+                {isAdmin ? (
                   <p className="mt-1 text-sm text-muted-foreground">{selectedRole.description}</p>
                 ) : (
                   <Textarea
@@ -341,8 +341,8 @@ function RolesManager() {
               >
                 <span className="text-sm">{PERMISSION_LABELS[perm]}</span>
                 <Switch
-                  checked={isSuperAdmin ? true : !!editPermissions[perm]}
-                  disabled={isSuperAdmin}
+                  checked={isAdmin ? true : !!editPermissions[perm]}
+                  disabled={isAdmin}
                   onCheckedChange={() => handlePermissionToggle(perm)}
                 />
               </div>
@@ -352,7 +352,7 @@ function RolesManager() {
       )}
 
       {/* Save button */}
-      {selectedRole && !isSuperAdmin && (
+      {selectedRole && !isAdmin && (
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving || !dirty} className="gap-2 bg-brand-green hover:bg-brand-green/90 text-white">
             {saving ? (
