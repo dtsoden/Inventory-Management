@@ -143,16 +143,14 @@ export function Header() {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={() => {
-                /* navigate to profile */
-              }}
+              onClick={() => router.push('/profile')}
             >
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onSelect={() => signOut({ callbackUrl: '/login' })}
+              onClick={() => signOut({ callbackUrl: '/login' })}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Sign Out
