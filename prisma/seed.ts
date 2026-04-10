@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaLibSql } from '@prisma/adapter-libsql';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
-const prisma = new PrismaClient();
+const adapter = new PrismaLibSql({ url: 'file:./data/inventory.db' });
+const prisma = new PrismaClient({ adapter });
 
 const PASSWORD_HASH = bcrypt.hashSync('password123', 10);
 
