@@ -103,18 +103,95 @@ const functionDefinitions: OpenAI.Chat.Completions.ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'listCategories',
+      description:
+        'List all item categories with the count of items in each category.',
+      parameters: {
+        type: 'object',
+        properties: {},
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'queryDatabase',
+      description:
+        'Execute a read-only database query. Use this for any question that the other functions cannot answer. Provide the model name and query parameters. Available models: asset, item, vendor, purchaseOrder, purchaseOrderLine, itemCategory, user, notification, auditLog. Queries are automatically scoped to the current tenant.',
+      parameters: {
+        type: 'object',
+        properties: {
+          model: {
+            type: 'string',
+            description: 'The database model to query (e.g., asset, item, vendor, purchaseOrder, itemCategory)',
+          },
+          operation: {
+            type: 'string',
+            enum: ['findMany', 'count', 'groupBy'],
+            description: 'The query operation to perform',
+          },
+          where: {
+            type: 'object',
+            description: 'Filter conditions as a JSON object matching Prisma where syntax',
+          },
+          select: {
+            type: 'object',
+            description: 'Fields to select (optional)',
+          },
+          include: {
+            type: 'object',
+            description: 'Relations to include (optional)',
+          },
+          orderBy: {
+            type: 'object',
+            description: 'Sort order (optional)',
+          },
+          take: {
+            type: 'number',
+            description: 'Limit number of results (default 20, max 50)',
+          },
+          groupByFields: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Fields to group by (only for groupBy operation)',
+          },
+        },
+        required: ['model', 'operation'],
+      },
+    },
+  },
 ];
 
-const SYSTEM_PROMPT = `You are an AI assistant for an inventory management platform. You help users search inventory, check order statuses, look up vendor information, view dashboard statistics, and assign assets.
+const SYSTEM_PROMPT = `You are an AI assistant for an inventory management platform with FULL access to the database through function calls. You MUST use your available tools to answer every question. NEVER say you don't have access to data. You have these capabilities:
 
-Guidelines:
-- Be concise and professional.
-- When presenting data, use clear formatting with bullet points or short tables.
-- If a search returns no results, suggest alternative queries.
-- For asset assignment, confirm the action was completed successfully or explain any errors.
-- Always scope your answers to the user's tenant data; never reference other tenants.
-- If asked about something outside inventory management, politely redirect the conversation.
-- Use markdown formatting for readability (bold, lists, code blocks for IDs/tags).`;
+- searchInventory: Search assets by status, category name, or free-text. USE THIS for any question about inventory, assets, laptops, equipment, categories, etc.
+- getOrderStatus: Look up purchase orders by number.
+- getVendorInfo: Look up vendor details by name.
+- getStats: Get dashboard statistics (total assets, counts by status, pending orders, active vendors).
+- listCategories: Get all item categories with counts.
+- assignAsset: Assign an asset to a user.
+
+DATABASE SCHEMA (for queryDatabase function):
+- asset: id, tenantId, itemId, assetTag, serialNumber, status (AVAILABLE/ASSIGNED/IN_MAINTENANCE/RETIRED/LOST), condition, location, assignedTo, notes, purchasedAt, warrantyUntil. Relations: item (Item)
+- item: id, tenantId, vendorId, categoryId, name, sku, description, unitCost, imageUrl, isActive. Relations: vendor (Vendor), category (ItemCategory), assets (Asset[])
+- vendor: id, tenantId, name, contactName, email, phone, address, city, state, zip, country, website, notes, isActive, rating
+- purchaseOrder: id, tenantId, orderNumber, status (DRAFT/PENDING_APPROVAL/APPROVED/SUBMITTED/PARTIALLY_RECEIVED/RECEIVED/CANCELLED), vendorName, notes, totalAmount. Relations: lines (PurchaseOrderLine[])
+- purchaseOrderLine: id, purchaseOrderId, itemId, quantity, unitCost, receivedQty. Relations: item (Item)
+- itemCategory: id, tenantId, name, description. Relations: items (Item[])
+- user: id, tenantId, email, name, role, isActive
+
+CRITICAL RULES:
+- ALWAYS call a function before answering. Do NOT guess or say you lack access.
+- Use queryDatabase for complex queries that other functions cannot handle.
+- If asked "what categories do you have", call listCategories.
+- If asked about specific items, call searchInventory with category or query parameters.
+- For complex questions, use queryDatabase with the appropriate model, where filters, and includes.
+- Be concise. Use markdown formatting (bold, lists, tables).
+- Present data clearly with counts and details.
+- If a search returns no results, suggest alternative queries.`;
 
 export class AssistantService {
   private repo: ChatRepository;
@@ -232,6 +309,10 @@ export class AssistantService {
         return this.getStats(ctx);
       case 'assignAsset':
         return this.assignAsset(ctx, args);
+      case 'listCategories':
+        return this.listCategories(ctx);
+      case 'queryDatabase':
+        return this.queryDatabase(ctx, args);
       default:
         return { error: `Unknown function: ${fnName}` };
     }
@@ -461,5 +542,88 @@ export class AssistantService {
       success: true,
       message: `Asset "${assetTag}" (${asset.item.name}) has been assigned to ${targetUser.name} (${userEmail})`,
     };
+  }
+
+  private async listCategories(ctx: TenantContext) {
+    const categories = await this.db.itemCategory.findMany({
+      where: { tenantId: ctx.tenantId },
+      include: {
+        _count: { select: { items: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      count: categories.length,
+      categories: categories.map((c) => ({
+        name: c.name,
+        description: c.description,
+        itemCount: c._count.items,
+      })),
+    };
+  }
+
+  private async queryDatabase(
+    ctx: TenantContext,
+    args: Record<string, unknown>
+  ) {
+    const { model, operation, where, select, include, orderBy, take, groupByFields } = args as {
+      model: string;
+      operation: string;
+      where?: Record<string, unknown>;
+      select?: Record<string, unknown>;
+      include?: Record<string, unknown>;
+      orderBy?: Record<string, unknown>;
+      take?: number;
+      groupByFields?: string[];
+    };
+
+    // Validate model name to prevent arbitrary access
+    const allowedModels = [
+      'asset', 'item', 'vendor', 'purchaseOrder', 'purchaseOrderLine',
+      'itemCategory', 'user', 'notification', 'auditLog',
+    ];
+    if (!allowedModels.includes(model)) {
+      return { error: `Model "${model}" is not queryable. Allowed: ${allowedModels.join(', ')}` };
+    }
+
+    const prismaModel = (this.db as any)[model];
+    if (!prismaModel) {
+      return { error: `Model "${model}" not found` };
+    }
+
+    // Always scope to tenant
+    const scopedWhere = { tenantId: ctx.tenantId, ...where };
+    const limitedTake = Math.min(take || 20, 50);
+
+    try {
+      if (operation === 'count') {
+        const count = await prismaModel.count({ where: scopedWhere });
+        return { count };
+      }
+
+      if (operation === 'groupBy' && groupByFields) {
+        const result = await prismaModel.groupBy({
+          by: groupByFields,
+          where: scopedWhere,
+          _count: { id: true },
+        });
+        return { groups: result };
+      }
+
+      // findMany
+      const queryArgs: Record<string, unknown> = {
+        where: scopedWhere,
+        take: limitedTake,
+      };
+      if (select) queryArgs.select = select;
+      if (include) queryArgs.include = include;
+      if (orderBy) queryArgs.orderBy = orderBy;
+
+      const results = await prismaModel.findMany(queryArgs);
+      return { count: results.length, data: results };
+    } catch (err: any) {
+      return { error: `Query failed: ${err.message}` };
+    }
   }
 }
