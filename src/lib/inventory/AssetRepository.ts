@@ -37,6 +37,10 @@ export class AssetRepository extends BaseRepository<AssetRecord> {
     return 'asset';
   }
 
+  protected get hasIsActive(): boolean {
+    return false;
+  }
+
   private get defaultInclude() {
     return {
       item: {

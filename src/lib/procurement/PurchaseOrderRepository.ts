@@ -40,6 +40,10 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrderWithLin
     return 'purchaseOrder';
   }
 
+  protected get hasIsActive(): boolean {
+    return false;
+  }
+
   async findAllWithRelations(
     tenantId: string,
     options?: FindAllOptions

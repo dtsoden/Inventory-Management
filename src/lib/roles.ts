@@ -101,6 +101,23 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
 ];
 
 /**
+ * Returns the default role definitions for seeding into SystemConfig.
+ */
+export function getDefaultRoles(): RoleDefinition[] {
+  return ROLE_DEFINITIONS.map((r) => ({
+    value: r.value,
+    label: r.label,
+    description: r.description,
+    permissions: { ...r.permissions },
+  }));
+}
+
+/**
+ * Default role keys that cannot be deleted.
+ */
+export const DEFAULT_ROLE_KEYS = ['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
+
+/**
  * Get a role definition by its value.
  */
 export function getRoleDefinition(role: string): RoleDefinition | undefined {

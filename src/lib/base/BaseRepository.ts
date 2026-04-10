@@ -14,6 +14,11 @@ export abstract class BaseRepository<T = unknown> {
 
   protected abstract get modelName(): string;
 
+  /** Override to false in subclasses for models without an isActive field */
+  protected get hasIsActive(): boolean {
+    return true;
+  }
+
   protected get model() {
     return (this.prisma as any)[this.modelName];
   }
@@ -27,11 +32,14 @@ export abstract class BaseRepository<T = unknown> {
     const page = pagination?.page ?? 1;
     const pageSize = pagination?.pageSize ?? 20;
 
-    const whereClause = {
+    const whereClause: Record<string, unknown> = {
       tenantId,
-      isActive: true,
       ...where,
     };
+    // Only filter by isActive if the model supports it
+    if (this.hasIsActive && whereClause.isActive === undefined) {
+      whereClause.isActive = true;
+    }
 
     const [data, total] = await Promise.all([
       this.model.findMany({
@@ -58,8 +66,10 @@ export abstract class BaseRepository<T = unknown> {
     id: string,
     include?: Record<string, unknown>
   ): Promise<T | null> {
+    const findWhere: Record<string, unknown> = { id, tenantId };
+    if (this.hasIsActive) findWhere.isActive = true;
     const entity = await this.model.findFirst({
-      where: { id, tenantId, isActive: true },
+      where: findWhere,
       include,
     });
     return entity as T | null;

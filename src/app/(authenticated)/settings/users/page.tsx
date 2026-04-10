@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { ROLE_DEFINITIONS, PERMISSIONS, PERMISSION_LABELS } from '@/lib/roles';
+import { ROLE_DEFINITIONS, PERMISSIONS, PERMISSION_LABELS, DEFAULT_ROLE_KEYS } from '@/lib/roles';
+import type { RoleDefinition } from '@/lib/roles';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Users,
   Plus,
@@ -11,6 +14,10 @@ import {
   UserX,
   UserCheck,
   Pencil,
+  Lock,
+  Trash2,
+  Save,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +80,333 @@ function getInitials(name: string): string {
     .join('')
     .toUpperCase()
     .slice(0, 2);
+}
+
+function RolesManager() {
+  const [roles, setRoles] = useState<RoleDefinition[]>([]);
+  const [selectedRoleKey, setSelectedRoleKey] = useState<string>('SUPER_ADMIN');
+  const [editLabel, setEditLabel] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPermissions, setEditPermissions] = useState<Record<string, boolean>>({});
+  const [rolesLoading, setRolesLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [addRoleDialogOpen, setAddRoleDialogOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleDescription, setNewRoleDescription] = useState('');
+  const [addingRole, setAddingRole] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings/roles');
+      const data = await res.json();
+      if (data.success) {
+        setRoles(data.data);
+      } else {
+        toast.error(data.error || 'Failed to load roles');
+      }
+    } catch {
+      toast.error('Failed to load roles');
+    } finally {
+      setRolesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRoles();
+  }, [fetchRoles]);
+
+  // When roles load or selection changes, populate the edit fields
+  const selectedRole = roles.find((r) => r.value === selectedRoleKey);
+
+  useEffect(() => {
+    if (selectedRole) {
+      setEditLabel(selectedRole.label);
+      setEditDescription(selectedRole.description);
+      setEditPermissions({ ...selectedRole.permissions });
+      setDirty(false);
+    }
+  }, [selectedRoleKey, roles]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const isSuperAdmin = selectedRoleKey === 'SUPER_ADMIN';
+  const isDefaultRole = DEFAULT_ROLE_KEYS.includes(selectedRoleKey);
+
+  function handlePermissionToggle(perm: string) {
+    if (isSuperAdmin) return;
+    setEditPermissions((prev) => ({ ...prev, [perm]: !prev[perm] }));
+    setDirty(true);
+  }
+
+  function handleLabelChange(val: string) {
+    setEditLabel(val);
+    setDirty(true);
+  }
+
+  function handleDescriptionChange(val: string) {
+    setEditDescription(val);
+    setDirty(true);
+  }
+
+  async function handleSave() {
+    if (!selectedRole || isSuperAdmin) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings/roles', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          value: selectedRoleKey,
+          label: editLabel,
+          description: editDescription,
+          permissions: editPermissions,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRoles(data.data);
+        setDirty(false);
+        toast.success('Role saved successfully');
+      } else {
+        toast.error(data.error || 'Failed to save role');
+      }
+    } catch {
+      toast.error('Failed to save role');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleAddRole() {
+    if (!newRoleName.trim()) {
+      toast.error('Role name is required');
+      return;
+    }
+    setAddingRole(true);
+    try {
+      const res = await fetch('/api/settings/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          label: newRoleName.trim(),
+          description: newRoleDescription.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRoles(data.data);
+        const newKey = newRoleName.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+        setSelectedRoleKey(newKey);
+        setAddRoleDialogOpen(false);
+        setNewRoleName('');
+        setNewRoleDescription('');
+        toast.success('Role created');
+      } else {
+        toast.error(data.error || 'Failed to create role');
+      }
+    } catch {
+      toast.error('Failed to create role');
+    } finally {
+      setAddingRole(false);
+    }
+  }
+
+  async function handleDeleteRole() {
+    if (isDefaultRole) return;
+    try {
+      const res = await fetch(`/api/settings/roles?value=${encodeURIComponent(selectedRoleKey)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRoles(data.data);
+        setSelectedRoleKey('SUPER_ADMIN');
+        toast.success('Role deleted');
+      } else {
+        toast.error(data.error || 'Failed to delete role');
+      }
+    } catch {
+      toast.error('Failed to delete role');
+    }
+  }
+
+  if (rolesLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-10 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Select a role to view and edit its permissions. SUPER_ADMIN always has full access.
+      </p>
+
+      {/* Role selector pills */}
+      <div className="flex flex-wrap items-center gap-2">
+        {roles.map((role) => {
+          const isActive = role.value === selectedRoleKey;
+          const isSA = role.value === 'SUPER_ADMIN';
+          return (
+            <button
+              key={role.value}
+              onClick={() => setSelectedRoleKey(role.value)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                isActive
+                  ? '!bg-brand-green !text-white'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {isSA && <Lock className="h-3.5 w-3.5" />}
+              {role.label}
+            </button>
+          );
+        })}
+        {roles.length < 10 && (
+          <button
+            onClick={() => setAddRoleDialogOpen(true)}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed px-4 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Role
+          </button>
+        )}
+      </div>
+
+      {/* Selected role info */}
+      {selectedRole && (
+        <div className="rounded-lg border p-4 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 space-y-3">
+              <div>
+                <Label htmlFor="role-name" className="text-xs text-muted-foreground">
+                  Role Name
+                </Label>
+                {isSuperAdmin ? (
+                  <p className="mt-1 font-medium flex items-center gap-2">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    {selectedRole.label}
+                  </p>
+                ) : (
+                  <Input
+                    id="role-name"
+                    className="mt-1"
+                    value={editLabel}
+                    onChange={(e) => handleLabelChange(e.target.value)}
+                  />
+                )}
+              </div>
+              <div>
+                <Label htmlFor="role-desc" className="text-xs text-muted-foreground">
+                  Description
+                </Label>
+                {isSuperAdmin ? (
+                  <p className="mt-1 text-sm text-muted-foreground">{selectedRole.description}</p>
+                ) : (
+                  <Textarea
+                    id="role-desc"
+                    className="mt-1 min-h-[40px]"
+                    value={editDescription}
+                    onChange={(e) => handleDescriptionChange(e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+            {!isDefaultRole && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="text-destructive hover:text-destructive"
+                onClick={handleDeleteRole}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Permissions list */}
+      {selectedRole && (
+        <div className="rounded-lg border">
+          <div className="border-b px-4 py-3">
+            <h3 className="text-sm font-medium">Permissions</h3>
+          </div>
+          <div className="divide-y">
+            {PERMISSIONS.map((perm) => (
+              <div
+                key={perm}
+                className="flex items-center justify-between px-4 py-3"
+              >
+                <span className="text-sm">{PERMISSION_LABELS[perm]}</span>
+                <Switch
+                  checked={isSuperAdmin ? true : !!editPermissions[perm]}
+                  disabled={isSuperAdmin}
+                  onCheckedChange={() => handlePermissionToggle(perm)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Save button */}
+      {selectedRole && !isSuperAdmin && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={saving || !dirty} className="gap-2">
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
+            {saving ? 'Saving...' : 'Save Role'}
+          </Button>
+        </div>
+      )}
+
+      {/* Add Role Dialog */}
+      <Dialog open={addRoleDialogOpen} onOpenChange={setAddRoleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Role</DialogTitle>
+            <DialogDescription>
+              Create a custom role. All permissions start turned off.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="new-role-name">Role Name</Label>
+              <Input
+                id="new-role-name"
+                className="mt-1.5"
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="e.g. Auditor"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-role-desc">Description</Label>
+              <Textarea
+                id="new-role-desc"
+                className="mt-1.5 min-h-[40px]"
+                value={newRoleDescription}
+                onChange={(e) => setNewRoleDescription(e.target.value)}
+                placeholder="What this role is for"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddRole} disabled={addingRole}>
+              {addingRole ? 'Creating...' : 'Create Role'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }
 
 export default function UsersSettingsPage() {
@@ -436,53 +770,7 @@ export default function UsersSettingsPage() {
       </TabsContent>
 
           <TabsContent value="roles">
-            <p className="text-sm text-muted-foreground mb-4">
-              Each role has predefined access levels. Assign roles to users in the Users tab.
-            </p>
-
-            {/* Role cards */}
-            <div className="grid gap-4 sm:grid-cols-2 mb-6">
-              {ROLE_DEFINITIONS.map((role) => (
-                <div key={role.value} className="rounded-lg border p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield className="h-4 w-4 text-brand-green" />
-                    <h3 className="font-medium">{role.label}</h3>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{role.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Permissions matrix */}
-            <h3 className="section-title mb-3">Permissions Matrix</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="py-2 pr-4 text-left font-medium text-muted-foreground">Permission</th>
-                    {ROLE_DEFINITIONS.map((r) => (
-                      <th key={r.value} className="py-2 px-3 text-center font-medium">{r.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PERMISSIONS.map((perm) => (
-                    <tr key={perm} className="border-b last:border-0">
-                      <td className="py-2 pr-4">{PERMISSION_LABELS[perm]}</td>
-                      {ROLE_DEFINITIONS.map((role) => (
-                        <td key={role.value} className="py-2 px-3 text-center">
-                          {role.permissions[perm] ? (
-                            <span className="inline-block h-5 w-5 rounded bg-brand-green/20 text-brand-green text-xs leading-5">&#10003;</span>
-                          ) : (
-                            <span className="inline-block h-5 w-5 rounded bg-muted text-muted-foreground text-xs leading-5">-</span>
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <RolesManager />
           </TabsContent>
         </Tabs>
       </div>
