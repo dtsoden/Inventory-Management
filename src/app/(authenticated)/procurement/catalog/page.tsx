@@ -8,6 +8,10 @@ import {
   Pencil,
   Archive,
   X,
+  Globe,
+  Loader2,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +42,16 @@ interface CatalogItem {
   category?: { id: string; name: string } | null;
 }
 
+interface ExternalProduct {
+  name: string;
+  sku: string;
+  description: string;
+  unitPrice: number;
+  imageUrl: string;
+  externalId: string;
+  category: string;
+}
+
 function formatCurrency(amount: number | null): string {
   if (amount == null) return 'N/A';
   return new Intl.NumberFormat('en-US', {
@@ -53,6 +67,14 @@ export default function CatalogPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<CatalogItem | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // Import from online catalog state
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [externalProducts, setExternalProducts] = useState<ExternalProduct[]>([]);
+  const [loadingExternal, setLoadingExternal] = useState(false);
+  const [importingIds, setImportingIds] = useState<Set<string>>(new Set());
+  const [importedIds, setImportedIds] = useState<Set<string>>(new Set());
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Form fields
   const [formName, setFormName] = useState('');
@@ -158,6 +180,71 @@ export default function CatalogPage() {
     }
   };
 
+  const handleOpenImportDialog = async () => {
+    setImportDialogOpen(true);
+    setLoadingExternal(true);
+    setImportError(null);
+    setExternalProducts([]);
+    setImportedIds(new Set());
+
+    try {
+      const res = await fetch('/api/procurement/catalog/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setExternalProducts(json.data);
+      } else {
+        setImportError(json.error || 'Failed to fetch external catalog');
+      }
+    } catch {
+      setImportError('Failed to connect to external catalog');
+    } finally {
+      setLoadingExternal(false);
+    }
+  };
+
+  const handleImportProduct = async (product: ExternalProduct) => {
+    setImportingIds((prev) => new Set(prev).add(product.externalId));
+
+    try {
+      const res = await fetch('/api/procurement/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: product.name,
+          sku: product.sku || null,
+          description: product.description || null,
+          unitCost: product.unitPrice,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setImportedIds((prev) => new Set(prev).add(product.externalId));
+      } else {
+        alert(json.error || 'Failed to import product');
+      }
+    } catch {
+      alert('Failed to import product');
+    } finally {
+      setImportingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(product.externalId);
+        return next;
+      });
+    }
+  };
+
+  const handleCloseImportDialog = () => {
+    setImportDialogOpen(false);
+    // Refresh the catalog if any items were imported
+    if (importedIds.size > 0) {
+      fetchItems();
+    }
+  };
+
   // Group items by vendor
   const groupedItems = items.reduce<Record<string, CatalogItem[]>>(
     (acc, item) => {
@@ -181,10 +268,16 @@ export default function CatalogPage() {
             Browse and manage catalog items for procurement
           </p>
         </div>
-        <Button onClick={openCreateDialog}>
-          <Plus className="size-4" data-icon="inline-start" />
-          Add Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleOpenImportDialog}>
+            <Globe className="size-4" data-icon="inline-start" />
+            Import from Online Catalog
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <Plus className="size-4" data-icon="inline-start" />
+            Add Item
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -296,6 +389,125 @@ export default function CatalogPage() {
           ))
         )}
       </div>
+
+      {/* Import from Online Catalog Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={(open) => {
+        if (!open) handleCloseImportDialog();
+      }}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="size-5" />
+              Import from Online Catalog
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-2">
+            {loadingExternal ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Loader2 className="size-8 animate-spin text-primary" />
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Fetching external catalog...
+                </p>
+              </div>
+            ) : importError ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="size-8 text-destructive" />
+                <p className="mt-3 text-sm text-destructive">{importError}</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={handleOpenImportDialog}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : externalProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <Package className="size-8 text-muted-foreground/40" />
+                <p className="mt-3 text-sm text-muted-foreground">
+                  No products found in external catalog
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {importedIds.size > 0 && (
+                  <p className="mb-3 text-sm text-emerald-600">
+                    {importedIds.size} item{importedIds.size !== 1 ? 's' : ''} imported successfully
+                  </p>
+                )}
+                {externalProducts.map((product) => {
+                  const isImported = importedIds.has(product.externalId);
+                  const isImporting = importingIds.has(product.externalId);
+
+                  return (
+                    <div
+                      key={product.externalId}
+                      className={`flex items-center gap-4 rounded-lg border p-3 ${
+                        isImported
+                          ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-800 dark:bg-emerald-950/30'
+                          : ''
+                      }`}
+                    >
+                      {product.imageUrl && (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="size-12 shrink-0 rounded-md object-cover"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{product.name}</p>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                          {product.sku && <span>SKU: {product.sku}</span>}
+                          {product.category && (
+                            <Badge variant="outline" className="text-xs">
+                              {product.category}
+                            </Badge>
+                          )}
+                        </div>
+                        {product.description && (
+                          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span className="font-mono text-sm font-medium">
+                          {formatCurrency(product.unitPrice)}
+                        </span>
+                        {isImported ? (
+                          <div className="flex size-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
+                            <Check className="size-4 text-emerald-600" />
+                          </div>
+                        ) : (
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="size-8"
+                            disabled={isImporting}
+                            onClick={() => handleImportProduct(product)}
+                          >
+                            {isImporting ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Plus className="size-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCloseImportDialog}>
+              {importedIds.size > 0 ? 'Done' : 'Close'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Item Dialog */}
       <Dialog

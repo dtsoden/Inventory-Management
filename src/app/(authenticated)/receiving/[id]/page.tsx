@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { BarcodeScanner } from '@/components/shared/BarcodeScanner';
 
 // ------------------------------------------------------------------
 // Types
@@ -151,6 +153,8 @@ export default function ReceivingFlowPage() {
   const [assetTagInput, setAssetTagInput] = useState('');
   const [serialInput, setSerialInput] = useState('');
   const [tagging, setTagging] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [autoScan, setAutoScan] = useState(false);
 
   // Step 4: Complete state
   const [completing, setCompleting] = useState(false);
@@ -569,6 +573,20 @@ export default function ReceivingFlowPage() {
             </p>
           </div>
 
+          {/* Auto Scan toggle */}
+          <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
+            <div>
+              <p className="text-sm font-medium">Auto Scan</p>
+              <p className="text-xs text-muted-foreground">
+                Keep scanner open after each scan
+              </p>
+            </div>
+            <Switch
+              checked={autoScan}
+              onCheckedChange={setAutoScan}
+            />
+          </div>
+
           {/* Overall Progress */}
           <div className="rounded-xl border bg-card p-4">
             <div className="mb-2 flex items-center justify-between text-sm">
@@ -631,6 +649,28 @@ export default function ReceivingFlowPage() {
                   {/* Tag input form */}
                   {isActive && !isComplete && (
                     <div className="mt-4 space-y-3 border-t pt-4">
+                      {/* Barcode Scanner */}
+                      {scannerOpen ? (
+                        <BarcodeScanner
+                          onScan={(value) => {
+                            setAssetTagInput(value);
+                            if (!autoScan) {
+                              setScannerOpen(false);
+                            }
+                          }}
+                          onClose={() => setScannerOpen(false)}
+                        />
+                      ) : (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setScannerOpen(true)}
+                        >
+                          <Camera className="mr-2 size-4" />
+                          Open Camera Scanner
+                        </Button>
+                      )}
+
                       <div>
                         <label className="mb-1 block text-sm font-medium">
                           Asset Tag *
@@ -664,6 +704,7 @@ export default function ReceivingFlowPage() {
                             setActiveTagItem(null);
                             setAssetTagInput('');
                             setSerialInput('');
+                            setScannerOpen(false);
                           }}
                           className="flex-1"
                         >
