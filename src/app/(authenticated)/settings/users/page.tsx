@@ -356,7 +356,7 @@ function RolesManager() {
       {/* Save button */}
       {selectedRole && !isSuperAdmin && (
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving || !dirty} className="gap-2">
+          <Button onClick={handleSave} disabled={saving || !dirty} className="gap-2 bg-brand-green hover:bg-brand-green/90 text-white">
             {saving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
