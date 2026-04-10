@@ -51,9 +51,18 @@ export default function OrganizationSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    async function safeFetch(url: string) {
+      const r = await fetch(url);
+      if (r.status === 401 || r.redirected) {
+        window.location.href = '/login';
+        return { success: false };
+      }
+      return r.json();
+    }
+
     Promise.all([
-      fetch('/api/settings/integrations?category=org').then((r) => r.json()),
-      fetch('/api/settings/branding').then((r) => r.json()),
+      safeFetch('/api/settings/integrations?category=org'),
+      safeFetch('/api/settings/branding'),
     ])
       .then(([orgRes, brandingRes]) => {
         if (orgRes.success && orgRes.data) {
@@ -175,6 +184,10 @@ export default function OrganizationSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(brandingSettings),
       });
+      if (res.status === 401 || res.redirected) {
+        window.location.href = '/login';
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         toast.success('Branding settings saved');
