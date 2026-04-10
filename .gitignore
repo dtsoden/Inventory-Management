@@ -45,3 +45,7 @@ next-env.d.ts
 
 # superpowers
 .superpowers/
+
+# Prisma generated client (regenerated via npx prisma generate)
+/src/generated/prisma/*
+!/src/generated/prisma/index.ts

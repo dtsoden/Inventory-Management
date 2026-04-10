@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  inventory:
+    build: .
+    ports:
+      - "5600:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=file:/app/data/inventory.db
+      - NEXTAUTH_URL=http://localhost:5600
+      - NEXTAUTH_SECRET=change-me-in-production-generate-a-random-string
+      # Optional: for unattended container restarts without manual vault unlock
+      # - VAULT_KEY=${VAULT_KEY}
+    restart: unless-stopped
