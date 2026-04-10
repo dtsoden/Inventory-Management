@@ -32,10 +32,10 @@ export function Header() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4">
-      {/* Search placeholder */}
-      <button className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent">
-        <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">Search... (Ctrl+K)</span>
+      {/* Search */}
+      <button className="flex w-[35%] min-w-[200px] items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent">
+        <Search className="h-4 w-4 shrink-0" />
+        <span className="truncate">Search inventory, vendors, orders... (Ctrl+K)</span>
       </button>
 
       {/* Right side actions */}
