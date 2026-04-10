@@ -3,82 +3,110 @@
 <head>
 <title>Asset Tag Barcodes - Packing Slip 01 (Cisco)</title>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
-body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 20px; background: #fff; }
 h1 { font-size: 20px; margin-bottom: 5px; }
 p.subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .barcode-card {
-  border: 2px solid #ddd;
+  border: 2px solid #000;
   border-radius: 8px;
-  padding: 16px;
+  padding: 20px;
   text-align: center;
   page-break-inside: avoid;
+  background: #fff;
 }
-.barcode-card h3 { font-size: 12px; color: #666; margin: 0 0 8px 0; }
-svg { display: block; margin: 0 auto; }
-.instructions { margin-top: 30px; padding: 16px; background: #f5f5f5; border-radius: 8px; font-size: 13px; }
+.barcode-card h3 { font-size: 12px; color: #333; margin: 0 0 10px 0; }
+.codes { display: flex; align-items: center; justify-content: center; gap: 16px; }
+.barcode-svg { flex-shrink: 0; }
+.qr-code { flex-shrink: 0; }
+.qr-code canvas { display: block; }
+.value-label { font-family: monospace; font-size: 16px; font-weight: bold; letter-spacing: 2px; margin-top: 8px; }
+.tips { margin-top: 30px; padding: 16px; background: #f5f5f5; border-radius: 8px; font-size: 13px; }
+.tips strong { display: block; margin-bottom: 6px; }
+.tips ul { margin: 6px 0 0 16px; padding: 0; }
+.tips li { margin-bottom: 4px; }
+@media print {
+  body { margin: 0; padding: 10px; }
+  .tips { display: none; }
+}
 </style>
 </head>
 <body>
 <h1>Asset Tag Barcodes - Cisco Order (SAMPLE-PO-9006)</h1>
-<p class="subtitle">Print or display on screen. Scan with your barcode scanner or type the value manually.</p>
+<p class="subtitle">Each card has a Code 128 barcode (1D) and a QR code (2D). Your Netum C750 can scan either format.</p>
 
-<div class="grid">
-  <div class="barcode-card">
-    <h3>Catalyst 9200L Switch #1</h3>
-    <svg id="bc1"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Catalyst 9200L Switch #2</h3>
-    <svg id="bc2"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Meraki MR36 AP #1</h3>
-    <svg id="bc3"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Meraki MR36 AP #2</h3>
-    <svg id="bc4"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Meraki MR36 AP #3</h3>
-    <svg id="bc5"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Meraki MR36 AP #4</h3>
-    <svg id="bc6"></svg>
-  </div>
-  <div class="barcode-card">
-    <h3>Meraki MR36 AP #5</h3>
-    <svg id="bc7"></svg>
-  </div>
-</div>
+<div class="grid" id="cards"></div>
 
-<div class="instructions">
-<strong>How to use:</strong> Place your cursor in the asset tag field in the Receiving module, then scan the barcode with your Netum C750 or any Code 128 compatible scanner. The value will be typed into the field automatically.
+<div class="tips">
+<strong>Scanning tips for screen reading:</strong>
+<ul>
+<li>Set screen brightness to maximum</li>
+<li>Hold scanner 4-6 inches from screen</li>
+<li>Try the QR code if the barcode doesn't scan (2D codes are more reliable from screens)</li>
+<li>If neither scans, zoom in the browser (Ctrl+Plus) to make the codes larger</li>
+<li>Alternatively, print this page for the most reliable scanning</li>
+</ul>
 </div>
 
 <script>
-const barcodes = [
-  { id: 'bc1', value: 'FCW2451G0HK' },
-  { id: 'bc2', value: 'FCW2451G0HL' },
-  { id: 'bc3', value: 'Q3AC-FGHR-7YT1' },
-  { id: 'bc4', value: 'Q3AC-FGHR-7YT2' },
-  { id: 'bc5', value: 'Q3AC-FGHR-7YT3' },
-  { id: 'bc6', value: 'Q3AC-FGHR-7YT4' },
-  { id: 'bc7', value: 'Q3AC-FGHR-7YT5' },
+const items = [
+  { label: 'Catalyst 9200L Switch #1', value: 'FCW2451G0HK' },
+  { label: 'Catalyst 9200L Switch #2', value: 'FCW2451G0HL' },
+  { label: 'Meraki MR36 AP #1', value: 'Q3AC-FGHR-7YT1' },
+  { label: 'Meraki MR36 AP #2', value: 'Q3AC-FGHR-7YT2' },
+  { label: 'Meraki MR36 AP #3', value: 'Q3AC-FGHR-7YT3' },
+  { label: 'Meraki MR36 AP #4', value: 'Q3AC-FGHR-7YT4' },
+  { label: 'Meraki MR36 AP #5', value: 'Q3AC-FGHR-7YT5' },
 ];
-barcodes.forEach(b => {
-  JsBarcode('#' + b.id, b.value, {
+
+const container = document.getElementById('cards');
+
+items.forEach((item, i) => {
+  const card = document.createElement('div');
+  card.className = 'barcode-card';
+  card.innerHTML = `
+    <h3>${item.label}</h3>
+    <div class="codes">
+      <div class="barcode-svg"><svg id="bar${i}"></svg></div>
+      <div class="qr-code"><canvas id="qr${i}"></canvas></div>
+    </div>
+    <div class="value-label">${item.value}</div>
+  `;
+  container.appendChild(card);
+
+  // Generate Code 128 barcode with wider bars
+  JsBarcode(`#bar${i}`, item.value, {
     format: 'CODE128',
-    width: 2,
-    height: 60,
-    displayValue: true,
-    fontSize: 14,
-    font: 'monospace',
-    margin: 5,
+    width: 3,
+    height: 70,
+    displayValue: false,
+    margin: 8,
+    background: '#ffffff',
+    lineColor: '#000000',
   });
+
+  // Generate QR code
+  const qr = qrcode(0, 'M');
+  qr.addData(item.value);
+  qr.make();
+  const canvas = document.getElementById(`qr${i}`);
+  const size = 80;
+  const cellSize = Math.floor(size / qr.getModuleCount());
+  canvas.width = cellSize * qr.getModuleCount();
+  canvas.height = cellSize * qr.getModuleCount();
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let row = 0; row < qr.getModuleCount(); row++) {
+    for (let col = 0; col < qr.getModuleCount(); col++) {
+      if (qr.isDark(row, col)) {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+      }
+    }
+  }
 });
 </script>
 </body>
