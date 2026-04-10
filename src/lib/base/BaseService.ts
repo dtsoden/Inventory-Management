@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { TenantContext, PaginatedResult } from '@/lib/types';
 import { NotFoundError } from '@/lib/errors';
 import { BaseRepository, FindAllOptions } from './BaseRepository';

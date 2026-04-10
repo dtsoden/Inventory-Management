@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import { PaginationParams, PaginatedResult, SortParams } from '@/lib/types';
 import { NotFoundError, TenantIsolationError } from '@/lib/errors';
 

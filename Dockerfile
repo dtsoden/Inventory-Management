@@ -11,7 +11,15 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Generate Prisma client (outputs to node_modules/@prisma/client)
 RUN npx prisma generate
+
+# Set build-time env vars (required by Next.js at build time)
+ENV DATABASE_URL="file:./data/inventory.db"
+ENV NEXTAUTH_URL="http://localhost:3000"
+ENV NEXTAUTH_SECRET="build-time-placeholder"
+
 RUN npm run build
 
 # Production image
@@ -24,16 +32,20 @@ ENV DATA_DIR=/app/data
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
+# Copy built application (standalone output)
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
+
+# Copy database template and startup script
+COPY --from=builder /app/docker-init ./docker-init
+RUN chmod +x ./docker-init/start.sh
 
 # Create data directory
-RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data /app/docker-init
 
 USER nextjs
 
@@ -42,4 +54,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "./docker-init/start.sh"]

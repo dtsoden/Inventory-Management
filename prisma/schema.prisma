@@ -2,8 +2,7 @@
 // Uses SQLite with UUID-based IDs for all models (except SetupState)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {

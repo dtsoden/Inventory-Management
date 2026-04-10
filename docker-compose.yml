@@ -9,7 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - DATABASE_URL=file:/app/data/inventory.db
-      - NEXTAUTH_URL=http://localhost:5600
+      - NEXTAUTH_URL=https://shane-inventory.davidsoden.com
       - NEXTAUTH_SECRET=change-me-in-production-generate-a-random-string
       # Optional: for unattended container restarts without manual vault unlock
       # - VAULT_KEY=${VAULT_KEY}
