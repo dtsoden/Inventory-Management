@@ -29,6 +29,7 @@ interface SetupPayload {
     primaryColorLight?: string;
     primaryColorDark?: string;
   };
+  seedDemoData?: boolean;
 }
 
 const REQUIRED_FIELDS: (keyof SetupPayload)[] = [
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
 
     // 7. Create admin User with bcrypt-hashed password
     const hashedPassword = await hash(payload.adminPassword, 12);
-    await prisma.user.create({
+    const adminUser = await prisma.user.create({
       data: {
         tenantId: tenant.id,
         email: payload.adminEmail,
@@ -196,6 +197,16 @@ export async function POST(request: NextRequest) {
         isActive: true,
       },
     });
+
+    // 7b. Seed demo data if requested
+    if (payload.seedDemoData) {
+      try {
+        await insertSampleData(prisma, tenant.id, adminUser.id);
+        console.log('Sample data seeded successfully.');
+      } catch (seedError) {
+        console.error('Sample data seeding failed (non-fatal):', seedError);
+      }
+    }
 
     // 8. Generate NEXTAUTH_SECRET if not set in environment
     const nextAuthSecret = process.env.NEXTAUTH_SECRET || randomBytes(32).toString('base64');
