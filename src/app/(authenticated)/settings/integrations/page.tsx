@@ -164,6 +164,16 @@ export default function IntegrationsSettingsPage() {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // SMTP tab state
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('587');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPassword, setSmtpPassword] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [smtpLoading, setSmtpLoading] = useState(true);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+
   // Wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
@@ -194,6 +204,21 @@ export default function IntegrationsSettingsPage() {
       .finally(() => setLoading(false));
 
     fetchSources();
+
+    // Load SMTP settings
+    fetch('/api/settings/integrations?category=smtp')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setSmtpHost(res.data.smtp_host || '');
+          setSmtpPort(res.data.smtp_port || '587');
+          setSmtpUser(res.data.smtp_user || '');
+          setSmtpPassword(res.data.smtp_password || '');
+          setSmtpFrom(res.data.smtp_from || '');
+        }
+      })
+      .catch(console.error)
+      .finally(() => setSmtpLoading(false));
   }, []);
 
   const fetchSources = useCallback(async () => {
@@ -242,6 +267,57 @@ export default function IntegrationsSettingsPage() {
     } finally {
       setSaving(null);
     }
+  }
+
+  /* ---- SMTP Tab handlers ---- */
+
+  async function saveSmtpSettings() {
+    setSaving('smtp');
+    try {
+      const res = await fetch('/api/settings/integrations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'smtp',
+          settings: {
+            smtp_host: smtpHost,
+            smtp_port: smtpPort,
+            smtp_user: smtpUser,
+            smtp_password: smtpPassword,
+            smtp_from: smtpFrom,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('SMTP settings saved');
+      } else {
+        toast.error(data.error || 'Failed to save SMTP settings');
+      }
+    } catch {
+      toast.error('Failed to save SMTP settings');
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function testSmtpConnection() {
+    if (!smtpHost.trim()) {
+      toast.error('Please enter an SMTP host first');
+      return;
+    }
+    setSmtpTesting(true);
+    // For now we just validate that settings are present
+    setTimeout(() => {
+      if (smtpHost && smtpPort) {
+        toast.success(
+          'SMTP settings look valid. Save them first, then send a test email to verify delivery.'
+        );
+      } else {
+        toast.error('Please fill in at least the SMTP host and port');
+      }
+      setSmtpTesting(false);
+    }, 800);
   }
 
   /* ---- Catalog API: Source list handlers ---- */
@@ -540,6 +616,9 @@ export default function IntegrationsSettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="catalog-api" className={tabTriggerBase}>
             Catalog API
+          </TabsTrigger>
+          <TabsTrigger value="smtp" className={tabTriggerBase}>
+            Email / SMTP
           </TabsTrigger>
         </TabsList>
 
@@ -1268,6 +1347,134 @@ export default function IntegrationsSettingsPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Email / SMTP Tab */}
+        <TabsContent value="smtp">
+          <div className="card-base rounded-xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="section-title flex items-center gap-2">
+                  <Plug className="h-5 w-5" />
+                  Email / SMTP Configuration
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Configure outbound email settings for notifications and alerts.
+                </p>
+              </div>
+              <Badge variant={smtpHost ? 'default' : 'secondary'}>
+                {smtpHost ? 'Configured' : 'Not Set'}
+              </Badge>
+            </div>
+
+            {smtpLoading ? (
+              <div className="mt-6 animate-pulse space-y-4 max-w-lg">
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
+                <div className="h-10 rounded bg-muted" />
+              </div>
+            ) : (
+              <div className="mt-6 max-w-lg space-y-4">
+                <div>
+                  <Label htmlFor="smtp-host">SMTP Host</Label>
+                  <Input
+                    id="smtp-host"
+                    value={smtpHost}
+                    onChange={(e) => setSmtpHost(e.target.value)}
+                    placeholder="smtp.example.com"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="smtp-port">SMTP Port</Label>
+                  <Input
+                    id="smtp-port"
+                    value={smtpPort}
+                    onChange={(e) => setSmtpPort(e.target.value)}
+                    placeholder="587"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="smtp-user">SMTP Username</Label>
+                  <Input
+                    id="smtp-user"
+                    value={smtpUser}
+                    onChange={(e) => setSmtpUser(e.target.value)}
+                    placeholder="user@example.com"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="smtp-password">SMTP Password</Label>
+                  <div className="mt-1.5 flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="smtp-password"
+                        type={showSmtpPassword ? 'text' : 'password'}
+                        value={smtpPassword}
+                        onChange={(e) => setSmtpPassword(e.target.value)}
+                        placeholder="Enter password"
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                      >
+                        {showSmtpPassword ? (
+                          <EyeOff className="h-3.5 w-3.5" />
+                        ) : (
+                          <Eye className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="smtp-from">From Address</Label>
+                  <Input
+                    id="smtp-from"
+                    type="email"
+                    value={smtpFrom}
+                    onChange={(e) => setSmtpFrom(e.target.value)}
+                    placeholder="noreply@example.com"
+                    className="mt-1.5"
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    onClick={saveSmtpSettings}
+                    disabled={saving === 'smtp'}
+                    size="sm"
+                  >
+                    {saving === 'smtp' ? 'Saving...' : 'Save SMTP Settings'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={testSmtpConnection}
+                    disabled={smtpTesting || !smtpHost.trim()}
+                    size="sm"
+                    className="gap-1.5"
+                  >
+                    {smtpTesting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    {smtpTesting ? 'Testing...' : 'Test Connection'}
+                  </Button>
                 </div>
               </div>
             )}

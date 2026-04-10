@@ -98,8 +98,10 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 
 const BULK_STATUS_OPTIONS = [
   { value: 'AVAILABLE', label: 'Available' },
+  { value: 'ASSIGNED', label: 'Assigned' },
   { value: 'IN_MAINTENANCE', label: 'In Maintenance' },
   { value: 'RETIRED', label: 'Retired' },
+  { value: 'LOST', label: 'Lost' },
 ];
 
 function StatusBadge({ status }: { status: string }) {

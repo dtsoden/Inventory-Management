@@ -65,6 +65,34 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    if (category === 'smtp') {
+      const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from'];
+      const configs = await prisma.systemConfig.findMany({
+        where: { key: { in: smtpKeys } },
+      });
+      const map = Object.fromEntries(configs.map((c) => [c.key, c.value]));
+
+      // Mask the password for display
+      let maskedPassword = '';
+      if (map['smtp_password']) {
+        maskedPassword = map['smtp_password'].length > 4
+          ? '\u2022'.repeat(map['smtp_password'].length - 4) + map['smtp_password'].slice(-4)
+          : '\u2022'.repeat(8);
+      }
+
+      const body: ApiResponse = {
+        success: true,
+        data: {
+          smtp_host: map['smtp_host'] || '',
+          smtp_port: map['smtp_port'] || '587',
+          smtp_user: map['smtp_user'] || '',
+          smtp_password: maskedPassword,
+          smtp_from: map['smtp_from'] || '',
+        },
+      };
+      return NextResponse.json(body);
+    }
+
     if (category === 'password_policy') {
       const fields = ['pw_min_length', 'pw_require_uppercase', 'pw_require_lowercase', 'pw_require_numbers', 'pw_require_special'];
       const configs = await prisma.systemConfig.findMany({
@@ -241,6 +269,45 @@ export async function PUT(req: NextRequest) {
           action: 'UPDATE',
           entity: 'Settings',
           details: 'Updated password policy',
+        },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (category === 'smtp') {
+      const smtpFields: Record<string, string> = {
+        smtp_host: settings.smtp_host || '',
+        smtp_port: settings.smtp_port || '587',
+        smtp_user: settings.smtp_user || '',
+        smtp_password: settings.smtp_password || '',
+        smtp_from: settings.smtp_from || '',
+      };
+
+      for (const [key, value] of Object.entries(smtpFields)) {
+        // Skip updating password if it looks like a masked value (contains bullet chars)
+        if (key === 'smtp_password' && value.includes('\u2022')) continue;
+
+        await prisma.systemConfig.upsert({
+          where: { key },
+          create: {
+            key,
+            value,
+            isSecret: key === 'smtp_password',
+            category: 'email',
+            description: `SMTP setting: ${key}`,
+          },
+          update: { value },
+        });
+      }
+
+      await prisma.auditLog.create({
+        data: {
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          action: 'UPDATE',
+          entity: 'Settings',
+          details: 'Updated SMTP email settings',
         },
       });
 
