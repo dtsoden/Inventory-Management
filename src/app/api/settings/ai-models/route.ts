@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view AI settings');
     }
 

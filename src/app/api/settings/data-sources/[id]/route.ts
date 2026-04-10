@@ -13,7 +13,7 @@ export async function GET(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view data sources');
     }
 
@@ -57,7 +57,7 @@ export async function PUT(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can update data sources');
     }
 
@@ -120,7 +120,7 @@ export async function DELETE(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can delete data sources');
     }
 

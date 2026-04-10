@@ -13,7 +13,7 @@ export async function POST(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can sync data sources');
     }
 

@@ -8,7 +8,7 @@ import type { ApiResponse } from '@/lib/types';
 
 const SYSTEM_CONFIG_KEY = 'custom_roles';
 const MAX_ROLES = 10;
-const DEFAULT_ROLE_KEYS = ['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
+const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
 
 interface StoredRole {
   value: string;
@@ -55,7 +55,7 @@ async function saveRoles(roles: StoredRole[]): Promise<void> {
 export async function GET() {
   try {
     const ctx = await requireTenantContext();
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view roles');
     }
 
@@ -80,7 +80,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can manage roles');
     }
 
@@ -94,9 +94,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    if (value === 'SUPER_ADMIN') {
+    if (value === 'ADMIN') {
       return NextResponse.json(
-        { success: false, error: 'SUPER_ADMIN role cannot be modified' },
+        { success: false, error: 'ADMIN role cannot be modified' },
         { status: 403 },
       );
     }
@@ -133,7 +133,7 @@ export async function PUT(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can manage roles');
     }
 
@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can manage roles');
     }
 

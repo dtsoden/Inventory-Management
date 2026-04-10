@@ -11,7 +11,7 @@ export async function GET() {
     const ctx = await requireTenantContext();
 
     // Only admins can view users
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can manage users');
     }
 
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can create users');
     }
 
@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cannot create SUPER_ADMIN via this route
-    const validRole = role === 'SUPER_ADMIN' ? 'ORG_ADMIN' : role;
+    // Validate role
+    const validRole = role || 'WAREHOUSE_STAFF';
 
     const passwordHash = await bcrypt.hash(password, 10);
 

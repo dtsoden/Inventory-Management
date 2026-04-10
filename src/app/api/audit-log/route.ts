@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const ctx = await requireTenantContext();
 
     // Only admins can view audit logs
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view audit logs');
     }
 

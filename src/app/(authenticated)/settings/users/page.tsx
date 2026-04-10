@@ -750,8 +750,7 @@ export default function UsersSettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                <SelectItem value="ORG_ADMIN">Org Admin</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
                 <SelectItem value="MANAGER">Manager</SelectItem>
                 <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
               </SelectContent>

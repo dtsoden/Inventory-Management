@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view data sources');
     }
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can create data sources');
     }
 

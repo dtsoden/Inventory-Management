@@ -13,7 +13,7 @@ export async function PUT(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can update users');
     }
 
@@ -30,9 +30,9 @@ export async function PUT(
     const updateData: Record<string, unknown> = {};
 
     if (data.role !== undefined) {
-      // Cannot escalate to SUPER_ADMIN unless you are one
-      if (data.role === 'SUPER_ADMIN' && ctx.role !== UserRole.SUPER_ADMIN) {
-        throw new ForbiddenError('Cannot assign SUPER_ADMIN role');
+      // Only admins can assign ADMIN role
+      if (data.role === 'ADMIN' && ctx.role !== UserRole.ADMIN) {
+        throw new ForbiddenError('Cannot assign ADMIN role');
       }
       updateData.role = data.role;
     }
@@ -103,7 +103,7 @@ export async function DELETE(
     const ctx = await requireTenantContext();
     const { id } = await params;
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can delete users');
     }
 

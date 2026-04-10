@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view settings');
     }
 
@@ -165,7 +165,7 @@ export async function PUT(req: NextRequest) {
   try {
     const ctx = await requireTenantContext();
 
-    if (ctx.role !== UserRole.SUPER_ADMIN && ctx.role !== UserRole.ORG_ADMIN) {
+    if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can update settings');
     }
 

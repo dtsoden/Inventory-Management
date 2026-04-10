@@ -17,5 +17,5 @@ class ApproveOrderHandler extends BaseApiHandler {
 
 const handler = new ApproveOrderHandler();
 export const POST = handler.handle('POST', {
-  requiredRoles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN, UserRole.MANAGER],
+  requiredRoles: [UserRole.ADMIN, UserRole.MANAGER],
 });

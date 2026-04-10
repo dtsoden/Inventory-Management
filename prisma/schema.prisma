@@ -68,7 +68,7 @@ model Tenant {
 // ---------------------------------------------------------------------------
 
 // Role is stored as a String field. Valid values:
-// SUPER_ADMIN, ORG_ADMIN, MANAGER, WAREHOUSE_STAFF
+// ADMIN, MANAGER, WAREHOUSE_STAFF
 model User {
   id            String   @id @default(uuid())
   tenantId      String

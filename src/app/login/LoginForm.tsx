@@ -129,8 +129,8 @@ export default function LoginForm({ branding }: { branding?: { primaryColor: str
 
             <Button
               type="submit"
-              className="btn-pill mt-2 w-full"
-              style={{ backgroundColor: primaryColor }}
+              className="btn-pill mt-2 w-full text-white hover:opacity-90"
+              style={{ backgroundColor: primaryColor, color: '#fff' }}
               disabled={loading}
             >
               {loading ? (
