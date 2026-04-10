@@ -1,9 +1,11 @@
 'use client';
 
-import { Search, Sun, Moon, Bell, LogOut, User } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useSession';
+import { useNotifications } from '@/hooks/useNotifications';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -17,6 +19,9 @@ import { Button } from '@/components/ui/button';
 export function Header() {
   const { theme, setTheme } = useTheme();
   const user = useCurrentUser();
+  const router = useRouter();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } =
+    useNotifications();
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
@@ -43,10 +48,69 @@ export function Header() {
           <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
 
-        {/* Notification bell */}
-        <Button variant="ghost" size="icon" aria-label="Notifications">
-          <Bell className="h-5 w-5" />
-        </Button>
+        {/* Notification bell with dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Notifications"
+                className="relative"
+              />
+            }
+          >
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-3 py-2">
+              <p className="text-sm font-medium">Notifications</p>
+              {unreadCount > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <CheckCheck className="h-3 w-3" />
+                  Mark all read
+                </button>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            {notifications.length === 0 ? (
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                No notifications
+              </div>
+            ) : (
+              notifications.slice(0, 5).map((notif) => (
+                <DropdownMenuItem
+                  key={notif.id}
+                  className="flex flex-col items-start gap-1 px-3 py-2"
+                  onSelect={() => {
+                    if (!notif.isRead) markAsRead(notif.id);
+                    if (notif.link) router.push(notif.link);
+                  }}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    {!notif.isRead && (
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-brand-green" />
+                    )}
+                    <span className="font-medium text-sm truncate flex-1">
+                      {notif.title}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 pl-4">
+                    {notif.message}
+                  </p>
+                </DropdownMenuItem>
+              ))
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* User dropdown */}
         <DropdownMenu>
