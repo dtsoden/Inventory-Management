@@ -1,6 +1,6 @@
 'use client';
 
-import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -15,11 +15,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useChatContext } from '@/components/providers/ChatProvider';
+import { ChatPanel } from '@/components/shared/ChatPanel';
 
 export function Header() {
   const { theme, setTheme } = useTheme();
   const user = useCurrentUser();
   const router = useRouter();
+  const { togglePanel } = useChatContext();
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
     useNotifications();
 
@@ -37,6 +40,16 @@ export function Header() {
 
       {/* Right side actions */}
       <div className="flex items-center gap-2">
+        {/* AI Assistant toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={togglePanel}
+          aria-label="Open AI Assistant"
+        >
+          <Bot className="h-5 w-5" />
+        </Button>
+
         {/* Theme toggle */}
         <Button
           variant="ghost"
@@ -147,6 +160,9 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Chat Panel */}
+      <ChatPanel />
     </header>
   );
 }
