@@ -191,11 +191,11 @@ export default function UsersSettingsPage() {
 
         <Tabs defaultValue="users">
           <TabsList className="border-b w-full justify-start rounded-none bg-transparent p-0 mb-6">
-            <TabsTrigger value="users" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">
+            <TabsTrigger value="users" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Users className="h-4 w-4" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="roles" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">
+            <TabsTrigger value="roles" className="min-w-[120px] gap-2 rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">
               <Shield className="h-4 w-4" />
               Roles
             </TabsTrigger>

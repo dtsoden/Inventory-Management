@@ -220,8 +220,8 @@ export default function IntegrationsSettingsPage() {
   return (
     <Tabs defaultValue="ai" className="space-y-6">
       <TabsList className="border-b w-full justify-start rounded-none bg-transparent p-0">
-        <TabsTrigger value="ai" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">AI Integration</TabsTrigger>
-        <TabsTrigger value="catalog-api" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:border-b-2 data-[state=active]:border-b-brand-green">Catalog API</TabsTrigger>
+        <TabsTrigger value="ai" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">AI Integration</TabsTrigger>
+        <TabsTrigger value="catalog-api" className="min-w-[120px] rounded-t-lg rounded-b-none border border-b-0 px-6 py-2.5 text-sm font-medium data-[state=active]:bg-brand-green data-[state=active]:text-white data-[state=active]:shadow-sm">Catalog API</TabsTrigger>
       </TabsList>
 
       {/* AI Tab */}
@@ -308,7 +308,7 @@ export default function IntegrationsSettingsPage() {
                 {!catalogUrl && (
                   <button
                     onClick={() => {
-                      setCatalogUrl('https://dummyjson.com/products?limit=20&select=title,price,description,category,sku,thumbnail');
+                      setCatalogUrl(`${window.location.origin}/api/demo/catalog?limit=20&select=title,price,description,category,sku,thumbnail`);
                       toast.success('Sample API URL loaded. Hit Save to apply.');
                     }}
                     className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
@@ -343,7 +343,7 @@ export default function IntegrationsSettingsPage() {
                   </Button>
                 </div>
                 <p className="mt-1.5 text-xs text-muted-foreground">
-                  Any REST API that returns a JSON array of products. This sample uses DummyJSON, a free test API. In production, replace with your vendor&apos;s catalog endpoint.
+                  Any REST API that returns a JSON array of products. The sample uses the built-in demo catalog with realistic IT equipment. In production, replace with your vendor&apos;s catalog endpoint.
                 </p>
               </div>
             </div>
