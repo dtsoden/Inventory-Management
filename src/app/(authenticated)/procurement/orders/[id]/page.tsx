@@ -15,6 +15,8 @@ import {
   Pencil,
   Trash2,
   Plus,
+  Download,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -217,6 +219,7 @@ export default function OrderDetailPage() {
   // Inline editing for draft orders
   const [editingLines, setEditingLines] = useState(false);
   const [editedLines, setEditedLines] = useState<OrderLine[]>([]);
+  const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -268,6 +271,30 @@ export default function OrderDetailPage() {
   const addLineItem = async () => {
     // We would need a catalog item selector; for now, this is a placeholder
     // In a full implementation, this would open a dialog
+  };
+
+  const downloadPdf = () => {
+    window.open(`/api/procurement/orders/${orderId}/pdf`, '_blank');
+  };
+
+  const sendToVendor = async () => {
+    setSendConfirmOpen(false);
+    setActionLoading(true);
+    try {
+      const res = await fetch(`/api/procurement/orders/${orderId}/send`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.error ?? 'Failed to send');
+        return;
+      }
+      fetchOrder();
+    } catch {
+      alert('An unexpected error occurred while sending');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) {
@@ -332,6 +359,28 @@ export default function OrderDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            {/* PDF download, available for any non-cancelled order */}
+            {!isCancelled && (
+              <Button
+                variant="outline"
+                onClick={downloadPdf}
+                disabled={actionLoading}
+              >
+                <Download className="size-4" data-icon="inline-start" />
+                Download PDF
+              </Button>
+            )}
+            {/* Send to Vendor, visible when APPROVED */}
+            {isApproved && (
+              <Button
+                variant="default"
+                onClick={() => setSendConfirmOpen(true)}
+                disabled={actionLoading}
+              >
+                <Mail className="size-4" data-icon="inline-start" />
+                Send to Vendor
+              </Button>
+            )}
             {isDraft && (
               <>
                 <Button
@@ -628,6 +677,35 @@ export default function OrderDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Send to Vendor Confirmation Dialog */}
+      {sendConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-background p-6 shadow-xl">
+            <h3 className="text-lg font-semibold">Send Purchase Order</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This will email purchase order{' '}
+              <span className="font-medium text-foreground">
+                {order.orderNumber}
+              </span>{' '}
+              to the vendor ({order.vendorName ?? 'unknown'}) and update the
+              status to Submitted. Proceed?
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setSendConfirmOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button onClick={sendToVendor}>
+                <Send className="size-4" data-icon="inline-start" />
+                Send
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audit Trail placeholder */}
       <Card className="mt-6" size="sm">
