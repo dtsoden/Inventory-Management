@@ -85,7 +85,41 @@ export function SetupWizard() {
     setData((prev) => ({ ...prev, ...updates }));
   }
 
+  function validateCurrentStep(): string | null {
+    switch (currentStep) {
+      case 0: // Welcome
+        if (!data.platformName.trim()) return 'Platform name is required.';
+        if (data.passphrase.length < 12) return 'Encryption passphrase must be at least 12 characters.';
+        return null;
+      case 1: // Admin
+        if (!data.adminFirstName.trim()) return 'First name is required.';
+        if (!data.adminLastName.trim()) return 'Last name is required.';
+        if (!data.adminEmail.includes('@')) return 'A valid email address is required.';
+        if (data.adminPassword.length < 8) return 'Password must be at least 8 characters.';
+        return null;
+      case 2: // Org
+        if (!data.orgName.trim()) return 'Organization name is required.';
+        if (!data.orgSlug.trim()) return 'URL slug is required.';
+        return null;
+      case 3: // Branding (all optional)
+        return null;
+      case 4: // Integrations
+        if (!data.openaiApiKey.trim()) return 'OpenAI API key is required for AI features.';
+        return null;
+      case 5: // CORS (has default *)
+        if (!data.corsOrigins.trim()) return 'CORS origins are required. Use * for all origins.';
+        return null;
+      default:
+        return null;
+    }
+  }
+
   function handleNext() {
+    const validationError = validateCurrentStep();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     if (currentStep < STEP_TITLES.length - 1) {
       setCurrentStep((s) => s + 1);
       setError(null);
