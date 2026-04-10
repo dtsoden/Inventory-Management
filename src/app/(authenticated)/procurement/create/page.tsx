@@ -196,7 +196,7 @@ export default function CreateOrderPage() {
     try {
       const validLines = lines.filter((l) => l.itemId);
       const body = {
-        vendorName: selectedVendor?.name ?? vendorSearch || 'Unknown Vendor',
+        vendorName: (selectedVendor?.name ?? vendorSearch) || 'Unknown Vendor',
         notes: notes || undefined,
         expectedDate: expectedDate || undefined,
         lines: validLines.map((l) => ({

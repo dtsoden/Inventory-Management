@@ -319,7 +319,7 @@ export default function InventoryPage() {
           <Select
             value={statusFilter}
             onValueChange={(val) => {
-              setStatusFilter(val);
+              setStatusFilter(val ?? '');
               setPage(1);
             }}
           >
@@ -624,7 +624,7 @@ export default function InventoryPage() {
               Update the status of {selectedIds.size} selected asset(s).
             </DialogDescription>
           </DialogHeader>
-          <Select value={bulkStatus} onValueChange={setBulkStatus}>
+          <Select value={bulkStatus} onValueChange={(val) => setBulkStatus(val ?? '')}>
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>

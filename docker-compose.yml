@@ -11,6 +11,7 @@ services:
       - DATABASE_URL=file:/app/data/inventory.db
       - NEXTAUTH_URL=https://shane-inventory.davidsoden.com
       - NEXTAUTH_SECRET=change-me-in-production-generate-a-random-string
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       # Optional: for unattended container restarts without manual vault unlock
       # - VAULT_KEY=${VAULT_KEY}
     restart: unless-stopped
