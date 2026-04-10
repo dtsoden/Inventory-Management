@@ -122,6 +122,10 @@ export async function GET(req: NextRequest) {
       where: { key: 'catalog_api_url' },
     });
 
+    const modelConfig = await prisma.systemConfig.findUnique({
+      where: { key: 'openai_model' },
+    });
+
     // Mask the API key for display
     let openaiKeyMasked = '';
     if (openaiConfig?.value) {
@@ -137,6 +141,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         openaiKeyMasked,
+        openaiModel: modelConfig?.value || 'gpt-4o-mini',
         catalogApiUrl: catalogConfig?.value || '',
       },
     };
@@ -326,6 +331,19 @@ export async function PUT(req: NextRequest) {
           description: 'OpenAI API key',
         },
         update: { value: settings.openaiApiKey },
+      });
+    }
+
+    if (settings.openaiModel !== undefined) {
+      await prisma.systemConfig.upsert({
+        where: { key: 'openai_model' },
+        create: {
+          key: 'openai_model',
+          value: settings.openaiModel,
+          category: 'ai',
+          description: 'Selected OpenAI model for AI assistant',
+        },
+        update: { value: settings.openaiModel },
       });
     }
 

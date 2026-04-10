@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShoppingCart,
   Plus,
@@ -118,9 +118,11 @@ function formatDate(dateStr: string): string {
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialStatus = searchParams.get('status') || 'ALL';
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('ALL');
+  const [activeTab, setActiveTab] = useState(initialStatus);
 
   const fetchOrders = useCallback(async (status: string) => {
     setLoading(true);

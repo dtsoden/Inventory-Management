@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { prisma } from '@/lib/db';
 
 export interface ExtractedLineItem {
   name: string;
@@ -28,8 +29,14 @@ export async function extractPackingSlipData(
 
   const openai = new OpenAI({ apiKey });
 
+  // Read configured model from SystemConfig, fall back to gpt-4o-mini
+  const modelConfig = await prisma.systemConfig.findUnique({
+    where: { key: 'openai_model' },
+  });
+  const modelId = modelConfig?.value || 'gpt-4o-mini';
+
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: modelId,
     messages: [
       {
         role: 'system',

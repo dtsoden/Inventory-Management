@@ -232,8 +232,14 @@ export class AssistantService {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
+    // Read configured model from SystemConfig, fall back to gpt-4o-mini
+    const modelConfig = await (this.db as any).systemConfig.findUnique({
+      where: { key: 'openai_model' },
+    });
+    const modelId = (modelConfig as { value?: string } | null)?.value || 'gpt-4o-mini';
+
     let response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: modelId,
       messages,
       tools: functionDefinitions,
       tool_choice: 'auto',
@@ -266,7 +272,7 @@ export class AssistantService {
 
       // Call OpenAI again with function results
       response = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: modelId,
         messages,
         tools: functionDefinitions,
         tool_choice: 'auto',

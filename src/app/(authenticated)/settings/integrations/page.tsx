@@ -161,6 +161,9 @@ export default function IntegrationsSettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [availableModels, setAvailableModels] = useState<{ id: string }[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   // Data sources state
   const [sources, setSources] = useState<DataSource[]>([]);
@@ -202,6 +205,9 @@ export default function IntegrationsSettingsPage() {
       .then((res) => {
         if (res.success && res.data) {
           setOpenaiKeyMasked(res.data.openaiKeyMasked || '');
+          if (res.data.openaiModel) {
+            setSelectedModel(res.data.openaiModel);
+          }
         }
       })
       .catch(console.error)
@@ -268,6 +274,48 @@ export default function IntegrationsSettingsPage() {
       }
     } catch {
       toast.error('Failed to save key');
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function fetchModels() {
+    setFetchingModels(true);
+    try {
+      const res = await fetch('/api/settings/ai-models');
+      const data = await res.json();
+      if (data.success && data.data) {
+        setAvailableModels(data.data);
+        toast.success(`Found ${data.data.length} available models`);
+      } else {
+        toast.error(data.error || 'Failed to fetch models');
+      }
+    } catch {
+      toast.error('Failed to fetch models');
+    } finally {
+      setFetchingModels(false);
+    }
+  }
+
+  async function saveSelectedModel() {
+    setSaving('model');
+    try {
+      const res = await fetch('/api/settings/integrations', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category: 'integrations',
+          settings: { openaiModel: selectedModel },
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Model updated to ${selectedModel}`);
+      } else {
+        toast.error(data.error || 'Failed to save model');
+      }
+    } catch {
+      toast.error('Failed to save model');
     } finally {
       setSaving(null);
     }
@@ -685,6 +733,79 @@ export default function IntegrationsSettingsPage() {
                     {saving === 'openai' ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Model Selector */}
+          <div className="card-base rounded-xl p-6 mt-6">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Model Selection
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose which OpenAI model to use for the AI assistant and packing slip extraction.
+            </p>
+
+            <div className="mt-4 max-w-lg space-y-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchModels}
+                  disabled={fetchingModels}
+                  className="gap-1.5"
+                >
+                  {fetchingModels ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  {fetchingModels ? 'Fetching...' : 'Fetch Models'}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Requires a valid API key
+                </span>
+              </div>
+
+              <div>
+                <Label htmlFor="model-select">Model</Label>
+                <div className="mt-1.5 flex gap-2">
+                  <div className="relative flex-1">
+                    <select
+                      id="model-select"
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer"
+                    >
+                      {availableModels.length > 0 ? (
+                        availableModels.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.id}
+                          </option>
+                        ))
+                      ) : (
+                        <>
+                          <option value="gpt-4o-mini">gpt-4o-mini</option>
+                          <option value="gpt-4o">gpt-4o</option>
+                          <option value="gpt-4-turbo">gpt-4-turbo</option>
+                          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                        </>
+                      )}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Button
+                    onClick={saveSelectedModel}
+                    disabled={saving === 'model'}
+                    size="sm"
+                  >
+                    {saving === 'model' ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Current model: <code className="rounded bg-muted px-1 py-0.5 font-mono">{selectedModel}</code>
+                </p>
               </div>
             </div>
           </div>

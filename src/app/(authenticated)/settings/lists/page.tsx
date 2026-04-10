@@ -11,9 +11,14 @@ import {
   Bell,
   ExternalLink,
   Info,
+  Plus,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 /* ------------------------------------------------------------------ */
 /*  Static list definitions                                            */
@@ -66,6 +71,15 @@ export default function ManageListsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
+  // Custom statuses state
+  const [customAssetStatuses, setCustomAssetStatuses] = useState<string[]>([]);
+  const [customOrderStatuses, setCustomOrderStatuses] = useState<string[]>([]);
+  const [listsLoading, setListsLoading] = useState(true);
+  const [newAssetStatus, setNewAssetStatus] = useState('');
+  const [newOrderStatus, setNewOrderStatus] = useState('');
+  const [savingAsset, setSavingAsset] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+
   useEffect(() => {
     fetch('/api/categories')
       .then((res) => res.json())
@@ -76,7 +90,86 @@ export default function ManageListsPage() {
       })
       .catch(() => {})
       .finally(() => setCategoriesLoading(false));
+
+    fetch('/api/settings/lists')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setCustomAssetStatuses(res.data.assetStatuses.custom || []);
+          setCustomOrderStatuses(res.data.orderStatuses.custom || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setListsLoading(false));
   }, []);
+
+  async function saveCustomStatuses(listType: 'asset' | 'order', values: string[]) {
+    const setLoading = listType === 'asset' ? setSavingAsset : setSavingOrder;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/settings/lists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listType, customValues: values }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Custom ${listType} statuses updated`);
+      } else {
+        toast.error(data.error || 'Failed to save');
+      }
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function addAssetStatus() {
+    const val = newAssetStatus.toUpperCase().trim().replace(/\s+/g, '_');
+    if (!val) return;
+    const allExisting = [
+      ...ASSET_STATUSES.map((s) => s.value),
+      ...customAssetStatuses,
+    ];
+    if (allExisting.includes(val)) {
+      toast.error(`"${val}" already exists`);
+      return;
+    }
+    const updated = [...customAssetStatuses, val];
+    setCustomAssetStatuses(updated);
+    setNewAssetStatus('');
+    saveCustomStatuses('asset', updated);
+  }
+
+  function removeAssetStatus(val: string) {
+    const updated = customAssetStatuses.filter((s) => s !== val);
+    setCustomAssetStatuses(updated);
+    saveCustomStatuses('asset', updated);
+  }
+
+  function addOrderStatus() {
+    const val = newOrderStatus.toUpperCase().trim().replace(/\s+/g, '_');
+    if (!val) return;
+    const allExisting = [
+      ...ORDER_STATUSES.map((s) => s.value),
+      ...customOrderStatuses,
+    ];
+    if (allExisting.includes(val)) {
+      toast.error(`"${val}" already exists`);
+      return;
+    }
+    const updated = [...customOrderStatuses, val];
+    setCustomOrderStatuses(updated);
+    setNewOrderStatus('');
+    saveCustomStatuses('order', updated);
+  }
+
+  function removeOrderStatus(val: string) {
+    const updated = customOrderStatuses.filter((s) => s !== val);
+    setCustomOrderStatuses(updated);
+    saveCustomStatuses('order', updated);
+  }
 
   return (
     <div className="space-y-6">
@@ -86,28 +179,40 @@ export default function ManageListsPage() {
           Manage Lists
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          View the configurable dropdown values used throughout the platform.
-          Code-defined lists are read-only; database-driven lists can be edited
-          from their respective pages.
+          View and manage the configurable dropdown values used throughout the
+          platform. Built-in statuses are read-only; you can add custom statuses
+          below each list.
         </p>
       </div>
 
       {/* Asset Statuses */}
-      <ListSection
+      <EditableStatusSection
         icon={<Tag className="h-4 w-4" />}
         title="Asset Statuses"
         description="Status values for inventory assets"
-        readOnly
-        items={ASSET_STATUSES}
+        defaultItems={ASSET_STATUSES}
+        customItems={customAssetStatuses}
+        loading={listsLoading}
+        saving={savingAsset}
+        newValue={newAssetStatus}
+        onNewValueChange={setNewAssetStatus}
+        onAdd={addAssetStatus}
+        onRemove={removeAssetStatus}
       />
 
       {/* Order Statuses */}
-      <ListSection
+      <EditableStatusSection
         icon={<ShoppingCart className="h-4 w-4" />}
         title="Order Statuses"
         description="Status values for purchase orders"
-        readOnly
-        items={ORDER_STATUSES}
+        defaultItems={ORDER_STATUSES}
+        customItems={customOrderStatuses}
+        loading={listsLoading}
+        saving={savingOrder}
+        newValue={newOrderStatus}
+        onNewValueChange={setNewOrderStatus}
+        onAdd={addOrderStatus}
+        onRemove={removeOrderStatus}
       />
 
       {/* User Roles */}
@@ -138,7 +243,7 @@ export default function ManageListsPage() {
               Database
             </Badge>
           </div>
-          <Link href="/settings/data-sources">
+          <Link href="/inventory/categories">
             <Button variant="outline" size="sm" className="gap-1.5">
               <ExternalLink className="h-3.5 w-3.5" />
               Manage Categories
@@ -180,6 +285,136 @@ export default function ManageListsPage() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Editable status section with add/remove for custom values          */
+/* ------------------------------------------------------------------ */
+
+function EditableStatusSection({
+  icon,
+  title,
+  description,
+  defaultItems,
+  customItems,
+  loading,
+  saving,
+  newValue,
+  onNewValueChange,
+  onAdd,
+  onRemove,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  defaultItems: { value: string; label: string; description: string }[];
+  customItems: string[];
+  loading: boolean;
+  saving: boolean;
+  newValue: string;
+  onNewValueChange: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (v: string) => void;
+}) {
+  return (
+    <div className="card-base rounded-xl p-6">
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">{icon}</span>
+        <h3 className="text-sm font-semibold">{title}</h3>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+
+      <div className="mt-4 divide-y rounded-lg border">
+        {/* Default (built-in) statuses */}
+        {defaultItems.map((item) => (
+          <div
+            key={item.value}
+            className="flex items-center gap-3 px-4 py-2.5"
+          >
+            <code className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+              {item.value}
+            </code>
+            <div className="min-w-0 flex-1">
+              <span className="text-sm font-medium">{item.label}</span>
+              <p className="text-xs text-muted-foreground">
+                {item.description}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-xs gap-1 shrink-0">
+              <Info className="h-3 w-3" />
+              Built-in
+            </Badge>
+          </div>
+        ))}
+
+        {/* Custom statuses */}
+        {loading ? (
+          <div className="px-4 py-3">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          customItems.map((val) => (
+            <div
+              key={val}
+              className="flex items-center gap-3 px-4 py-2.5"
+            >
+              <code className="mt-0.5 shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                {val}
+              </code>
+              <div className="min-w-0 flex-1">
+                <span className="text-sm font-medium">
+                  {val.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).replace(/\B\w+/g, (w) => w.toLowerCase())}
+                </span>
+                <p className="text-xs text-muted-foreground">Custom status</p>
+              </div>
+              <Badge variant="secondary" className="text-xs shrink-0">
+                Custom
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => onRemove(val)}
+                className="text-destructive hover:text-destructive shrink-0"
+                title="Remove custom status"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Add new custom status */}
+      <div className="mt-3 flex items-center gap-2 max-w-md">
+        <Input
+          value={newValue}
+          onChange={(e) => onNewValueChange(e.target.value)}
+          placeholder="New custom status (e.g., QUARANTINE)"
+          className="flex-1 text-sm"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              onAdd();
+            }
+          }}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onAdd}
+          disabled={!newValue.trim() || saving}
+          className="gap-1.5"
+        >
+          {saving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Plus className="h-3.5 w-3.5" />
+          )}
+          Add
+        </Button>
       </div>
     </div>
   );
