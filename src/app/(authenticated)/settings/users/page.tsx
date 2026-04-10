@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { ROLE_DEFINITIONS, PERMISSIONS, PERMISSION_LABELS } from '@/lib/roles';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Users,
   Plus,
@@ -182,13 +184,26 @@ export default function UsersSettingsPage() {
   return (
     <div className="space-y-6">
       <div className="card-base rounded-xl p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="section-title flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Users & Roles
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <h2 className="section-title flex items-center gap-2 mb-4">
+          <Users className="h-5 w-5" />
+          Users & Roles
+        </h2>
+
+        <Tabs defaultValue="users">
+          <TabsList className="mb-6">
+            <TabsTrigger value="users" className="gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2">
+              <Shield className="h-4 w-4" />
+              Roles
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
               Manage team members and their access levels.
             </p>
           </div>
@@ -261,9 +276,9 @@ export default function UsersSettingsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ORG_ADMIN">Org Admin</SelectItem>
-                      <SelectItem value="MANAGER">Manager</SelectItem>
-                      <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
+                      {ROLE_DEFINITIONS.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -279,7 +294,6 @@ export default function UsersSettingsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
-        </div>
 
         {/* Users table */}
         <div className="mt-6 overflow-x-auto">
@@ -387,7 +401,6 @@ export default function UsersSettingsPage() {
             </table>
           )}
         </div>
-      </div>
 
       {/* Edit Role Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -405,6 +418,7 @@ export default function UsersSettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 <SelectItem value="ORG_ADMIN">Org Admin</SelectItem>
                 <SelectItem value="MANAGER">Manager</SelectItem>
                 <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
@@ -418,6 +432,60 @@ export default function UsersSettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      </TabsContent>
+
+          <TabsContent value="roles">
+            <p className="text-sm text-muted-foreground mb-4">
+              Each role has predefined access levels. Assign roles to users in the Users tab.
+            </p>
+
+            {/* Role cards */}
+            <div className="grid gap-4 sm:grid-cols-2 mb-6">
+              {ROLE_DEFINITIONS.map((role) => (
+                <div key={role.value} className="rounded-lg border p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="h-4 w-4 text-brand-green" />
+                    <h3 className="font-medium">{role.label}</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{role.description}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Permissions matrix */}
+            <h3 className="section-title mb-3">Permissions Matrix</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-2 pr-4 text-left font-medium text-muted-foreground">Permission</th>
+                    {ROLE_DEFINITIONS.map((r) => (
+                      <th key={r.value} className="py-2 px-3 text-center font-medium">{r.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {PERMISSIONS.map((perm) => (
+                    <tr key={perm} className="border-b last:border-0">
+                      <td className="py-2 pr-4">{PERMISSION_LABELS[perm]}</td>
+                      {ROLE_DEFINITIONS.map((role) => (
+                        <td key={role.value} className="py-2 px-3 text-center">
+                          {role.permissions[perm] ? (
+                            <span className="inline-block h-5 w-5 rounded bg-brand-green/20 text-brand-green text-xs leading-5">&#10003;</span>
+                          ) : (
+                            <span className="inline-block h-5 w-5 rounded bg-muted text-muted-foreground text-xs leading-5">-</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
