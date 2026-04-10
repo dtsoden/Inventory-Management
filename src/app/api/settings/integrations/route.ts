@@ -55,6 +55,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(body);
     }
 
+    if (category === 'smtp_check') {
+      const smtpHost = await prisma.systemConfig.findUnique({
+        where: { key: 'smtp_host' },
+      });
+      return NextResponse.json({
+        success: true,
+        data: { smtpConfigured: !!smtpHost?.value },
+      });
+    }
+
+    if (category === 'password_policy') {
+      const fields = ['pw_min_length', 'pw_require_uppercase', 'pw_require_lowercase', 'pw_require_numbers', 'pw_require_special'];
+      const configs = await prisma.systemConfig.findMany({
+        where: { key: { in: fields } },
+      });
+      const map = Object.fromEntries(configs.map((c) => [c.key, c.value]));
+
+      const body: ApiResponse = {
+        success: true,
+        data: {
+          minLength: map['pw_min_length'] || '8',
+          requireUppercase: map['pw_require_uppercase'] || 'true',
+          requireLowercase: map['pw_require_lowercase'] || 'true',
+          requireNumbers: map['pw_require_numbers'] || 'true',
+          requireSpecialChars: map['pw_require_special'] || 'false',
+        },
+      };
+      return NextResponse.json(body);
+    }
+
     // Integrations category
     const openaiConfig = await prisma.systemConfig.findUnique({
       where: { key: 'openai_api_key' },
@@ -181,6 +211,36 @@ export async function PUT(req: NextRequest) {
           action: 'UPDATE',
           entity: 'Settings',
           details: 'Updated security settings',
+        },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    if (category === 'password_policy') {
+      const policyFields: Record<string, string> = {
+        pw_min_length: settings.minLength || '8',
+        pw_require_uppercase: settings.requireUppercase || 'true',
+        pw_require_lowercase: settings.requireLowercase || 'true',
+        pw_require_numbers: settings.requireNumbers || 'true',
+        pw_require_special: settings.requireSpecialChars || 'false',
+      };
+
+      for (const [key, value] of Object.entries(policyFields)) {
+        await prisma.systemConfig.upsert({
+          where: { key },
+          create: { key, value, category: 'password_policy', description: `Password policy: ${key}` },
+          update: { value },
+        });
+      }
+
+      await prisma.auditLog.create({
+        data: {
+          tenantId: ctx.tenantId,
+          userId: ctx.userId,
+          action: 'UPDATE',
+          entity: 'Settings',
+          details: 'Updated password policy',
         },
       });
 

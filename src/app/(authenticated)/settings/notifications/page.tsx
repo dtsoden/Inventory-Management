@@ -58,13 +58,19 @@ export default function NotificationSettingsPage() {
   const [prefs, setPrefs] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings/notifications')
-      .then((res) => res.json())
-      .then((res) => {
-        if (res.success && res.data) {
-          setPrefs(res.data);
+    Promise.all([
+      fetch('/api/settings/notifications').then((r) => r.json()),
+      fetch('/api/settings/integrations?category=smtp_check').then((r) => r.json()),
+    ])
+      .then(([notifRes, smtpRes]) => {
+        if (notifRes.success && notifRes.data) {
+          setPrefs(notifRes.data);
+        }
+        if (smtpRes.success && smtpRes.data?.smtpConfigured) {
+          setSmtpConfigured(true);
         }
       })
       .catch(console.error)
@@ -122,9 +128,21 @@ export default function NotificationSettingsPage() {
           Choose which notifications you want to receive.
         </p>
 
-        <div className="mt-6 space-y-4">
+        {!smtpConfigured && (
+          <div className="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-50 p-4 dark:bg-yellow-950/20">
+            <div className="flex items-center gap-2 text-sm font-medium text-yellow-800 dark:text-yellow-400">
+              <Mail className="h-4 w-4" />
+              SMTP Not Configured
+            </div>
+            <p className="mt-1 text-xs text-yellow-700 dark:text-yellow-500">
+              Email notifications require SMTP settings. Configure SMTP in Settings &gt; Integrations to enable notifications.
+            </p>
+          </div>
+        )}
+
+        <div className={`mt-6 space-y-4 ${!smtpConfigured ? 'opacity-50 pointer-events-none' : ''}`}>
           {NOTIFICATION_CATEGORIES.map((cat) => {
-            const isEnabled = prefs[cat.key] ?? false;
+            const isEnabled = smtpConfigured ? (prefs[cat.key] ?? false) : false;
             const isSaving = saving === cat.key;
 
             return (
@@ -150,7 +168,7 @@ export default function NotificationSettingsPage() {
                   <Switch
                     checked={isEnabled}
                     onCheckedChange={(checked) => handleToggle(cat.key, checked)}
-                    disabled={isSaving}
+                    disabled={isSaving || !smtpConfigured}
                   />
                 </div>
               </div>
