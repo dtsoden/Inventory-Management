@@ -14,6 +14,9 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "Inventory Management Platform",
   description: "Inventory management platform",
+  icons: {
+    icon: '/api/favicon',
+  },
 };
 
 export default function RootLayout({

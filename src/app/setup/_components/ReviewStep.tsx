@@ -72,6 +72,37 @@ export function ReviewStep({ data, onChange, onSubmit, isSubmitting }: ReviewSte
       <div className="space-y-1">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
+          Branding
+        </h3>
+        <ReviewRow label="App Name" value={data.brandingAppName || 'Inventory Management Platform'} />
+        <div className="flex justify-between py-1">
+          <span className="text-sm text-muted-foreground">Primary Color (Light)</span>
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <span
+              className="inline-block h-4 w-4 rounded border"
+              style={{ backgroundColor: data.brandingPrimaryColorLight || '#7ed321' }}
+            />
+            {data.brandingPrimaryColorLight || '#7ed321'}
+          </span>
+        </div>
+        <div className="flex justify-between py-1">
+          <span className="text-sm text-muted-foreground">Primary Color (Dark)</span>
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <span
+              className="inline-block h-4 w-4 rounded border"
+              style={{ backgroundColor: data.brandingPrimaryColorDark || '#7ed321' }}
+            />
+            {data.brandingPrimaryColorDark || '#7ed321'}
+          </span>
+        </div>
+        <ReviewRow label="Logo" value={data.brandingLogoPreview ? 'Uploaded' : 'None'} />
+      </div>
+
+      <Separator />
+
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
           Integrations
         </h3>
         <ReviewRow label="OpenAI API Key" value={maskValue(data.openaiApiKey)} />

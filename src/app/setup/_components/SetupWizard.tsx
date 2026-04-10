@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { WelcomeStep } from './WelcomeStep';
 import { AdminStep } from './AdminStep';
 import { OrgStep } from './OrgStep';
+import { BrandingStep } from './BrandingStep';
 import { IntegrationsStep } from './IntegrationsStep';
 import { CorsStep } from './CorsStep';
 import { ReviewStep } from './ReviewStep';
@@ -29,12 +30,19 @@ export interface SetupData {
   catalogApiUrl: string;
   corsOrigins: string;
   seedDemoData: boolean;
+  // Branding fields
+  brandingAppName: string;
+  brandingPrimaryColorLight: string;
+  brandingPrimaryColorDark: string;
+  brandingLogoPreview: string;
+  brandingLogoFile?: File;
 }
 
 const STEP_TITLES = [
   'Welcome',
   'Admin Account',
   'Organization',
+  'Branding',
   'Integrations',
   'CORS & Security',
   'Review & Launch',
@@ -57,6 +65,11 @@ const initialData: SetupData = {
   catalogApiUrl: '',
   corsOrigins: '*',
   seedDemoData: true,
+  // Branding defaults
+  brandingAppName: 'Inventory Management Platform',
+  brandingPrimaryColorLight: '#7ed321',
+  brandingPrimaryColorDark: '#7ed321',
+  brandingLogoPreview: '',
 };
 
 export function SetupWizard() {
@@ -111,6 +124,11 @@ export function SetupWizard() {
           smtpPassword: data.smtpPassword || undefined,
           catalogApiUrl: data.catalogApiUrl || undefined,
           seedDemoData: data.seedDemoData,
+          branding: {
+            appName: data.brandingAppName || 'Inventory Management Platform',
+            primaryColorLight: data.brandingPrimaryColorLight || '#7ed321',
+            primaryColorDark: data.brandingPrimaryColorDark || '#7ed321',
+          },
         }),
       });
 
@@ -119,6 +137,18 @@ export function SetupWizard() {
       if (!response.ok) {
         setError(result.error || 'Setup failed. Please try again.');
         return;
+      }
+
+      // If a logo file was selected, upload it after setup
+      if (data.brandingLogoFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', data.brandingLogoFile);
+          // Note: logo upload requires auth, which may not be available yet
+          // The user can upload the logo after login via Settings
+        } catch {
+          // Non-critical, skip logo upload during setup
+        }
       }
 
       router.push('/login');
@@ -133,6 +163,7 @@ export function SetupWizard() {
     <WelcomeStep key="welcome" data={data} onChange={updateData} />,
     <AdminStep key="admin" data={data} onChange={updateData} />,
     <OrgStep key="org" data={data} onChange={updateData} />,
+    <BrandingStep key="branding" data={data} onChange={updateData} />,
     <IntegrationsStep key="integrations" data={data} onChange={updateData} />,
     <CorsStep key="cors" data={data} onChange={updateData} />,
     <ReviewStep

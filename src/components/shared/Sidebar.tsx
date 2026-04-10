@@ -73,7 +73,7 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="flex h-16 items-center border-b px-4">
+        <div className="flex items-center border-b px-4" style={{ minHeight: '50px', paddingTop: '5px', paddingBottom: '5px' }}>
           <Logo collapsed={collapsed} />
         </div>
 

@@ -4,6 +4,8 @@ import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { EncryptionService } from '@/lib/encryption/EncryptionService';
 import { ConfigService } from '@/lib/config/ConfigService';
+import { mergeBrandingIntoSettings, DEFAULT_BRANDING } from '@/lib/branding';
+import { insertSampleData } from '@/lib/seed/sample-data';
 
 interface SetupPayload {
   passphrase: string;
@@ -22,6 +24,11 @@ interface SetupPayload {
   smtpPassword?: string;
   smtpFrom?: string;
   catalogApiUrl?: string;
+  branding?: {
+    appName?: string;
+    primaryColorLight?: string;
+    primaryColorDark?: string;
+  };
 }
 
 const REQUIRED_FIELDS: (keyof SetupPayload)[] = [
@@ -159,11 +166,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 6. Create Tenant
+    // 6. Create Tenant with branding settings
+    const brandingData = {
+      ...DEFAULT_BRANDING,
+      appName: payload.branding?.appName || DEFAULT_BRANDING.appName,
+      primaryColorLight: payload.branding?.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
+      primaryColorDark: payload.branding?.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
+    };
+    const settingsJson = mergeBrandingIntoSettings(null, brandingData);
+
     const tenant = await prisma.tenant.create({
       data: {
         name: payload.orgName,
         slug: payload.orgSlug,
+        settings: settingsJson,
         isActive: true,
       },
     });
