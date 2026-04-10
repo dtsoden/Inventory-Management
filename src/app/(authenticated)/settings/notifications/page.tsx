@@ -122,13 +122,24 @@ export default function NotificationSettingsPage() {
   return (
     <div className="space-y-6">
       <div className="card-base rounded-xl p-6">
-        <h2 className="section-title flex items-center gap-2">
-          <Bell className="h-5 w-5" />
-          Notification Preferences
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Choose which notifications you want to receive.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="section-title flex items-center gap-2">
+              <Bell className="h-5 w-5" />
+              Notification Preferences
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Choose which notifications you want to receive.
+            </p>
+          </div>
+          <Link
+            href="/settings/integrations?tab=smtp"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            title="SMTP Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
+        </div>
 
         {!smtpConfigured && (
           <div className="mt-4 rounded-lg border border-yellow-500/30 bg-yellow-50 p-4 dark:bg-yellow-950/20">
@@ -140,7 +151,7 @@ export default function NotificationSettingsPage() {
               Email notifications require SMTP settings to be configured.
             </p>
             <Link
-              href="/settings/integrations"
+              href="/settings/integrations?tab=smtp"
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-yellow-800 dark:text-yellow-400 border border-yellow-500/30 hover:bg-yellow-100 dark:hover:bg-yellow-950/40 transition-colors"
             >
               <Settings className="h-4 w-4" />

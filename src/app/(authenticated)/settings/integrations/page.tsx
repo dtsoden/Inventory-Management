@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Plug,
   Eye,
@@ -151,6 +152,9 @@ function applyConversion(value: unknown, conversion: string): unknown {
 /* ------------------------------------------------------------------ */
 
 export default function IntegrationsSettingsPage() {
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'ai';
+
   // AI tab state
   const [openaiKey, setOpenaiKey] = useState('');
   const [openaiKeyMasked, setOpenaiKeyMasked] = useState('');
@@ -608,7 +612,7 @@ export default function IntegrationsSettingsPage() {
         }
       `}</style>
 
-      <Tabs defaultValue="ai" className="integrations-tabs space-y-6">
+      <Tabs defaultValue={defaultTab} className="integrations-tabs space-y-6">
         <TabsList className="border-b w-full justify-start rounded-none bg-transparent p-0">
           <TabsTrigger value="ai" className={tabTriggerBase}>
             AI Integration
