@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { SetupWizard } from './_components/SetupWizard';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SetupPage() {
   let isComplete = false;
 
