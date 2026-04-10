@@ -20,6 +20,7 @@ export default async function AuthenticatedLayout({
 
   const user = session.user as { tenantId?: string };
   let brandingCss = '';
+  let serverBranding: Record<string, unknown> | null = null;
 
   if (user.tenantId) {
     try {
@@ -31,7 +32,7 @@ export default async function AuthenticatedLayout({
         redirect('/api/auth/signout?callbackUrl=/login');
       }
 
-      // Read branding server-side so colors are in the initial HTML (no flash)
+      // Read branding server-side so colors + logo are in the initial HTML (no flash)
       const branding = parseBranding(tenant.settings as string | null);
       const lightColor = branding.primaryColorLight || '#7ed321';
       const darkColor = branding.primaryColorDark || '#7ed321';
@@ -40,6 +41,14 @@ export default async function AuthenticatedLayout({
         :root { --brand-green: ${lightColor}; }
         .dark { --brand-green: ${darkColor}; }
       `;
+
+      serverBranding = {
+        appName: branding.appName,
+        logoUrl: branding.logoUrl,
+        primaryColorLight: branding.primaryColorLight,
+        primaryColorDark: branding.primaryColorDark,
+        faviconUrl: branding.faviconUrl,
+      };
     } catch {
       redirect('/api/auth/signout?callbackUrl=/login');
     }
@@ -48,6 +57,8 @@ export default async function AuthenticatedLayout({
   return (
     <>
       {brandingCss && <style dangerouslySetInnerHTML={{ __html: brandingCss }} />}
+      {/* Pass server-loaded branding as a script so BrandingProvider picks it up immediately */}
+      <script dangerouslySetInnerHTML={{ __html: `window.__BRANDING__=${JSON.stringify(serverBranding)};` }} />
       <AppShell>{children}</AppShell>
     </>
   );

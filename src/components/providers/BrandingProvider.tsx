@@ -83,9 +83,23 @@ function applyBrandingColors(branding: TenantBranding, isDark: boolean) {
   }
 }
 
+function getInitialBranding(): TenantBranding {
+  if (typeof window !== 'undefined' && (window as any).__BRANDING__) {
+    const b = (window as any).__BRANDING__;
+    return {
+      appName: b.appName || DEFAULT_BRANDING.appName,
+      logoUrl: b.logoUrl || null,
+      primaryColorLight: b.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
+      primaryColorDark: b.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
+      faviconUrl: b.faviconUrl || null,
+    };
+  }
+  return DEFAULT_BRANDING;
+}
+
 export function BrandingProvider({ children }: { children: ReactNode }) {
-  const [branding, setBranding] = useState<TenantBranding>(DEFAULT_BRANDING);
-  const [loading, setLoading] = useState(true);
+  const [branding, setBranding] = useState<TenantBranding>(getInitialBranding);
+  const [loading, setLoading] = useState(false);
   const { resolvedTheme } = useTheme();
 
   const fetchBranding = useCallback(async () => {
