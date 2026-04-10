@@ -212,9 +212,19 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const orderId = params.id as string;
 
+  interface AuditEntry {
+    id: string;
+    action: string;
+    entity: string;
+    details: string | null;
+    createdAt: string;
+    userName?: string;
+  }
+
   const [order, setOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
 
   // Inline editing for draft orders
   const [editingLines, setEditingLines] = useState(false);
@@ -236,9 +246,24 @@ export default function OrderDetailPage() {
     }
   }, [orderId]);
 
+  const fetchAuditLog = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/audit-log?entity=PurchaseOrder&entityId=${orderId}`
+      );
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAuditEntries(json.data.data ?? []);
+      }
+    } catch {
+      // Audit log is supplementary; do not block the page on failure
+    }
+  }, [orderId]);
+
   useEffect(() => {
     fetchOrder();
-  }, [fetchOrder]);
+    fetchAuditLog();
+  }, [fetchOrder, fetchAuditLog]);
 
   const performAction = async (
     action: string,
@@ -269,8 +294,7 @@ export default function OrderDetailPage() {
   };
 
   const addLineItem = async () => {
-    // We would need a catalog item selector; for now, this is a placeholder
-    // In a full implementation, this would open a dialog
+    router.push(`/procurement/orders/${orderId}/edit`);
   };
 
   const downloadPdf = () => {
@@ -707,57 +731,107 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* Audit Trail placeholder */}
+      {/* Activity Log from AuditLog */}
       <Card className="mt-6" size="sm">
         <CardHeader>
           <CardTitle>Activity Log</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3 text-sm">
-            <div className="flex items-start gap-3">
-              <div className="mt-1 size-2 rounded-full bg-primary" />
-              <div>
-                <p className="font-medium">Order created</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatDateTime(order.createdAt)}
-                  {order.orderedBy
-                    ? ` by ${order.orderedBy.firstName} ${order.orderedBy.lastName}`
-                    : ''}
-                </p>
-              </div>
-            </div>
-            {order.orderedAt && (
-              <div className="flex items-start gap-3">
-                <div className="mt-1 size-2 rounded-full bg-blue-500" />
-                <div>
-                  <p className="font-medium">Order submitted</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(order.orderedAt)}
-                  </p>
+            {auditEntries.length > 0 ? (
+              auditEntries.map((entry) => {
+                const dotColor =
+                  entry.action === 'CREATE'
+                    ? 'bg-primary'
+                    : entry.action === 'DELETE'
+                      ? 'bg-destructive'
+                      : 'bg-blue-500';
+                const label =
+                  entry.action === 'CREATE'
+                    ? 'Created'
+                    : entry.action === 'DELETE'
+                      ? 'Deleted'
+                      : entry.action === 'UPDATE'
+                        ? 'Updated'
+                        : entry.action;
+                const userName = entry.userName || '';
+                const detailText = entry.details
+                  ? (() => {
+                      try {
+                        const parsed = JSON.parse(entry.details);
+                        return typeof parsed === 'string'
+                          ? parsed
+                          : parsed.action || parsed.message || '';
+                      } catch {
+                        return entry.details;
+                      }
+                    })()
+                  : '';
+
+                return (
+                  <div key={entry.id} className="flex items-start gap-3">
+                    <div className={`mt-1 size-2 rounded-full ${dotColor}`} />
+                    <div>
+                      <p className="font-medium">
+                        {label}
+                        {detailText ? ` - ${detailText}` : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateTime(entry.createdAt)}
+                        {userName ? ` by ${userName}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                <div className="flex items-start gap-3">
+                  <div className="mt-1 size-2 rounded-full bg-primary" />
+                  <div>
+                    <p className="font-medium">Order created</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateTime(order.createdAt)}
+                      {order.orderedBy
+                        ? ` by ${order.orderedBy.firstName} ${order.orderedBy.lastName}`
+                        : ''}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-            {isCancelled && (
-              <div className="flex items-start gap-3">
-                <div className="mt-1 size-2 rounded-full bg-destructive" />
-                <div>
-                  <p className="font-medium">Order cancelled</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(order.updatedAt)}
-                  </p>
-                </div>
-              </div>
-            )}
-            {isReceived && (
-              <div className="flex items-start gap-3">
-                <div className="mt-1 size-2 rounded-full bg-emerald-500" />
-                <div>
-                  <p className="font-medium">Order received</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(order.updatedAt)}
-                  </p>
-                </div>
-              </div>
+                {order.orderedAt && (
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 size-2 rounded-full bg-blue-500" />
+                    <div>
+                      <p className="font-medium">Order submitted</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateTime(order.orderedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isCancelled && (
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 size-2 rounded-full bg-destructive" />
+                    <div>
+                      <p className="font-medium">Order cancelled</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateTime(order.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {isReceived && (
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 size-2 rounded-full bg-emerald-500" />
+                    <div>
+                      <p className="font-medium">Order received</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateTime(order.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </CardContent>

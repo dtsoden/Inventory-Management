@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plug, Eye, EyeOff, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { Plug, Eye, EyeOff, ExternalLink, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -202,8 +203,15 @@ export default function IntegrationsSettingsPage() {
 
           <div className="rounded-lg border border-dashed border-muted-foreground/25 p-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Drag-and-drop field mapping will be available in a future release.
+              Configure external data sources and field mappings in Data Sources settings.
             </p>
+            <Link
+              href="/settings/data-sources"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm font-medium hover:bg-muted hover:text-foreground transition-all"
+            >
+              Go to Data Sources
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     const pageSize = parseInt(url.searchParams.get('pageSize') ?? '25', 10);
     const action = url.searchParams.get('action') || undefined;
     const entity = url.searchParams.get('entity') || undefined;
+    const entityId = url.searchParams.get('entityId') || undefined;
     const userId = url.searchParams.get('userId') || undefined;
     const dateFrom = url.searchParams.get('dateFrom') || undefined;
     const dateTo = url.searchParams.get('dateTo') || undefined;
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
 
     if (action) where.action = action;
     if (entity) where.entity = entity;
+    if (entityId) where.entityId = entityId;
     if (userId) where.userId = userId;
     if (dateFrom || dateTo) {
       const createdAt: Record<string, Date> = {};

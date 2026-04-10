@@ -249,13 +249,12 @@ export default function ReceivingFlowPage() {
     setTagging(true);
 
     try {
-      // We need an itemId; for now, we use a placeholder approach.
-      // In a real flow, we'd match extraction names to catalog items.
+      // Send the extracted item name so the server can resolve it to a real catalog item
       const res = await fetch(`/api/receiving/${sessionId}/tag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          itemId: 'placeholder', // Would be matched from catalog
+          itemName: item.name,
           assetTag: assetTagInput.trim(),
           serialNumber: serialInput.trim() || undefined,
         }),
