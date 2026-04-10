@@ -25,15 +25,13 @@ interface ProfileData {
 }
 
 const roleLabelMap: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ORG_ADMIN: 'Org Admin',
+  ADMIN: 'Admin',
   MANAGER: 'Manager',
   WAREHOUSE_STAFF: 'Warehouse Staff',
 };
 
 const roleVariantMap: Record<string, 'default' | 'secondary' | 'outline'> = {
-  SUPER_ADMIN: 'default',
-  ORG_ADMIN: 'default',
+  ADMIN: 'default',
   MANAGER: 'secondary',
   WAREHOUSE_STAFF: 'outline',
 };

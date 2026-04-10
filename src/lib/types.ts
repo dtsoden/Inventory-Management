@@ -1,7 +1,6 @@
 // Role & Status Enums (type-safe string unions)
 export const UserRole = {
-  SUPER_ADMIN: 'SUPER_ADMIN',
-  ORG_ADMIN: 'ORG_ADMIN',
+  ADMIN: 'ADMIN',
   MANAGER: 'MANAGER',
   WAREHOUSE_STAFF: 'WAREHOUSE_STAFF',
 } as const;

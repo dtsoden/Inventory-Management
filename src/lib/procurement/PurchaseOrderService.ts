@@ -120,8 +120,7 @@ export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
   ): Promise<PurchaseOrderWithLines> {
     // Only managers and above can approve
     if (
-      ctx.role !== 'SUPER_ADMIN' &&
-      ctx.role !== 'ORG_ADMIN' &&
+      ctx.role !== 'ADMIN' &&
       ctx.role !== 'MANAGER'
     ) {
       throw new ForbiddenError('Only managers or above can approve orders');

@@ -60,15 +60,13 @@ interface UserRecord {
 }
 
 const roleLabels: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  ORG_ADMIN: 'Org Admin',
+  ADMIN: 'Admin',
   MANAGER: 'Manager',
   WAREHOUSE_STAFF: 'Warehouse Staff',
 };
 
 const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  SUPER_ADMIN: 'destructive',
-  ORG_ADMIN: 'default',
+  ADMIN: 'default',
   MANAGER: 'secondary',
   WAREHOUSE_STAFF: 'outline',
 };
@@ -84,7 +82,7 @@ function getInitials(name: string): string {
 
 function RolesManager() {
   const [roles, setRoles] = useState<RoleDefinition[]>([]);
-  const [selectedRoleKey, setSelectedRoleKey] = useState<string>('SUPER_ADMIN');
+  const [selectedRoleKey, setSelectedRoleKey] = useState<string>('ADMIN');
   const [editLabel, setEditLabel] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editPermissions, setEditPermissions] = useState<Record<string, boolean>>({});
@@ -128,7 +126,7 @@ function RolesManager() {
     }
   }, [selectedRoleKey, roles]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isSuperAdmin = selectedRoleKey === 'SUPER_ADMIN';
+  const isAdmin = selectedRoleKey === 'ADMIN';
   const isDefaultRole = DEFAULT_ROLE_KEYS.includes(selectedRoleKey);
 
   function handlePermissionToggle(perm: string) {

@@ -44,13 +44,13 @@ const navItems: NavItem[] = [
     label: 'Audit Log',
     href: '/audit-log',
     icon: ClipboardList,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN],
+    roles: [UserRole.ADMIN],
   },
   {
     label: 'Settings',
     href: '/settings',
     icon: Settings,
-    roles: [UserRole.SUPER_ADMIN, UserRole.ORG_ADMIN],
+    roles: [UserRole.ADMIN],
   },
 ];
 

@@ -49,15 +49,9 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
 
 export const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
-    value: UserRole.SUPER_ADMIN,
-    label: 'Super Admin',
-    description: 'Full platform access including tenant management',
-    permissions: Object.fromEntries(PERMISSIONS.map((p) => [p, true])),
-  },
-  {
-    value: UserRole.ORG_ADMIN,
-    label: 'Org Admin',
-    description: 'Full organization access including settings and users',
+    value: UserRole.ADMIN,
+    label: 'Admin',
+    description: 'Full access to everything including settings and users',
     permissions: Object.fromEntries(PERMISSIONS.map((p) => [p, true])),
   },
   {
@@ -115,7 +109,7 @@ export function getDefaultRoles(): RoleDefinition[] {
 /**
  * Default role keys that cannot be deleted.
  */
-export const DEFAULT_ROLE_KEYS = ['SUPER_ADMIN', 'ORG_ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
+export const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
 
 /**
  * Get a role definition by its value.

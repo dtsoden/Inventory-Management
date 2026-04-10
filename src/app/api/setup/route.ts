@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         email: payload.adminEmail,
         name: `${payload.adminFirstName} ${payload.adminLastName}`,
         passwordHash: hashedPassword,
-        role: 'SUPER_ADMIN',
+        role: 'ADMIN',
         isActive: true,
       },
     });

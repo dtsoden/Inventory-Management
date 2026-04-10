@@ -39,7 +39,7 @@ describe('BaseService', () => {
   const ctx: TenantContext = {
     tenantId: 'tenant-1',
     userId: 'user-1',
-    role: 'ORG_ADMIN',
+    role: 'ADMIN',
   };
 
   beforeEach(() => {

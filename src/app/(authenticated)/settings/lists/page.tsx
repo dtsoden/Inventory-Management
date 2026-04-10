@@ -43,8 +43,7 @@ const ORDER_STATUSES = [
 ];
 
 const USER_ROLES = [
-  { value: 'SUPER_ADMIN', label: 'Super Admin', description: 'Full platform access including tenant management' },
-  { value: 'ORG_ADMIN', label: 'Org Admin', description: 'Full organization access including settings and users' },
+  { value: 'ADMIN', label: 'Admin', description: 'Full access to everything including settings and users' },
   { value: 'MANAGER', label: 'Manager', description: 'Can manage vendors, create and approve orders, view reports' },
   { value: 'WAREHOUSE_STAFF', label: 'Warehouse Staff', description: 'Can receive shipments, scan assets, and view inventory' },
 ];
