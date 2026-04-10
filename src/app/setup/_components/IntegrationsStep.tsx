@@ -28,21 +28,6 @@ export function IntegrationsStep({ data, onChange }: IntegrationsStepProps) {
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="catalogApiUrl">Catalog API URL</Label>
-        <Input
-          id="catalogApiUrl"
-          type="url"
-          placeholder="https://api.example.com/catalog (optional)"
-          value={data.catalogApiUrl}
-          onChange={(e) => onChange({ catalogApiUrl: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">
-          Optional. External catalog service endpoint for product data
-          synchronization.
-        </p>
-      </div>
-
       <Separator />
 
       <div className="space-y-4">
