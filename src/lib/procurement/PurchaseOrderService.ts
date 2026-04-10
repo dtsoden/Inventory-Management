@@ -65,7 +65,7 @@ export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
           : undefined,
       },
       include: {
-        orderedBy: { select: { id: true, firstName: true, lastName: true } },
+        orderedBy: { select: { id: true, name: true, email: true } },
         lines: {
           include: { item: { select: { id: true, name: true, sku: true } } },
         },

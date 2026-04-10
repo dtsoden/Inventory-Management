@@ -15,7 +15,7 @@ export interface PurchaseOrderWithLines {
   totalAmount: number;
   createdAt: Date;
   updatedAt: Date;
-  orderedBy?: { id: string; firstName: string; lastName: string } | null;
+  orderedBy?: { id: string; name: string; email: string } | null;
   lines?: PurchaseOrderLineRecord[];
 }
 
@@ -47,7 +47,7 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrderWithLin
     return this.findAll(tenantId, {
       ...options,
       include: {
-        orderedBy: { select: { id: true, firstName: true, lastName: true } },
+        orderedBy: { select: { id: true, name: true, email: true } },
         lines: {
           include: { item: { select: { id: true, name: true, sku: true } } },
         },
@@ -61,7 +61,7 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrderWithLin
     id: string
   ): Promise<PurchaseOrderWithLines | null> {
     return this.findById(tenantId, id, {
-      orderedBy: { select: { id: true, firstName: true, lastName: true } },
+      orderedBy: { select: { id: true, name: true, email: true } },
       lines: {
         include: { item: { select: { id: true, name: true, sku: true } } },
       },
