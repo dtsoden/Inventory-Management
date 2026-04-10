@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       });
 
       const platformConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'platform.name' },
+        where: { key: 'platform_name' },
       });
 
       const body: ApiResponse = {
@@ -39,10 +39,10 @@ export async function GET(req: NextRequest) {
 
     if (category === 'security') {
       const corsConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'cors.origins' },
+        where: { key: 'cors_origins' },
       });
       const sessionConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'session.timeout' },
+        where: { key: 'session_timeout' },
       });
 
       const body: ApiResponse = {
@@ -57,11 +57,11 @@ export async function GET(req: NextRequest) {
 
     // Integrations category
     const openaiConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'openai.api_key' },
+      where: { key: 'openai_api_key' },
     });
 
     const catalogConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'catalog.api_url' },
+      where: { key: 'catalog_api_url' },
     });
 
     // Mask the API key for display
@@ -123,9 +123,9 @@ export async function PUT(req: NextRequest) {
 
       if (settings.platformName) {
         await prisma.systemConfig.upsert({
-          where: { key: 'platform.name' },
+          where: { key: 'platform_name' },
           create: {
-            key: 'platform.name',
+            key: 'platform_name',
             value: settings.platformName,
             category: 'platform',
             description: 'Platform display name',
@@ -150,9 +150,9 @@ export async function PUT(req: NextRequest) {
     if (category === 'security') {
       if (settings.corsOrigins !== undefined) {
         await prisma.systemConfig.upsert({
-          where: { key: 'cors.origins' },
+          where: { key: 'cors_origins' },
           create: {
-            key: 'cors.origins',
+            key: 'cors_origins',
             value: settings.corsOrigins,
             category: 'cors',
             description: 'Allowed CORS origins',
@@ -163,9 +163,9 @@ export async function PUT(req: NextRequest) {
 
       if (settings.sessionTimeout !== undefined) {
         await prisma.systemConfig.upsert({
-          where: { key: 'session.timeout' },
+          where: { key: 'session_timeout' },
           create: {
-            key: 'session.timeout',
+            key: 'session_timeout',
             value: settings.sessionTimeout,
             category: 'platform',
             description: 'Session timeout in minutes',
@@ -190,9 +190,9 @@ export async function PUT(req: NextRequest) {
     // Integrations category
     if (settings.openaiApiKey) {
       await prisma.systemConfig.upsert({
-        where: { key: 'openai.api_key' },
+        where: { key: 'openai_api_key' },
         create: {
-          key: 'openai.api_key',
+          key: 'openai_api_key',
           value: settings.openaiApiKey,
           isSecret: true,
           category: 'ai',
@@ -204,9 +204,9 @@ export async function PUT(req: NextRequest) {
 
     if (settings.catalogApiUrl !== undefined) {
       await prisma.systemConfig.upsert({
-        where: { key: 'catalog.api_url' },
+        where: { key: 'catalog_api_url' },
         create: {
-          key: 'catalog.api_url',
+          key: 'catalog_api_url',
           value: settings.catalogApiUrl,
           category: 'integrations',
           description: 'External catalog API URL',

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // Get OpenAI API key from system config
     const openaiConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'openai.api_key' },
+      where: { key: 'openai_api_key' },
     });
 
     const openaiApiKey = openaiConfig?.value || process.env.OPENAI_API_KEY;
