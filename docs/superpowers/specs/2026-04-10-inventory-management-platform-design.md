@@ -662,7 +662,13 @@ On first launch (no database exists or database is empty), the application prese
 - External catalog API URL (optional)
 - All values encrypted with the master key before storage
 
-**Step 5: Review & Launch**
+**Step 5: CORS & Network Configuration**
+- Default: wide open (`*`) for initial development/testing
+- Option to specify allowed origins (comma-separated domain list)
+- Applies uniformly across all API routes, WebSocket connections, and file serving
+- Stored in SystemConfig, consumed by a single CORS middleware (not per-route)
+
+**Step 6: Review & Launch**
 - Summary of configuration
 - "Launch" button initializes the system
 - Seeds demo data if user opts in
@@ -721,6 +727,66 @@ The master encryption key is derived from the admin passphrase using Argon2id an
 - HTTPS enforced (container should sit behind a TLS-terminating reverse proxy)
 - Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, CSP
 - CORS locked to configured origins
+
+---
+
+## Architecture Principles (Code + Design)
+
+### Object-Oriented Code Architecture
+
+All code follows strict OOP with centralized models. Write once, inherit many times.
+
+**Base Classes (Server-Side):**
+- `BaseService` - Common CRUD operations, tenant scoping, audit logging. Every domain service (VendorService, AssetService, etc.) extends this.
+- `BaseRepository` - Prisma query patterns with automatic tenant filtering, pagination, sorting. Domain repositories inherit and add specific queries.
+- `BaseController` (API route handlers) - Request validation, auth checks, error formatting. Domain handlers extend with specific logic.
+- `EncryptionService` (singleton) - All encrypt/decrypt operations flow through one service. No scattered crypto calls.
+- `ConfigService` (singleton) - Single source for all SystemConfig reads. Every part of the app gets config from here, never directly from DB or env.
+
+**Base Classes (Client-Side):**
+- `BaseApiClient` - Centralized fetch wrapper with auth headers, error handling, tenant context. All API calls flow through this.
+- `BaseFormHandler` - Form state, validation, submission patterns. Individual forms extend with field definitions.
+
+**Cross-Cutting Middleware Stack (applied once, inherited everywhere):**
+1. CORS (from SystemConfig, single middleware)
+2. Auth verification
+3. Tenant context injection
+4. Rate limiting
+5. Audit logging
+6. Error handling
+
+No module re-implements any of these. They are composed once in the middleware chain.
+
+### Object-Oriented Design Architecture (CSS/UI)
+
+The same principle applies to design. Write once, inherit many times.
+
+**Design Token Hierarchy:**
+```
+tokens/
+  base.css          - Root variables: colors, spacing, radii, shadows, typography
+  components.css    - Component-level tokens that reference base tokens
+  themes/
+    light.css       - Light theme overrides (just variable reassignments)
+    dark.css        - Dark theme overrides (just variable reassignments)
+```
+
+**Tailwind Configuration:**
+- All design tokens defined in `tailwind.config.ts` extending the theme
+- Custom utility classes for recurring patterns (e.g., `.card-base`, `.input-base`, `.btn-base`)
+- No magic numbers in components; everything references the token system
+
+**ShadCN Component Customization:**
+- Base ShadCN components customized once in `components/ui/`
+- Application-level compound components (e.g., `DataTable`, `StatusBadge`, `KPICard`) compose from these base components
+- Page-level components compose from application-level components
+- Three-tier hierarchy: ShadCN primitives -> App components -> Page compositions
+
+**CSS Rules:**
+- No inline styles except for truly dynamic values (e.g., calculated positions)
+- No duplicate color/spacing values; always reference tokens
+- Component variants via Tailwind's `cva` (class-variance-authority), not conditional class strings
+- Responsive behavior defined once per component via Tailwind breakpoints, not overridden per-page
 
 ---
 
