@@ -60,6 +60,7 @@ model Tenant {
   auditLogs          AuditLog[]
   notifications      Notification[]
   chatConversations  ChatConversation[]
+  externalDataSources ExternalDataSource[]
 }
 
 // ---------------------------------------------------------------------------
@@ -325,6 +326,29 @@ model ChatConversation {
 
   @@index([tenantId])
   @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// External Data Sources
+// ---------------------------------------------------------------------------
+
+model ExternalDataSource {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  name                String
+  apiUrl              String
+  apiHeaders          String?  // JSON string of headers (auth tokens etc)
+  fieldMapping        String   // JSON string of field mappings
+  dataTypeConversions String?  // JSON of conversion rules
+  isActive            Boolean  @default(true)
+  lastSyncAt          DateTime?
+  lastSyncStatus      String?  // SUCCESS, FAILED, NEVER
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
 }
 
 model ChatMessage {

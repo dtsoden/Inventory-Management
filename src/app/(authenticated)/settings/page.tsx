@@ -256,21 +256,6 @@ export default function OrganizationSettingsPage() {
             </p>
           </div>
 
-          <div>
-            <Label htmlFor="platformName">Platform Name</Label>
-            <Input
-              id="platformName"
-              className="mt-1.5"
-              value={settings.platformName}
-              onChange={(e) =>
-                setSettings((s) => ({ ...s, platformName: e.target.value }))
-              }
-              placeholder="Shane Inventory"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Displayed in the header and browser title.
-            </p>
-          </div>
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -300,7 +285,7 @@ export default function OrganizationSettingsPage() {
               placeholder="Inventory Management Platform"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Displayed in the sidebar and browser tab.
+              Displayed in the browser tab. The sidebar logo area is reserved for your logo image only.
             </p>
           </div>
 
