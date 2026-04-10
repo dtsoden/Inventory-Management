@@ -1,7 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import type { SetupData } from './SetupWizard';
 
 interface AdminStepProps {
@@ -10,6 +13,8 @@ interface AdminStepProps {
 }
 
 export function AdminStep({ data, onChange }: AdminStepProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <div className="space-y-6">
       <p className="text-muted-foreground text-sm">
@@ -51,14 +56,31 @@ export function AdminStep({ data, onChange }: AdminStepProps) {
 
       <div className="space-y-2">
         <Label htmlFor="adminPassword">Password</Label>
-        <Input
-          id="adminPassword"
-          type="password"
-          placeholder="Minimum 8 characters"
-          value={data.adminPassword}
-          onChange={(e) => onChange({ adminPassword: e.target.value })}
-          minLength={8}
-        />
+        <div className="relative">
+          <Input
+            id="adminPassword"
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Minimum 8 characters"
+            value={data.adminPassword}
+            onChange={(e) => onChange({ adminPassword: e.target.value })}
+            minLength={8}
+            className="pr-10"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
+        </div>
         {data.adminPassword.length > 0 && data.adminPassword.length < 8 && (
           <p className="text-xs text-destructive">
             Password must be at least 8 characters.
