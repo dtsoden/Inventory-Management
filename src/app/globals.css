@@ -45,9 +45,33 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* PowerApps911 brand colors */
+    --color-brand-green: var(--brand-green);
+    --color-brand-green-light: var(--brand-green-light);
+    --color-brand-green-dark: var(--brand-green-dark);
+    --color-brand-purple: var(--brand-purple);
+    --color-brand-purple-light: var(--brand-purple-light);
+    --color-brand-purple-dark: var(--brand-purple-dark);
+    --color-brand-dark: var(--brand-dark);
+    --color-brand-light: var(--brand-light);
+
+    /* Custom animations */
+    --animate-fade-in: fade-in 0.3s ease-out;
+    --animate-slide-in-right: slide-in-right 0.3s ease-out;
 }
 
 :root {
+    /* PowerApps911 brand tokens */
+    --brand-green: #7ed321;
+    --brand-green-light: #a4e65c;
+    --brand-green-dark: #5ea318;
+    --brand-purple: #742873;
+    --brand-purple-light: #9a4e99;
+    --brand-purple-dark: #501a50;
+    --brand-dark: #191919;
+    --brand-light: #f5f5f5;
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -83,6 +107,16 @@
 }
 
 .dark {
+    /* PowerApps911 brand tokens (dark mode adjustments) */
+    --brand-green: #8ee03a;
+    --brand-green-light: #b0f06a;
+    --brand-green-dark: #6ab81e;
+    --brand-purple: #9a4e99;
+    --brand-purple-light: #b870b7;
+    --brand-purple-dark: #742873;
+    --brand-dark: #f5f5f5;
+    --brand-light: #1e1e1e;
+
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
@@ -116,6 +150,27 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Custom keyframes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -126,4 +181,46 @@
   html {
     @apply font-sans;
     }
+}
+
+@layer components {
+  /* Card base component */
+  .card-base {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow duration-200;
+  }
+  .card-base:hover {
+    @apply shadow-md;
+  }
+
+  /* Pill-shaped button modifier */
+  .btn-pill {
+    @apply rounded-full px-6;
+  }
+
+  /* Status badge variants */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .status-badge-available {
+    background-color: var(--brand-green);
+    color: #fff;
+  }
+  .status-badge-warning {
+    @apply bg-amber-500 text-white;
+  }
+  .status-badge-info {
+    background-color: var(--brand-purple);
+    color: #fff;
+  }
+
+  /* Page and section headers */
+  .page-header {
+    @apply mb-8 flex items-center justify-between;
+  }
+  .page-title {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  .section-title {
+    @apply text-xl font-semibold tracking-tight;
+  }
 }
