@@ -119,21 +119,24 @@ export default function CreateOrderPage() {
 
   const fetchVendors = useCallback(async () => {
     try {
-      const res = await fetch('/api/procurement/items?pageSize=200');
-      const json = await res.json();
-      if (json.success) {
-        const items: CatalogItem[] = json.data.data ?? [];
-        // Derive unique vendor names as a fallback
-        const vendorMap = new Map<string, Vendor>();
-        items.forEach((item) => {
-          if (item.vendorId) {
-            vendorMap.set(item.vendorId, {
-              id: item.vendorId,
-              name: item.vendorId,
-            });
-          }
-        });
-        setVendors(Array.from(vendorMap.values()));
+      // Fetch actual vendors from the vendors API
+      const vendorRes = await fetch('/api/vendors?pageSize=200');
+      const vendorJson = await vendorRes.json();
+      if (vendorJson.success) {
+        const vendorList = vendorJson.data?.data ?? vendorJson.data ?? [];
+        setVendors(
+          vendorList.map((v: { id: string; name: string }) => ({
+            id: v.id,
+            name: v.name,
+          })),
+        );
+      }
+
+      // Also fetch catalog items
+      const itemRes = await fetch('/api/procurement/items?pageSize=200');
+      const itemJson = await itemRes.json();
+      if (itemJson.success) {
+        const items: CatalogItem[] = itemJson.data?.data ?? itemJson.data ?? [];
         setCatalogItems(items);
       }
     } catch {
