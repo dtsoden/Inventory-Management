@@ -1,0 +1,334 @@
+// Prisma schema for Shane Inventory Management Platform
+// Uses SQLite with UUID-based IDs for all models (except SetupState)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------------------------------------------------------------------------
+// Setup and Configuration
+// ---------------------------------------------------------------------------
+
+// Singleton row that holds first-run encryption salt and admin password hash
+model SetupState {
+  id             Int      @id @default(1)
+  isSetupComplete Boolean @default(false)
+  encryptionSalt String?
+  adminPasswordHash String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// Key-value store for system-wide configuration
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  isSecret  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Multi-tenancy
+// ---------------------------------------------------------------------------
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users              User[]
+  vendors            Vendor[]
+  itemCategories     ItemCategory[]
+  items              Item[]
+  purchaseOrders     PurchaseOrder[]
+  assets             Asset[]
+  receivingSessions  ReceivingSession[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  chatConversations  ChatConversation[]
+}
+
+// ---------------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------------
+
+// Role is stored as a String field. Valid values:
+// SUPER_ADMIN, ORG_ADMIN, MANAGER, WAREHOUSE_STAFF
+model User {
+  id            String   @id @default(uuid())
+  tenantId      String
+  email         String   @unique
+  name          String
+  passwordHash  String
+  role          String   @default("WAREHOUSE_STAFF")
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant             Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  chatConversations  ChatConversation[]
+  chatMessages       ChatMessage[]
+  purchaseOrders     PurchaseOrder[]
+
+  @@index([tenantId])
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Vendors and Categories
+// ---------------------------------------------------------------------------
+
+model Vendor {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  website     String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  Item[]
+
+  @@index([tenantId])
+}
+
+model ItemCategory {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  description String?
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent   ItemCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ItemCategory[] @relation("CategoryHierarchy")
+  items    Item[]
+
+  @@index([tenantId])
+  @@index([parentId])
+}
+
+// ---------------------------------------------------------------------------
+// Items (catalog entries)
+// ---------------------------------------------------------------------------
+
+model Item {
+  id              String   @id @default(uuid())
+  tenantId        String
+  name            String
+  description     String?
+  sku             String?
+  vendorId        String?
+  categoryId      String?
+  unitCost        Float?
+  reorderPoint    Int      @default(0)
+  reorderQuantity Int      @default(0)
+  imageUrl        String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  vendor             Vendor?             @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  category           ItemCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  purchaseOrderLines PurchaseOrderLine[]
+  assets             Asset[]
+
+  @@index([tenantId])
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([sku])
+}
+
+// ---------------------------------------------------------------------------
+// Purchase Orders
+// ---------------------------------------------------------------------------
+
+// Status workflow: DRAFT -> SUBMITTED -> APPROVED -> ORDERED -> PARTIALLY_RECEIVED -> RECEIVED -> CANCELLED
+model PurchaseOrder {
+  id             String   @id @default(uuid())
+  tenantId       String
+  orderNumber    String
+  status         String   @default("DRAFT")
+  vendorName     String?
+  notes          String?
+  orderedById    String?
+  orderedAt      DateTime?
+  expectedDate   DateTime?
+  totalAmount    Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderedBy User?               @relation(fields: [orderedById], references: [id], onDelete: SetNull)
+  lines     PurchaseOrderLine[]
+
+  @@index([tenantId])
+  @@index([orderNumber])
+  @@index([status])
+}
+
+model PurchaseOrderLine {
+  id              String   @id @default(uuid())
+  purchaseOrderId String
+  itemId          String
+  quantity        Int
+  unitCost        Float
+  receivedQty     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  item          Item          @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([itemId])
+}
+
+// ---------------------------------------------------------------------------
+// Assets (individual inventory instances)
+// ---------------------------------------------------------------------------
+
+// Status lifecycle: AVAILABLE -> CHECKED_OUT -> IN_REPAIR -> RETIRED -> DISPOSED
+model Asset {
+  id            String   @id @default(uuid())
+  tenantId      String
+  itemId        String
+  assetTag      String?
+  serialNumber  String?
+  status        String   @default("AVAILABLE")
+  condition     String?
+  location      String?
+  assignedTo    String?
+  notes         String?
+  purchasedAt   DateTime?
+  warrantyUntil DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@index([status])
+  @@index([assetTag])
+}
+
+// ---------------------------------------------------------------------------
+// Receiving
+// ---------------------------------------------------------------------------
+
+model ReceivingSession {
+  id              String   @id @default(uuid())
+  tenantId        String
+  purchaseOrderId String?
+  receivedById    String?
+  notes           String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+}
+
+// ---------------------------------------------------------------------------
+// Audit and Notifications
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  details    String?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+// ---------------------------------------------------------------------------
+// Chat (AI assistant conversations)
+// ---------------------------------------------------------------------------
+
+model ChatConversation {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  userId         String?
+  role           String
+  content        String
+  metadata       String?
+  createdAt      DateTime @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+}
