@@ -243,18 +243,23 @@ model Asset {
 // ---------------------------------------------------------------------------
 
 model ReceivingSession {
-  id              String   @id @default(uuid())
-  tenantId        String
-  purchaseOrderId String?
-  receivedById    String?
-  notes           String?
-  completedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  tenantId            String
+  purchaseOrderId     String?
+  receivedById        String?
+  packingSlipImageUrl String?
+  aiExtractionData    String?
+  status              String   @default("IN_PROGRESS")
+  notes               String?
+  isActive            Boolean  @default(true)
+  completedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
+  @@index([status])
 }
 
 // ---------------------------------------------------------------------------
