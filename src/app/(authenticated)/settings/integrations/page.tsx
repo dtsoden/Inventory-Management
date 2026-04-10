@@ -175,9 +175,23 @@ export default function IntegrationsSettingsPage() {
               Connect to an external catalog system for item synchronization.
             </p>
           </div>
-          <Badge variant={catalogUrl ? 'default' : 'secondary'}>
-            {catalogUrl ? 'Configured' : 'Not Set'}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {!catalogUrl && (
+              <button
+                onClick={() => {
+                  setCatalogUrl('https://dummyjson.com/products?limit=20&select=title,price,description,category,sku,thumbnail');
+                  toast.success('Sample API URL loaded. Hit Save to apply.');
+                }}
+                className="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+                style={{ backgroundColor: 'var(--brand-green, #7ed321)', color: '#fff' }}
+              >
+                Try Sample
+              </button>
+            )}
+            <Badge variant={catalogUrl ? 'default' : 'secondary'}>
+              {catalogUrl ? 'Configured' : 'Not Set'}
+            </Badge>
+          </div>
         </div>
 
         <div className="mt-6 max-w-lg space-y-4">
@@ -199,6 +213,9 @@ export default function IntegrationsSettingsPage() {
                 {saving === 'catalog' ? 'Saving...' : 'Save'}
               </Button>
             </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Any REST API that returns a JSON array of products. The sample uses DummyJSON, a free test API with realistic product data.
+            </p>
           </div>
 
           <div className="rounded-lg border border-dashed border-muted-foreground/25 p-6 text-center">
