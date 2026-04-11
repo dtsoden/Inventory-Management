@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Vendor {
   id: string;
@@ -117,7 +118,7 @@ export default function CreateOrderPage() {
 
   // Fetch vendors
   useEffect(() => {
-    fetch('/api/procurement/items?pageSize=1')
+    apiFetch('/api/procurement/items?pageSize=1')
       .then((r) => r.json())
       .catch(() => null);
     // Fetch actual vendors from a generic endpoint
@@ -127,7 +128,7 @@ export default function CreateOrderPage() {
   const fetchVendors = useCallback(async () => {
     try {
       // Fetch actual vendors from the vendors API
-      const vendorRes = await fetch('/api/vendors?pageSize=200');
+      const vendorRes = await apiFetch('/api/vendors?pageSize=200');
       const vendorJson = await vendorRes.json();
       if (vendorJson.success) {
         const vendorList = vendorJson.data?.data ?? vendorJson.data ?? [];
@@ -140,7 +141,7 @@ export default function CreateOrderPage() {
       }
 
       // Also fetch catalog items
-      const itemRes = await fetch('/api/procurement/items?pageSize=200');
+      const itemRes = await apiFetch('/api/procurement/items?pageSize=200');
       const itemJson = await itemRes.json();
       if (itemJson.success) {
         const items: CatalogItem[] = itemJson.data?.data ?? itemJson.data ?? [];
@@ -216,7 +217,7 @@ export default function CreateOrderPage() {
         })),
       };
 
-      const res = await fetch('/api/procurement/orders', {
+      const res = await apiFetch('/api/procurement/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -232,7 +233,7 @@ export default function CreateOrderPage() {
 
       if (!asDraft) {
         // Submit for approval
-        await fetch(`/api/procurement/orders/${orderId}/submit`, {
+        await apiFetch(`/api/procurement/orders/${orderId}/submit`, {
           method: 'POST',
         });
       }

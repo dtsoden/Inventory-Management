@@ -15,6 +15,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface NotificationCategory {
   key: string;
@@ -64,8 +65,8 @@ export default function NotificationSettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/settings/notifications').then((r) => r.json()),
-      fetch('/api/settings/integrations?category=smtp_check').then((r) => r.json()),
+      apiFetch('/api/settings/notifications').then((r) => r.json()),
+      apiFetch('/api/settings/integrations?category=smtp_check').then((r) => r.json()),
     ])
       .then(([notifRes, smtpRes]) => {
         if (notifRes.success && notifRes.data) {
@@ -85,7 +86,7 @@ export default function NotificationSettingsPage() {
     setSaving(key);
 
     try {
-      const res = await fetch('/api/settings/notifications', {
+      const res = await apiFetch('/api/settings/notifications', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedPrefs),

@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatContext } from '@/components/providers/ChatProvider';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface QuickSuggestion {
   label: string;
@@ -117,7 +118,7 @@ export function ChatPanel() {
   );
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/assistant/suggestions')
+    apiFetch('/api/assistant/suggestions')
       .then((res) => res.json())
       .then((json) => {
         if (cancelled) return;

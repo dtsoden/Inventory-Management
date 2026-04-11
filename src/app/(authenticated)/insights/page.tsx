@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Snapshot {
   generatedAt: string;
@@ -152,7 +153,7 @@ export default function InsightsPage() {
   const fetchSnapshot = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/insights/snapshot?period=${period}`);
+      const res = await apiFetch(`/api/insights/snapshot?period=${period}`);
       const json = await res.json();
       if (json.success) setSnapshot(json.data);
     } finally {
@@ -163,7 +164,7 @@ export default function InsightsPage() {
   const generateObservations = useCallback(async () => {
     setObserving(true);
     try {
-      const res = await fetch('/api/insights/observe', {
+      const res = await apiFetch('/api/insights/observe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ period, mode }),

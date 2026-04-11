@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useTheme } from 'next-themes';
 import type { TenantBranding } from '@/lib/branding';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface BrandingContextValue {
   branding: TenantBranding;
@@ -118,7 +119,7 @@ export function BrandingProvider({ children, initialBranding }: BrandingProvider
 
   const fetchBranding = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/branding');
+      const res = await apiFetch('/api/settings/branding');
       const json = await res.json();
       if (json.success && json.data) {
         setBranding(json.data);

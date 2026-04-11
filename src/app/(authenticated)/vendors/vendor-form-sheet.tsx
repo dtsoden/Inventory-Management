@@ -15,6 +15,7 @@ import {
   SheetFooter,
 } from '@/components/ui/sheet';
 import { Loader2 } from 'lucide-react';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Vendor {
   id: string;
@@ -124,7 +125,7 @@ export function VendorFormSheet({
       const url = isEditing ? `/api/vendors/${vendor.id}` : '/api/vendors';
       const method = isEditing ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

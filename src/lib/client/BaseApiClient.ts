@@ -163,6 +163,25 @@ export class BaseApiClient {
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   }
+
+  /**
+   * Drop-in replacement for the global fetch function. Same signature
+   * (path, init) so existing call sites can be migrated by changing the
+   * import alone. The single point of difference: same-origin credentials
+   * are forced on so the NextAuth cookie always travels.
+   *
+   * This is the migration target for the 120 raw fetch() calls scattered
+   * across React components. Eventually those call sites should adopt the
+   * typed get/post/put helpers above, but apiFetch is the safe first
+   * step that routes every client request through this class without
+   * changing the response-handling logic at the call site.
+   */
+  async fetchRaw(path: string, init?: RequestInit): Promise<Response> {
+    return fetch(this.url(path), {
+      credentials: 'same-origin',
+      ...init,
+    });
+  }
 }
 
 /**
@@ -171,3 +190,18 @@ export class BaseApiClient {
  *   const vendors = await apiClient.get<Vendor[]>('/vendors');
  */
 export const apiClient = new BaseApiClient();
+
+/**
+ * Drop-in replacement for the global fetch function. The migration
+ * target for components that still use raw fetch.
+ *
+ *   import { apiFetch } from '@/lib/client/BaseApiClient';
+ *   const res = await apiFetch('/api/vendors');
+ *   const json = await res.json();
+ */
+export function apiFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
+  return apiClient.fetchRaw(path, init);
+}

@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Message {
   id: string;
@@ -116,7 +117,7 @@ export default function AssistantPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/assistant/suggestions')
+    apiFetch('/api/assistant/suggestions')
       .then((r) => r.json())
       .then((j) => {
         if (cancelled) return;
@@ -157,7 +158,7 @@ export default function AssistantPage() {
   async function loadConversations() {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/assistant/conversations');
+      const res = await apiFetch('/api/assistant/conversations');
       const data = await res.json();
       if (data.success) {
         setConversations(data.data);
@@ -173,7 +174,7 @@ export default function AssistantPage() {
     setActiveId(id);
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/assistant/conversations/${id}`);
+      const res = await apiFetch(`/api/assistant/conversations/${id}`);
       const data = await res.json();
       if (data.success) {
         setMessages(data.data.messages || []);
@@ -187,7 +188,7 @@ export default function AssistantPage() {
 
   async function handleNewConversation() {
     try {
-      const res = await fetch('/api/assistant/conversations', {
+      const res = await apiFetch('/api/assistant/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -205,7 +206,7 @@ export default function AssistantPage() {
 
   async function handleDelete(id: string) {
     try {
-      await fetch(`/api/assistant/conversations/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/assistant/conversations/${id}`, { method: 'DELETE' });
       setConversations((prev) => prev.filter((c) => c.id !== id));
       if (activeId === id) {
         setActiveId(null);
@@ -223,7 +224,7 @@ export default function AssistantPage() {
     let convoId = activeId;
     if (!convoId) {
       try {
-        const res = await fetch('/api/assistant/conversations', {
+        const res = await apiFetch('/api/assistant/conversations', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
@@ -251,7 +252,7 @@ export default function AssistantPage() {
     setIsSending(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/assistant/conversations/${convoId}/messages`,
         {
           method: 'POST',
@@ -312,7 +313,7 @@ export default function AssistantPage() {
     setIsSending(true);
 
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/assistant/conversations/${convoId}/messages`,
         {
           method: 'POST',

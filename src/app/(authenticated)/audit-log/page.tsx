@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface AuditEntry {
   id: string;
@@ -104,7 +105,7 @@ export default function AuditLogPage() {
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
 
-      const res = await fetch(`/api/audit-log?${params}`);
+      const res = await apiFetch(`/api/audit-log?${params}`);
       const json = await res.json();
       if (json.success) {
         setData(json.data);

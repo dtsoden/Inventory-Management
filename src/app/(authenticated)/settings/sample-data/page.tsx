@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface SampleDataCounts {
   vendors: number;
@@ -53,7 +54,7 @@ export default function SampleDataPage() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/sample-data');
+      const res = await apiFetch('/api/settings/sample-data');
       const json = await res.json();
       if (json.success) {
         setStatus(json.data);
@@ -72,7 +73,7 @@ export default function SampleDataPage() {
   async function handleInsert() {
     setProcessing(true);
     try {
-      const res = await fetch('/api/settings/sample-data', { method: 'POST' });
+      const res = await apiFetch('/api/settings/sample-data', { method: 'POST' });
       const json = await res.json();
       if (json.success) {
         toast.success('Sample data loaded successfully.');
@@ -91,7 +92,7 @@ export default function SampleDataPage() {
     setShowConfirmDialog(false);
     setProcessing(true);
     try {
-      const res = await fetch('/api/settings/sample-data', { method: 'DELETE' });
+      const res = await apiFetch('/api/settings/sample-data', { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         toast.success('Sample data removed successfully.');
