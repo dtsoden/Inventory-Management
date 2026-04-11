@@ -423,8 +423,8 @@ export default function OrderDetailPage() {
           <ArrowLeft className="size-4" data-icon="inline-start" />
           Back to Orders
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-8">
+          <div className="min-w-0">
             <h1 className="page-title flex items-center gap-3">
               <ShoppingCart className="size-6" />
               {order.orderNumber}
@@ -435,7 +435,7 @@ export default function OrderDetailPage() {
               {formatDateTime(order.createdAt)}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 gap-2">
             {/* PDF download, only meaningful once the PO has been approved.
                 Drafts shouldn't be exported. */}
             {(isApproved || isSubmitted || order.status === 'PARTIALLY_RECEIVED' || isReceived) && (
