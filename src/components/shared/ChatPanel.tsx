@@ -12,11 +12,16 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useChatContext } from '@/components/providers/ChatProvider';
 
-const QUICK_ACTIONS = [
-  'Any laptops available?',
-  'Show pending orders',
-  "What's in stock?",
-  'Dashboard stats',
+interface QuickSuggestion {
+  label: string;
+  prompt: string;
+}
+
+const FALLBACK_SUGGESTIONS: QuickSuggestion[] = [
+  { label: 'Show pending orders', prompt: 'Show me all purchase orders in PENDING_APPROVAL status.' },
+  { label: 'What needs reordering?', prompt: 'Which items are at or below their reorder point?' },
+  { label: 'Vendor summary', prompt: 'Give me a summary of our active vendors.' },
+  { label: 'Recent activity', prompt: 'What were the last 10 changes to inventory and purchase orders?' },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -105,6 +110,29 @@ export function ChatPanel() {
     }
   }, [messages, isSending]);
 
+  // Dynamic quick-action suggestions sourced from real tenant data so
+  // they make sense whether the company sells laptops or carburetors.
+  const [quickSuggestions, setQuickSuggestions] = useState<QuickSuggestion[]>(
+    FALLBACK_SUGGESTIONS,
+  );
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/assistant/suggestions')
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          setQuickSuggestions(json.data);
+        }
+      })
+      .catch(() => {
+        // keep fallbacks
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Auto-focus input when panel opens
   useEffect(() => {
     if (isPanelOpen) {
@@ -156,7 +184,7 @@ export function ChatPanel() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-green/10">
               <Bot className="h-4 w-4 text-brand-green" />
             </div>
-            <SheetTitle className="text-base">AI Assistant</SheetTitle>
+            <SheetTitle className="text-base">Inventory Management Assistant</SheetTitle>
           </div>
           <Button
             variant="ghost"
@@ -183,13 +211,14 @@ export function ChatPanel() {
                   Ask me about inventory, orders, vendors, or asset management.
                 </p>
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
-                  {QUICK_ACTIONS.map((action) => (
+                  {quickSuggestions.map((s) => (
                     <button
-                      key={action}
-                      onClick={() => handleQuickAction(action)}
+                      key={s.label}
+                      onClick={() => handleQuickAction(s.prompt)}
+                      title={s.prompt}
                       className="rounded-full border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand-green hover:text-brand-green"
                     >
-                      {action}
+                      {s.label}
                     </button>
                   ))}
                 </div>

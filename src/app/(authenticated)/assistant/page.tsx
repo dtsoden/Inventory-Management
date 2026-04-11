@@ -29,12 +29,17 @@ interface Conversation {
   messages?: { content: string; createdAt: string }[];
 }
 
-const QUICK_ACTIONS = [
-  'Any laptops available?',
-  'Show pending orders',
-  "What's in stock?",
-  'Dashboard stats',
-  'List active vendors',
+interface QuickSuggestion {
+  label: string;
+  prompt: string;
+}
+
+const FALLBACK_SUGGESTIONS: QuickSuggestion[] = [
+  { label: 'Show pending orders', prompt: 'Show me all purchase orders in PENDING_APPROVAL status.' },
+  { label: 'What needs reordering?', prompt: 'Which items are at or below their reorder point?' },
+  { label: 'Vendor summary', prompt: 'Give me a summary of our active vendors.' },
+  { label: 'Recent activity', prompt: 'What were the last 10 changes to inventory and purchase orders?' },
+  { label: 'Open commitments', prompt: 'Show me approved purchase orders that have not yet been received.' },
 ];
 
 function timeAgo(dateStr: string): string {
@@ -105,6 +110,27 @@ export default function AssistantPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [quickSuggestions, setQuickSuggestions] = useState<QuickSuggestion[]>(
+    FALLBACK_SUGGESTIONS,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/assistant/suggestions')
+      .then((r) => r.json())
+      .then((j) => {
+        if (cancelled) return;
+        if (j?.success && Array.isArray(j.data) && j.data.length > 0) {
+          setQuickSuggestions(j.data);
+        }
+      })
+      .catch(() => {
+        // keep fallbacks
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -414,10 +440,8 @@ export default function AssistantPage() {
             <Bot className="h-4 w-4 text-brand-green" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold">AI Assistant</h1>
-            <p className="text-xs text-muted-foreground">
-              Inventory management copilot
-            </p>
+            <h1 className="text-sm font-semibold">Inventory Management Assistant</h1>
+            <p className="text-xs text-muted-foreground">Powered by AI</p>
           </div>
         </div>
 
@@ -427,10 +451,10 @@ export default function AssistantPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green/10">
               <Sparkles className="h-8 w-8 text-brand-green" />
             </div>
-            <h2 className="mt-5 text-xl font-semibold">AI Assistant</h2>
+            <h2 className="mt-5 text-xl font-semibold">Inventory Management Assistant</h2>
             <p className="mt-2 max-w-sm text-center text-sm text-muted-foreground">
-              Your intelligent inventory management copilot. Ask questions about
-              assets, orders, vendors, and more.
+              Powered by AI. Ask questions about assets, orders, vendors,
+              and more.
             </p>
             <Button
               onClick={handleNewConversation}
@@ -440,13 +464,14 @@ export default function AssistantPage() {
               New Conversation
             </Button>
             <div className="mt-8 flex flex-wrap justify-center gap-2">
-              {QUICK_ACTIONS.map((action) => (
+              {quickSuggestions.map((s) => (
                 <button
-                  key={action}
-                  onClick={() => handleQuickAction(action)}
+                  key={s.label}
+                  onClick={() => handleQuickAction(s.prompt)}
+                  title={s.prompt}
                   className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand-green hover:text-brand-green"
                 >
-                  {action}
+                  {s.label}
                 </button>
               ))}
             </div>
@@ -471,13 +496,14 @@ export default function AssistantPage() {
                     management.
                   </p>
                   <div className="mt-6 flex flex-wrap justify-center gap-2">
-                    {QUICK_ACTIONS.map((action) => (
+                    {quickSuggestions.map((s) => (
                       <button
-                        key={action}
-                        onClick={() => handleQuickAction(action)}
+                        key={s.label}
+                        onClick={() => handleQuickAction(s.prompt)}
+                        title={s.prompt}
                         className="rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-brand-green hover:text-brand-green"
                       >
-                        {action}
+                        {s.label}
                       </button>
                     ))}
                   </div>

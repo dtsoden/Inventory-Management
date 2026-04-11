@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare, Sparkles } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -89,6 +89,21 @@ export function Header() {
           </Button>
         )}
 
+        {/* Insights icon, role-gated to procurement managers */}
+        {(user?.role === 'ADMIN' ||
+          user?.role === 'MANAGER' ||
+          user?.role === 'PURCHASING_MANAGER') && (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Insights"
+            title="Insights"
+            onClick={() => router.push('/insights')}
+          >
+            <Sparkles className="h-5 w-5 text-brand-green" />
+          </Button>
+        )}
+
         {/* Help / Documentation dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger
@@ -149,47 +164,68 @@ export function Header() {
             )}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80">
-            <div className="flex items-center justify-between px-3 py-2">
-              <p className="text-sm font-medium">Notifications</p>
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <CheckCheck className="h-3 w-3" />
-                  Mark all read
-                </button>
-              )}
-            </div>
-            <DropdownMenuSeparator />
-            {notifications.length === 0 ? (
-              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                No notifications
-              </div>
-            ) : (
-              notifications.slice(0, 5).map((notif) => (
-                <DropdownMenuItem
-                  key={notif.id}
-                  className="flex flex-col items-start gap-1 px-3 py-2"
-                  onSelect={() => {
-                    if (!notif.isRead) markAsRead(notif.id);
-                    if (notif.link) router.push(notif.link);
-                  }}
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    {!notif.isRead && (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-brand-green" />
+            {(() => {
+              const unread = notifications.filter((n) => !n.isRead);
+              const visible = unread.slice(0, 5);
+              const extra = unread.length - visible.length;
+              return (
+                <>
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <p className="text-sm font-medium">Notifications</p>
+                    {unread.length > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <CheckCheck className="h-3 w-3" />
+                        Mark all read
+                      </button>
                     )}
-                    <span className="font-medium text-sm truncate flex-1">
-                      {notif.title}
-                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2 pl-4">
-                    {notif.message}
-                  </p>
-                </DropdownMenuItem>
-              ))
-            )}
+                  <DropdownMenuSeparator />
+                  {unread.length === 0 ? (
+                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      No unread notifications
+                    </div>
+                  ) : (
+                    <>
+                      {visible.map((notif) => (
+                        <DropdownMenuItem
+                          key={notif.id}
+                          className="flex flex-col items-start gap-1 px-3 py-2"
+                          onSelect={() => {
+                            if (!notif.isRead) markAsRead(notif.id);
+                            if (notif.link) router.push(notif.link);
+                          }}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <span className="h-2 w-2 shrink-0 rounded-full bg-brand-green" />
+                            <span className="font-medium text-sm truncate flex-1">
+                              {notif.title}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground line-clamp-2 pl-4">
+                            {notif.message}
+                          </p>
+                        </DropdownMenuItem>
+                      ))}
+                      {extra > 0 && (
+                        <div className="px-3 py-1.5 text-center text-xs text-muted-foreground">
+                          + {extra} more unread
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="justify-center text-sm font-medium text-brand-green"
+                    onSelect={() => router.push('/notifications')}
+                  >
+                    View notification center
+                  </DropdownMenuItem>
+                </>
+              );
+            })()}
           </DropdownMenuContent>
         </DropdownMenu>
 
