@@ -68,11 +68,8 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <>
-      {brandingCss && <style dangerouslySetInnerHTML={{ __html: brandingCss }} />}
-      {/* Pass server-loaded branding as a script so BrandingProvider picks it up immediately */}
-      <script dangerouslySetInnerHTML={{ __html: `window.__BRANDING__=${JSON.stringify(serverBranding)};` }} />
-      <AppShell>{children}</AppShell>
-    </>
+    <AppShell brandingCss={brandingCss} serverBranding={serverBranding}>
+      {children}
+    </AppShell>
   );
 }

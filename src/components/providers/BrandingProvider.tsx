@@ -85,29 +85,34 @@ function applyBrandingColors(branding: TenantBranding, isDark: boolean) {
   }
 }
 
-function getInitialBranding(): TenantBranding {
-  if (typeof window !== 'undefined' && (window as any).__BRANDING__) {
-    const b = (window as any).__BRANDING__;
-    // Backward compatibility: support legacy single `logoUrl` field.
-    const legacyLogo: string | null = b.logoUrl ?? null;
-    return {
-      appName: b.appName || DEFAULT_BRANDING.appName,
-      logoUrlLight: b.logoUrlLight ?? legacyLogo,
-      logoUrlDark: b.logoUrlDark ?? legacyLogo,
-      primaryColorLight: b.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
-      primaryColorDark: b.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
-      faviconUrl: b.faviconUrl || null,
-      themeMode:
-        b.themeMode === 'light' || b.themeMode === 'dark' || b.themeMode === 'auto'
-          ? b.themeMode
-          : 'auto',
-    };
-  }
-  return DEFAULT_BRANDING;
+function normalizeBranding(b: Record<string, unknown> | null | undefined): TenantBranding {
+  if (!b) return DEFAULT_BRANDING;
+  // Backward compatibility: support legacy single `logoUrl` field.
+  const legacyLogo = (b.logoUrl as string | null | undefined) ?? null;
+  const themeMode = b.themeMode;
+  return {
+    appName: (b.appName as string) || DEFAULT_BRANDING.appName,
+    logoUrlLight: (b.logoUrlLight as string | null | undefined) ?? legacyLogo,
+    logoUrlDark: (b.logoUrlDark as string | null | undefined) ?? legacyLogo,
+    primaryColorLight: (b.primaryColorLight as string) || DEFAULT_BRANDING.primaryColorLight,
+    primaryColorDark: (b.primaryColorDark as string) || DEFAULT_BRANDING.primaryColorDark,
+    faviconUrl: (b.faviconUrl as string | null | undefined) || null,
+    themeMode:
+      themeMode === 'light' || themeMode === 'dark' || themeMode === 'auto'
+        ? themeMode
+        : 'auto',
+  };
 }
 
-export function BrandingProvider({ children }: { children: ReactNode }) {
-  const [branding, setBranding] = useState<TenantBranding>(getInitialBranding);
+interface BrandingProviderProps {
+  children: ReactNode;
+  initialBranding?: Record<string, unknown> | null;
+}
+
+export function BrandingProvider({ children, initialBranding }: BrandingProviderProps) {
+  const [branding, setBranding] = useState<TenantBranding>(() =>
+    normalizeBranding(initialBranding),
+  );
   const [loading, setLoading] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 

@@ -7,12 +7,17 @@ import { BrandingProvider } from '@/components/providers/BrandingProvider';
 
 interface AppShellProps {
   children: React.ReactNode;
+  brandingCss?: string;
+  serverBranding?: Record<string, unknown> | null;
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, brandingCss, serverBranding }: AppShellProps) {
   return (
-    <BrandingProvider>
+    <BrandingProvider initialBranding={serverBranding}>
       <ChatProvider>
+        {brandingCss && (
+          <style dangerouslySetInnerHTML={{ __html: brandingCss }} />
+        )}
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
           <div className="flex flex-1 flex-col overflow-hidden">
