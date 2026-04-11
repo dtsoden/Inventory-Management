@@ -66,9 +66,31 @@ Notifications are scoped by role and by explicit targeting:
 
 These rules are enforced in the notification service, not in the Notifications UI. The UI only decides whether to emit email for a category that would otherwise fire as an in app notification.
 
+## The bell dropdown
+
+Every authenticated user has a notification bell in the header. The dropdown is intentionally minimal: it shows the user's **unread** notifications only, capped at five. If the user has more than five unread rows, a "+ N more" indicator points them at the full Notification Center. The dropdown is not a history view; read notifications disappear from it as soon as they are marked read.
+
+Clicking a row in the dropdown navigates to the `link` attached to that notification (for example, the purchase order detail page for an approval request) and marks the row as read in the same action.
+
+## The Notification Center
+
+Full path: `/notifications`. This is the full inbox for the current user and the place where read history is preserved. Features:
+
+- **Filter chips**: All, Unread, Read. Default is All.
+- **Per-row actions**: click to navigate (which also marks the row read), a mark-as-read toggle for rows that are still unread, and a delete button for any row.
+- **Mark all read**: single button that marks every currently unread notification for the user as read. Does not delete anything.
+- **Clear read**: bulk delete of every row that is currently in the read state. This is the cleanup action; unread rows are untouched. Backed by `POST /api/notifications/clear-read`, which is scoped to the caller's `userId` server-side.
+
+The Notification Center is a user-facing surface, not an admin surface. There is no tenant-wide view and there is no admin override; administrators see their own inbox just like any other user. If you need the authoritative history of approvals, rejections, or revocations for compliance, read the `AuditLog` table, not the notification inbox. See `admin/procurement-workflow`.
+
 ## Deleting an in-app notification
 
-Each user can dismiss notifications from their own bell dropdown. The dismiss action hits `DELETE /api/notifications/[id]`, which is owner-scoped: any authenticated user can call it, but the handler confirms that the target row's `userId` matches the caller before deleting. Approvers cannot dismiss notifications for other users, and there is no admin override endpoint. The row is hard-deleted (not soft-deleted) because the `Notification` table is a transient inbox, not an audit surface. The authoritative record of every approval, rejection, and revocation lives in the `AuditLog` table instead, see `admin/procurement-workflow`.
+Users can delete notifications from either the bell dropdown, the Notification Center rows, or the Clear read bulk action. All three paths are owner-scoped at the API layer:
+
+- `DELETE /api/notifications/[id]`: deletes a single row. The handler confirms that the target row's `userId` matches the caller before deleting.
+- `POST /api/notifications/clear-read`: deletes every notification for the current user where `isRead = true`. Same scoping: the server filters by the session's `userId`.
+
+There is no admin override endpoint, because the `Notification` table is a transient per-user inbox, not an audit surface. The authoritative record of every approval, rejection, and revocation lives in the `AuditLog` table instead. See `admin/procurement-workflow`.
 
 ## Troubleshooting
 

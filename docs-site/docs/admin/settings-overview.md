@@ -47,6 +47,13 @@ For administrators cross referencing what a setting does to the database:
 
 See each individual settings page in this documentation for specifics.
 
+## Related surfaces outside `/settings`
+
+Two tenant-wide features live outside `/settings` but are relevant to administrators:
+
+- **AI Insights** at `/insights`. A procurement analytics page with six KPI tiles, AI-authored observations (with a strict/balanced/speculative dial), and five CSV exports. Role gated to `ADMIN`, `MANAGER`, and `PURCHASING_MANAGER`. See `admin/insights` for the architectural reference, including the hallucination guardrails.
+- **Notification Center** at `/notifications`. A full-page inbox of every in-app notification for the current user, with All / Unread / Read filter chips, per-row actions, a "Mark all read" button, and a "Clear read" bulk delete. The bell icon in the header still exists; it now shows only unread notifications, capped at five. See `admin/settings-notifications` for how notifications are routed and what email categories exist.
+
 ## Reading and writing
 
 All settings pages are client components that call API routes under `/api/settings/*`:

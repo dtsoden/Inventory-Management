@@ -193,12 +193,12 @@ export default function InsightsPage() {
           <div>
             <h1 className="page-title flex items-center gap-3">
               <Sparkles className="size-6 text-brand-green" />
-              Insights
+              AI Insights
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Procurement and supply chain intelligence drawn from your live
-              data. The KPIs below are computed by SQL; the AI observations
-              are constrained to those exact numbers.
+              Procurement and supply chain intelligence. AI Observations are
+              shown first; live data metrics computed directly by SQL appear
+              below.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -227,6 +227,41 @@ export default function InsightsPage() {
           </div>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* SECTION 1: AI-GENERATED OBSERVATIONS                          */}
+      {/* The only AI-driven content on this page. Everything below     */}
+      {/* this card is computed by SQL with zero AI involvement.        */}
+      {/* ============================================================ */}
+      <div className="rounded-xl border-2 border-brand-green/20 bg-brand-green/5 p-1">
+        <div className="rounded-lg bg-background">
+          <AiObservationsCard
+            mode={mode}
+            setMode={setMode}
+            observations={observations}
+            observing={observing}
+            generateObservations={generateObservations}
+            snapshot={snapshot}
+          />
+        </div>
+      </div>
+
+      {/* ============================================================ */}
+      {/* SECTION 2: LIVE DATA METRICS (no AI)                          */}
+      {/* Section header makes the separation of concerns explicit.    */}
+      {/* ============================================================ */}
+      <div className="flex items-center gap-3 pt-4">
+        <div className="h-px flex-1 bg-border" />
+        <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <DollarSign className="size-4" />
+          Live Data Metrics
+        </div>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+      <p className="-mt-2 text-center text-xs text-muted-foreground">
+        Everything below is computed directly from your live database via SQL.
+        No AI involvement, no inference.
+      </p>
 
       {/* KPI Tiles */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -290,91 +325,6 @@ export default function InsightsPage() {
           </>
         ) : null}
       </div>
-
-      {/* AI Observations */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-xl font-semibold text-brand-green">
-                <Sparkles className="size-5" />
-                AI Observations
-              </CardTitle>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {MODE_DESCRIPTION[mode]}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select
-                value={mode}
-                onValueChange={(v) => setMode((v as InsightMode) ?? 'strict')}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="strict">{MODE_LABEL.strict}</SelectItem>
-                  <SelectItem value="balanced">{MODE_LABEL.balanced}</SelectItem>
-                  <SelectItem value="speculative">{MODE_LABEL.speculative}</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={generateObservations}
-                disabled={observing || !snapshot}
-              >
-                <Sparkles className="size-4" data-icon="inline-start" />
-                {observing ? 'Generating...' : 'Generate'}
-              </Button>
-            </div>
-          </div>
-          {mode === 'speculative' && (
-            <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-              <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-              <p>
-                <strong>Speculative mode is on.</strong> The AI is allowed to
-                propose causes and next actions that the data alone cannot
-                prove. Always verify these against the source numbers before
-                acting.
-              </p>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          {observations.length === 0 ? (
-            <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
-              <Info className="mx-auto mb-2 size-6 text-muted-foreground/50" />
-              Click <strong>Generate</strong> to produce observations from
-              your current data using the selected style.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {observations.map((obs, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg border bg-card p-4 shadow-sm"
-                >
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="text-base font-semibold leading-snug">
-                      {obs.title}
-                    </h3>
-                    {obs.speculative && (
-                      <Badge
-                        variant="outline"
-                        className="shrink-0 border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                      >
-                        Speculative
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {obs.body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Top Vendors + Risk + Single Source */}
       {snapshot && (
@@ -543,6 +493,116 @@ export default function InsightsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function AiObservationsCard({
+  mode,
+  setMode,
+  observations,
+  observing,
+  generateObservations,
+  snapshot,
+}: {
+  mode: InsightMode;
+  setMode: (m: InsightMode) => void;
+  observations: Observation[];
+  observing: boolean;
+  generateObservations: () => void;
+  snapshot: Snapshot | null;
+}) {
+  return (
+    <Card className="border-0 shadow-none">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="border-brand-green/40 bg-brand-green/10 text-brand-green text-[10px] uppercase tracking-wider"
+              >
+                AI-generated
+              </Badge>
+            </div>
+            <CardTitle className="flex items-center gap-2 text-2xl font-bold text-brand-green">
+              <Sparkles className="size-6" />
+              AI Observations
+            </CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {MODE_DESCRIPTION[mode]}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={mode}
+              onValueChange={(v) => setMode((v as InsightMode) ?? 'strict')}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="strict">{MODE_LABEL.strict}</SelectItem>
+                <SelectItem value="balanced">{MODE_LABEL.balanced}</SelectItem>
+                <SelectItem value="speculative">{MODE_LABEL.speculative}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={generateObservations}
+              disabled={observing || !snapshot}
+            >
+              <Sparkles className="size-4" data-icon="inline-start" />
+              {observing ? 'Generating...' : 'Generate'}
+            </Button>
+          </div>
+        </div>
+        {mode === 'speculative' && (
+          <div className="mt-4 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <p>
+              <strong>Speculative mode is on.</strong> The AI is allowed to
+              propose causes and next actions that the data alone cannot
+              prove. Always verify these against the source numbers before
+              acting.
+            </p>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        {observations.length === 0 ? (
+          <div className="rounded-md border border-dashed py-10 text-center text-sm text-muted-foreground">
+            <Info className="mx-auto mb-2 size-6 text-muted-foreground/50" />
+            Click <strong>Generate</strong> to produce observations from
+            your current data using the selected style.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {observations.map((obs, i) => (
+              <div
+                key={i}
+                className="rounded-lg border bg-card p-4 shadow-sm"
+              >
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <h3 className="text-base font-semibold leading-snug">
+                    {obs.title}
+                  </h3>
+                  {obs.speculative && (
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                    >
+                      Speculative
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {obs.body}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

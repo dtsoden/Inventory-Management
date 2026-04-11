@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
         'user/receiving',
         'user/vendors',
         'user/ai-assistant',
+        'user/insights',
         'user/profile',
       ],
     },
@@ -29,6 +30,7 @@ const sidebars: SidebarsConfig = {
         'admin/docker-deployment',
         'admin/runtime-migrations',
         'admin/procurement-workflow',
+        'admin/insights',
       ],
     },
     {

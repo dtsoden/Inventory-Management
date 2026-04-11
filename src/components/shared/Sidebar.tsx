@@ -10,6 +10,7 @@ import {
   PackageCheck,
   Boxes,
   Bot,
+  Sparkles,
   ClipboardList,
   Settings,
   ChevronLeft,
@@ -40,6 +41,12 @@ const navItems: NavItem[] = [
   { label: 'Receiving', href: '/receiving', icon: PackageCheck },
   { label: 'Inventory', href: '/inventory', icon: Boxes },
   { label: 'AI Assistant', href: '/assistant', icon: Bot },
+  {
+    label: 'AI Insights',
+    href: '/insights',
+    icon: Sparkles,
+    roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.PURCHASING_MANAGER],
+  },
   {
     label: 'Audit Log',
     href: '/audit-log',
