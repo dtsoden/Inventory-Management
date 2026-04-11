@@ -160,21 +160,31 @@ function WorkflowStepper({ currentStatus }: { currentStatus: string }) {
             <div
               className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
                 isCurrent
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'text-white'
                   : isActive
-                    ? 'bg-primary/20 text-primary'
+                    ? 'text-foreground'
                     : 'bg-muted text-muted-foreground'
               }`}
+              style={
+                isCurrent
+                  ? { backgroundColor: 'var(--brand-green)' }
+                  : isActive
+                    ? { backgroundColor: 'color-mix(in srgb, var(--brand-green) 22%, transparent)' }
+                    : undefined
+              }
             >
               {config?.label ?? s}
             </div>
             {i < WORKFLOW_ORDER.length - 1 && (
               <div
                 className={`h-0.5 w-4 ${
-                  i < currentIndex && !isCancelled
-                    ? 'bg-primary'
-                    : 'bg-muted'
+                  i < currentIndex && !isCancelled ? '' : 'bg-muted'
                 }`}
+                style={
+                  i < currentIndex && !isCancelled
+                    ? { backgroundColor: 'var(--brand-green)' }
+                    : undefined
+                }
               />
             )}
           </div>
