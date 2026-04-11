@@ -18,6 +18,10 @@ export class AssetService extends BaseService<AssetRecord> {
     return 'Asset';
   }
 
+  protected get dateFields(): string[] {
+    return ['purchasedAt', 'warrantyUntil'];
+  }
+
   async list(
     ctx: TenantContext,
     options?: FindAllOptions

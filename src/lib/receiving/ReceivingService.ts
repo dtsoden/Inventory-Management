@@ -17,6 +17,10 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
     return 'ReceivingSession';
   }
 
+  protected get dateFields(): string[] {
+    return ['completedAt'];
+  }
+
   async startSession(
     ctx: TenantContext,
     purchaseOrderId: string

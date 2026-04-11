@@ -151,12 +151,15 @@ export function generatePurchaseOrderPdf(
   const itemColWidth = colX.sku - colX.item - 4;
 
   let subtotal = 0;
+  const lineHeight = 4.2; // mm per text line at 9pt
+  const rowVerticalPadding = 3; // mm of breathing room above and below the text block
   for (const line of lines) {
     const lineTotal = line.quantity * line.unitCost;
     subtotal += lineTotal;
 
     const wrappedItem = doc.splitTextToSize(line.itemName, itemColWidth);
-    const rowHeight = Math.max(5, wrappedItem.length * 4.2);
+    const textBlockHeight = wrappedItem.length * lineHeight;
+    const rowHeight = textBlockHeight + rowVerticalPadding * 2;
 
     // Check if we need a new page
     if (y + rowHeight > 260) {
@@ -164,16 +167,19 @@ export function generatePurchaseOrderPdf(
       y = margin;
     }
 
-    doc.text(wrappedItem, colX.item + 2, y);
-    doc.text(line.sku ?? 'N/A', colX.sku, y);
-    doc.text(String(line.quantity), colX.qty, y, { align: 'right' });
-    doc.text(formatCurrency(line.unitCost), colX.unitPrice, y, { align: 'right' });
-    doc.text(formatCurrency(lineTotal), colX.lineTotal, y, { align: 'right' });
+    // Draw the text vertically centered inside the row. jsPDF places the
+    // baseline at the y you pass, so the first baseline must sit one line
+    // height below the top of the text block.
+    const firstBaseline = y + rowVerticalPadding + lineHeight - 1;
+    doc.text(wrappedItem, colX.item + 2, firstBaseline);
+    doc.text(line.sku ?? 'N/A', colX.sku, firstBaseline);
+    doc.text(String(line.quantity), colX.qty, firstBaseline, { align: 'right' });
+    doc.text(formatCurrency(line.unitCost), colX.unitPrice, firstBaseline, { align: 'right' });
+    doc.text(formatCurrency(lineTotal), colX.lineTotal, firstBaseline, { align: 'right' });
 
-    y += rowHeight + 1.5;
+    y += rowHeight;
     doc.setDrawColor(230, 230, 230);
-    doc.line(margin, y - 0.75, pageWidth - margin, y - 0.75);
-    y += 1.5;
+    doc.line(margin, y, pageWidth - margin, y);
   }
 
   if (lines.length === 0) {

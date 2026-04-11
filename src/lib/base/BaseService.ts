@@ -11,6 +11,34 @@ export abstract class BaseService<T = unknown> {
 
   protected abstract get entityName(): string;
 
+  /**
+   * Names of fields on this entity that are stored as Prisma DateTime
+   * columns. Subclasses override this so create/update can auto-coerce
+   * incoming string values (e.g. YYYY-MM-DD from an HTML date input)
+   * into Date objects before they hit Prisma. This is the structural
+   * fix for the entire class of "Prisma rejected my date string" bugs.
+   */
+  protected get dateFields(): string[] {
+    return [];
+  }
+
+  /** Coerce every dateField string into a Date in place. */
+  private coerceDates(data: Record<string, unknown>): Record<string, unknown> {
+    const fields = this.dateFields;
+    if (fields.length === 0) return data;
+    const out: Record<string, unknown> = { ...data };
+    for (const field of fields) {
+      const value = out[field];
+      if (typeof value === 'string' && value.length > 0) {
+        const parsed = new Date(value);
+        if (!isNaN(parsed.getTime())) {
+          out[field] = parsed;
+        }
+      }
+    }
+    return out;
+  }
+
   async list(
     ctx: TenantContext,
     options?: FindAllOptions
@@ -31,8 +59,9 @@ export abstract class BaseService<T = unknown> {
   }
 
   async create(ctx: TenantContext, data: Record<string, unknown>): Promise<T> {
-    const entity = await this.repository.create(ctx.tenantId, data);
-    await this.logAudit(ctx, 'CREATE', (entity as any).id, { data });
+    const sanitized = this.coerceDates(data);
+    const entity = await this.repository.create(ctx.tenantId, sanitized);
+    await this.logAudit(ctx, 'CREATE', (entity as any).id, { data: sanitized });
     return entity;
   }
 
@@ -42,7 +71,8 @@ export abstract class BaseService<T = unknown> {
     data: Record<string, unknown>
   ): Promise<T> {
     const before = await this.getByIdOrThrow(ctx, id);
-    const after = await this.repository.update(ctx.tenantId, id, data);
+    const sanitized = this.coerceDates(data);
+    const after = await this.repository.update(ctx.tenantId, id, sanitized);
     await this.logAudit(ctx, 'UPDATE', id, { before, after });
     return after;
   }

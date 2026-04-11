@@ -34,6 +34,10 @@ export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
     return 'PurchaseOrder';
   }
 
+  protected get dateFields(): string[] {
+    return ['expectedDate', 'orderedAt'];
+  }
+
   async generateOrderNumber(tenantId: string): Promise<string> {
     return this.orderRepo.getNextOrderNumber(tenantId);
   }
