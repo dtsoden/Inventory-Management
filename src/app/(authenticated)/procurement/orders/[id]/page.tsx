@@ -312,7 +312,7 @@ export default function OrderDetailPage() {
     }
   };
 
-  const addLineItem = async () => {
+  const goToEdit = () => {
     router.push(`/procurement/orders/${orderId}/edit`);
   };
 
@@ -436,8 +436,9 @@ export default function OrderDetailPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {/* PDF download, available for any non-cancelled order */}
-            {!isCancelled && (
+            {/* PDF download, only meaningful once the PO has been approved.
+                Drafts shouldn't be exported. */}
+            {(isApproved || isSubmitted || order.status === 'PARTIALLY_RECEIVED' || isReceived) && (
               <Button
                 variant="outline"
                 onClick={downloadPdf}
@@ -462,9 +463,7 @@ export default function OrderDetailPage() {
               <>
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    router.push(`/procurement/orders/${order.id}`)
-                  }
+                  onClick={goToEdit}
                   disabled={actionLoading}
                 >
                   <Pencil className="size-4" data-icon="inline-start" />
@@ -475,15 +474,23 @@ export default function OrderDetailPage() {
                   disabled={actionLoading}
                 >
                   <Send className="size-4" data-icon="inline-start" />
-                  Submit
+                  Submit for approval
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => performAction('delete', 'DELETE')}
+                  onClick={() => {
+                    if (
+                      confirm(
+                        'Discard this draft purchase order? This cannot be undone.'
+                      )
+                    ) {
+                      performAction('delete', 'DELETE');
+                    }
+                  }}
                   disabled={actionLoading}
                 >
                   <Trash2 className="size-4" data-icon="inline-start" />
-                  Cancel
+                  Discard draft
                 </Button>
               </>
             )}
@@ -647,7 +654,7 @@ export default function OrderDetailPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Line Items</CardTitle>
           {canEdit && (
-            <Button variant="outline" size="sm" onClick={addLineItem}>
+            <Button variant="outline" size="sm" onClick={goToEdit}>
               <Plus className="size-4" data-icon="inline-start" />
               Add Item
             </Button>

@@ -18,10 +18,23 @@ The expected counts, defined as `EXPECTED_COUNTS` in the page source:
 - **Catalog Items**: 30
 - **Purchase Orders**: 8
 - **Assets**: 40
+- **Demo Users**: 3 (in addition to whoever created the tenant)
 
 These are rendered as a row of count cards at the bottom of the page. When sample data is not loaded the cards are outlined and show the target count. When it is loaded the cards turn brand green and show the actual count currently in the database.
 
 The dataset seeds realistic names and SKUs so that filters, search, and grouping all behave like a real deployment. The seed source lives under `src/lib/seed/` and is the same seeder used optionally at the end of the setup wizard.
+
+## Demo users
+
+So that the role-gated procurement workflow can be showcased end to end without hand-creating test accounts, the sample data seeder also provisions three demo users in the tenant. All three share the same password, `demo1234`, and are tagged as sample rows so they are removed when you toggle sample data off.
+
+| Email | Role | What they demo |
+|---|---|---|
+| `purchasing@example.com` | `PURCHASING_MANAGER` | Receives approval-request notifications, approves, rejects (with comment), or revokes POs. |
+| `manager@example.com` | `MANAGER` | Creates and edits draft POs, manages vendors and catalog. Cannot approve; the Approve button is hidden for this account. |
+| `warehouse@example.com` | `WAREHOUSE_STAFF` | Receives shipments and scans assets. No procurement authority at all. |
+
+Sign in as each role in an incognito window to see how the approval pipeline looks from each side. See `admin/procurement-workflow` for the full role matrix and state machine these accounts exercise.
 
 ## The toggle
 
@@ -74,5 +87,5 @@ If you need a non destructive demo environment (real data from production on a s
 ## Warnings
 
 - Even though Remove is scoped to tagged sample rows, keep a backup of your database before running it the first time on a tenant that has real data mixed in. Trust but verify.
-- Sample data does not create sample users. The only user on the tenant is whoever the setup wizard created. If you want extra test users, add them manually from `/settings/users`.
+- Sample data seeds three demo users (see Demo users above). Removing sample data deletes those accounts along with the demo inventory. The user that ran the setup wizard is never touched.
 - Sample data does not include audit log entries; adding it produces real audit entries for the seed action, not synthesized history.

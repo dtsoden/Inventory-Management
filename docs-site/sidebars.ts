@@ -28,6 +28,7 @@ const sidebars: SidebarsConfig = {
         'admin/architecture',
         'admin/docker-deployment',
         'admin/runtime-migrations',
+        'admin/procurement-workflow',
       ],
     },
     {

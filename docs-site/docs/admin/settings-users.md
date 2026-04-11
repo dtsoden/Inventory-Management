@@ -11,13 +11,16 @@ The Users and Roles page is split into two tabs. The Users tab manages actual us
 
 ## Roles
 
-Shane Inventory ships with three default roles. They are defined in `src/lib/roles.ts` and used wherever role based gating happens.
+Shane Inventory ships with four default roles. They are defined in `src/lib/types.ts` and `src/lib/roles.ts` and used wherever role based gating happens.
 
 - **ADMIN**: full access to everything including settings, users, vault, and integrations. Always has every permission. The permission switches are locked on the UI and cannot be edited. An `ADMIN` badge with a padlock icon marks this role in the selector.
-- **MANAGER**: manages vendors, creates and approves purchase orders, views reports. No access to settings or user management.
+- **PURCHASING_MANAGER**: approves purchase orders and receives approval-request notifications. Can also do everything a Manager can (manage vendors, manage the catalog, create and edit POs). Along with `ADMIN`, this is one of the two roles that can approve, reject, or revoke a purchase order.
+- **MANAGER**: creates and edits purchase orders, manages vendors and catalog. Cannot approve POs (segregation of duties). Views reports. No access to settings or user management.
 - **WAREHOUSE_STAFF**: receives shipments, scans assets, views inventory. The default role assigned to new users who are not explicitly promoted.
 
-Additional custom roles can be added (up to ten total). Custom roles start with all permissions turned off and are editable freely. They can also be deleted, unlike the three defaults.
+Only **ADMIN** and **PURCHASING_MANAGER** can act on the `procurement.approve` permission. The `MANAGER` role explicitly has `procurement.approve = false` so that the person who drafts a PO is not the same person who signs off on it. See `admin/procurement-workflow` for the full segregation-of-duties breakdown.
+
+Additional custom roles can be added (up to ten total). Custom roles start with all permissions turned off and are editable freely. They can also be deleted, unlike the four defaults.
 
 Role data is stored in `SystemConfig` under a dedicated category; the API serializes and deserializes through `src/lib/roles.ts`.
 
@@ -30,7 +33,7 @@ Role data is stored in `SystemConfig` under a dedicated category; the API serial
 Restrictions:
 
 - The **ADMIN** role cannot be edited. Every switch is forced on and disabled.
-- Default roles (`ADMIN`, `MANAGER`, `WAREHOUSE_STAFF`) cannot be deleted. Custom roles show a trash icon next to the header.
+- Default roles (`ADMIN`, `PURCHASING_MANAGER`, `MANAGER`, `WAREHOUSE_STAFF`) cannot be deleted. Custom roles show a trash icon next to the header.
 
 ### Creating a custom role
 
@@ -48,7 +51,7 @@ The Users tab shows a table of every user in the tenant with their avatar initia
 Columns:
 
 - **User**: avatar (two letter initials from the display name), full name, email.
-- **Role**: colored badge. `ADMIN` is the primary color, `MANAGER` is the secondary, `WAREHOUSE_STAFF` is outlined.
+- **Role**: colored badge. `ADMIN` is the primary color, `PURCHASING_MANAGER` and `MANAGER` are the secondary, `WAREHOUSE_STAFF` is outlined.
 - **Status**: Active or Inactive.
 - **Last Login**: localized date or "Never".
 - **Actions**: three dot menu.

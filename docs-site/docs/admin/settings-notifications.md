@@ -15,7 +15,7 @@ The list comes from `NOTIFICATION_CATEGORIES` in the page source:
 
 - **Order Status Changes** (`orderStatusChanges`): an email whenever a purchase order transitions state (submitted, approved, ordered, received, etc.). This is the noisiest category and should be on only if your workflow relies on email visibility into ordering.
 - **Low Stock Alerts** (`lowStockAlerts`): an email whenever an item's on hand quantity drops below its `reorderPoint`. Useful for warehouse teams who want a nudge without checking the dashboard.
-- **Approval Requests** (`approvalRequests`): an email to managers when a purchase order is submitted and needs their approval. Keep this on if managers do not live in the app.
+- **Approval Requests** (`approvalRequests`): an email to approvers when a purchase order is submitted and needs their approval. This toggle is now fully wired into the `submitOrder()` path (it was previously decorative). When a PO transitions from `DRAFT` to `PENDING_APPROVAL`, the system writes a `Notification` row for every active user in the tenant whose role is `ADMIN` or `PURCHASING_MANAGER`, and if this category is on, also sends the email. Keep this on if approvers do not live in the app.
 - **Asset Assignments** (`assetAssignments`): an email to a user when an asset is assigned to them. Pairs with the asset tracking module.
 - **System Notifications** (`systemNotifications`): platform updates and administrative announcements. Usually on.
 
@@ -57,13 +57,18 @@ The email dispatcher reads the Notification row, checks the preference category,
 
 Notifications are scoped by role and by explicit targeting:
 
-- **Approval Requests** go to users with a role that includes the `approve_orders` permission.
+- **Approval Requests** go to every active user whose role is `ADMIN` or `PURCHASING_MANAGER` in the tenant. The fan-out happens inside `PurchaseOrderService.submitOrder()` at the moment a PO transitions from `DRAFT` to `PENDING_APPROVAL`. Each recipient gets a `Notification` row with a `link` that opens the order detail page.
+- **Order status changes for the requester**: when an approver runs Approve, Reject, or Revoke & Amend, the system writes a notification to the original requester (`PurchaseOrder.orderedBy`) so they see the decision in their bell. This is independent of the approvers' notifications and always fires, even if the email category is off.
 - **Low Stock Alerts** go to users with a role that can see inventory (by default, all active users).
-- **Order Status Changes** go to the user who submitted the order plus anyone on the approval chain.
+- **Order Status Changes** (email category) mirror the in-app order events: submitted, approved, rejected, revoked, sent to vendor, received, cancelled.
 - **Asset Assignments** go to the user the asset was assigned to.
 - **System Notifications** go to all admins.
 
 These rules are enforced in the notification service, not in the Notifications UI. The UI only decides whether to emit email for a category that would otherwise fire as an in app notification.
+
+## Deleting an in-app notification
+
+Each user can dismiss notifications from their own bell dropdown. The dismiss action hits `DELETE /api/notifications/[id]`, which is owner-scoped: any authenticated user can call it, but the handler confirms that the target row's `userId` matches the caller before deleting. Approvers cannot dismiss notifications for other users, and there is no admin override endpoint. The row is hard-deleted (not soft-deleted) because the `Notification` table is a transient inbox, not an audit surface. The authoritative record of every approval, rejection, and revocation lives in the `AuditLog` table instead, see `admin/procurement-workflow`.
 
 ## Troubleshooting
 

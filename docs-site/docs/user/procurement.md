@@ -49,31 +49,69 @@ This is the fastest way to buy items you do not already stock, because you do no
 
 ## Saving as a draft
 
-If you are not ready to submit, click **Save as Draft**. The PO will land on your Procurement list in the **DRAFT** state. You can return to it at any time, keep adding lines, edit details, or delete it if you change your mind. Drafts are never visible to the vendor.
+If you are not ready to submit, click **Save as Draft**. The PO will land on your Procurement list in the **DRAFT** state. You can return to it at any time, keep adding lines, edit details, or delete it if you change your mind. Drafts are never visible to the vendor and no approver is notified about them.
 
 ## The approval flow
 
 Every purchase order moves through a predictable sequence of statuses. Knowing the flow helps you track where each order is and what is expected of you next.
 
-1. **DRAFT.** You are still working on the PO. Nobody else is notified.
-2. **PENDING_APPROVAL.** You have clicked **Submit for Approval**. The PO is now waiting for an approver. You cannot edit lines while it is pending, but you can cancel and return it to draft if you need to fix something.
-3. **APPROVED.** An approver has reviewed and approved the PO. It is now ready to be sent to the vendor.
-4. **SUBMITTED.** The PO has been sent to the vendor. At this point you are waiting for the vendor to ship the goods; the next action usually happens on the Receiving page when the packing slip arrives.
-
-Additional statuses, such as **RECEIVED** or **CANCELLED**, may appear once the shipment has been processed or the order has been called off.
+1. **DRAFT.** You are still working on the PO. Nothing has been sent anywhere and nobody has been notified.
+2. **PENDING_APPROVAL.** You have clicked **Submit for Approval**. The PO is waiting for a Purchasing Manager (or Admin) to act. You cannot edit lines while it is pending.
+3. **APPROVED.** A Purchasing Manager has reviewed and approved the PO. It is locked for editing and ready to be sent to the vendor.
+4. **SUBMITTED.** The PO has been emailed to the vendor as a PDF. You are now waiting for the goods to arrive; the next action happens on the Receiving page when the packing slip shows up.
+5. **PARTIALLY_RECEIVED.** Some line items have been received; others are still outstanding.
+6. **RECEIVED.** Every line item has been received. The PO is closed.
+7. **CANCELLED.** The PO was called off before it could complete. This is a terminal state; a cancelled PO cannot be reopened.
 
 ### Submitting for approval
 
 1. Open the draft PO.
 2. Make sure every line is correct: item, quantity, unit price, and vendor details.
-3. Click **Submit for Approval**. The PO moves to **PENDING_APPROVAL** and the approver is notified.
-4. Once the approver acts, you will see the status change to **APPROVED** (or back to **DRAFT** with comments, if they want changes).
+3. Click **Submit for Approval**. The PO moves to **PENDING_APPROVAL**.
+4. Every Purchasing Manager and Admin in your tenant gets an in-app notification (bell icon in the top bar), and if your admin has Approval Requests email turned on, they also get an email with a link to the PO.
+5. Once an approver acts, the PO returns to your queue. Approve sends it on to **APPROVED**. Reject sends it back to **DRAFT** with a required comment explaining why, and you get a notification in your own bell with the reason.
+
+### What a Purchasing Manager sees
+
+If you have the Purchasing Manager role, the flow from your side looks like this:
+
+1. A new entry appears in your bell dropdown: "Purchase order PO-00042 is awaiting approval." Click it to jump straight to the detail page.
+2. Review the header, the line items, the vendor, and the totals. None of these fields are editable for you; your job is to accept or reject the document as submitted.
+3. Three actions are available from the top of the page:
+   - **Approve** moves the PO to APPROVED and notifies the requester.
+   - **Reject** opens a dialog that requires a comment before it will let you submit. The comment is saved to the audit log and delivered to the requester in their bell notification, so they know exactly what to fix. The PO goes back to DRAFT.
+   - **Cancel** kills the PO outright. Use this if the request is not just wrong but should never have been made.
+4. If you change your mind after approving, see "Amending an approved PO" below.
 
 ### Sending the PO to the vendor
 
-Once approved, Shane-Inventory emails a professionally formatted PO PDF directly to the vendor. The PDF includes your company branding, all line items, pricing, and ship-to details. You do not need to attach anything manually; the system handles generation and delivery as part of moving the order to **SUBMITTED**.
+Once a PO is in the **APPROVED** state, anyone with edit rights (typically the Manager who drafted it, or either approver role) can click **Send to Vendor**.
 
-If you ever need to re-send the PDF (for example, the vendor lost the email), open the PO and use the **Download PDF** or **Resend to Vendor** options.
+This does three things in order:
+
+1. Shane-Inventory generates a branded PDF of the PO (your logo, your colors, all line items, pricing, ship-to details).
+2. It looks up the vendor's primary email address and primary contact name on the Vendors page, writes a greeting line using the contact name (or the company name if no contact is set), and emails the PDF as an attachment.
+3. Once the email is delivered, the PO moves from **APPROVED** to **SUBMITTED**.
+
+If SMTP email is not configured on the server, the Send to Vendor button will return an error instead of advancing the PO. Ask your admin to finish the SMTP setup under Settings and try again.
+
+If you ever need to re-send the PDF (for example, the vendor lost the email), open the PO and use the **Download PDF** option, then attach it to a fresh email outside the app. There is no dedicated resend button; Send to Vendor only fires on APPROVED POs.
+
+### Amending an approved PO
+
+Once a PO has been approved, every field is locked. You cannot edit line items, quantities, or vendor details, not even typos. This is deliberate: the approval step exists to freeze the document, and silently editing afterwards would defeat the whole point of having approvers.
+
+If you discover that an approved PO needs a change (for example, the vendor called and said an item is back-ordered and they want to substitute a different SKU), the workflow is:
+
+1. Ask a Purchasing Manager (or Admin) to click **Revoke & Amend** on the PO detail page. They will be prompted for a comment explaining why the PO is going back to you.
+2. The PO snaps back to **DRAFT** state. You get a notification in your bell with the Purchasing Manager's comment so you know what to change.
+3. Edit the PO normally, then click **Submit for Approval** again. The approval cycle repeats.
+
+Revoke & Amend is the only way to get an approved PO back into an editable state. Only Purchasing Managers and Admins can do it.
+
+## Receiving
+
+Receiving shipments against a PO happens on the Receiving page, not the Procurement page. The flow has not changed: open the PO from Receiving, record the quantities that actually showed up on the packing slip, and Shane-Inventory will advance the status to PARTIALLY_RECEIVED or RECEIVED automatically. See the Receiving guide for the details.
 
 ## Browsing and filtering orders
 
@@ -111,5 +149,5 @@ Click any row to open the full PO detail page.
 ## Tips
 
 - Keep drafts clean: delete ones you do not intend to submit, so your list stays readable.
-- If you need to change an approved PO, cancel it and create a new one; editing after approval would bypass the approval flow.
+- If you need to change an approved PO, ask a Purchasing Manager (or Admin) to Revoke & Amend it, which sends it back to DRAFT for editing. Do not cancel and re-create; Revoke & Amend preserves the PO number and history.
 - Use the notes field on the PO for anything the vendor needs to know (delivery instructions, reference numbers, project codes).

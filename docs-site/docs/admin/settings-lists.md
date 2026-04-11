@@ -54,7 +54,7 @@ These are also read only. They correspond to the state machine enforced by `Purc
 
 ## User Roles
 
-A read only reference list of the role constants the platform uses. Defaults are **ADMIN**, **MANAGER**, and **WAREHOUSE_STAFF**, with the same descriptions shown on the Users and Roles page.
+A read only reference list of the role constants the platform uses. Defaults are **ADMIN**, **PURCHASING_MANAGER**, **MANAGER**, and **WAREHOUSE_STAFF**, with the same descriptions shown on the Users and Roles page. `PURCHASING_MANAGER` is the role that holds the `procurement.approve` permission; `MANAGER` no longer does (see `admin/procurement-workflow`).
 
 This section is informational. To add, edit, or delete custom roles, go to `/settings/users` and use the Roles tab there. See `admin/settings-users`.
 

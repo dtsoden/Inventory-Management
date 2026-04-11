@@ -14,7 +14,7 @@ The settings layout is a two column page: a left hand nav with seven tabs, and a
 The seven tabs, in order:
 
 1. **Organization** at `/settings`. Organization name, URL slug, and branding (colors, logos, favicon, theme mode). This is the landing page. Implemented in `src/app/(authenticated)/settings/page.tsx`.
-2. **Users and Roles** at `/settings/users`. List, add, edit, deactivate, and delete users. Manage custom roles and per-role permissions. Source: `src/app/(authenticated)/settings/users/page.tsx`.
+2. **Users and Roles** at `/settings/users`. List, add, edit, deactivate, and delete users. Manage custom roles and per-role permissions. The platform ships with four default roles: `ADMIN`, `PURCHASING_MANAGER`, `MANAGER`, and `WAREHOUSE_STAFF`. Only `ADMIN` and `PURCHASING_MANAGER` can approve purchase orders; `MANAGER` lost that right for segregation-of-duties reasons (see `admin/procurement-workflow`). Source: `src/app/(authenticated)/settings/users/page.tsx`.
 3. **Integrations** at `/settings/integrations`. OpenAI API key and model selection, SMTP configuration, and external data source management. Source: `src/app/(authenticated)/settings/integrations/page.tsx`.
 4. **Notifications** at `/settings/notifications`. Per-user notification preference toggles (requires SMTP configured). Source: `src/app/(authenticated)/settings/notifications/page.tsx`.
 5. **Security** at `/settings/security`. CORS allow list, session idle timeout, password policy. Source: `src/app/(authenticated)/settings/security/page.tsx`.
