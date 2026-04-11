@@ -187,10 +187,14 @@ function scheduleReapply() {
   });
 }
 
-// Docusaurus client modules already run client-side only. The previous
-// `if (typeof window !== 'undefined')` guard was being mangled by the
-// production minifier into `if ("u" > typeof window)` which is always
-// false, silently disabling the entire script. Run unconditionally.
+import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
+
+// SSR build runs this file in Node where `document` is undefined.
+// Use Docusaurus's official ExecutionEnvironment guard which the
+// minifier preserves correctly (the previous `typeof window` form
+// got mangled into `"u" > typeof window`, a false comparison that
+// silently disabled the entire script in production).
+if (ExecutionEnvironment.canUseDOM) {
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', fetchAndApply);
@@ -242,5 +246,7 @@ window.addEventListener('popstate', () => {
   setTimeout(reapplyFromCache, 50);
   setTimeout(reapplyFromCache, 250);
 });
+
+} // end if (ExecutionEnvironment.canUseDOM)
 
 export default {};

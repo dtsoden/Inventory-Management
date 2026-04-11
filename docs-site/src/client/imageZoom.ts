@@ -1,6 +1,8 @@
 // Click any docs image (or rendered Mermaid SVG) to open it in a fullscreen
 // modal with pan and zoom. Plain DOM, no React, no extra dependencies.
 
+import ExecutionEnvironmentZoom from '@docusaurus/ExecutionEnvironment';
+
 interface ZoomState {
   scale: number;
   x: number;
@@ -231,9 +233,9 @@ function attach() {
   });
 }
 
+if (ExecutionEnvironmentZoom.canUseDOM) {
+
 // Initial attach + re-attach after route changes (Mermaid renders async).
-// No `typeof window` guard: minifier mangled it into a tautologically
-// false comparison and disabled the script in prod.
 const tick = () => {
   attach();
   setTimeout(attach, 200);
@@ -251,5 +253,7 @@ history.pushState = function (...args) {
   return result;
 };
 window.addEventListener('popstate', () => setTimeout(tick, 50));
+
+} // end if (ExecutionEnvironment.canUseDOM)
 
 export default {};

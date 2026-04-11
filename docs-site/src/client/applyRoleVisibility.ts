@@ -6,6 +6,8 @@
 // makes the client-side UI match: anonymous and non-admin viewers should
 // not even see the links to admin-only pages.
 
+import ExecutionEnvironmentRole from '@docusaurus/ExecutionEnvironment';
+
 const ADMIN_ONLY_PATTERNS = ['/admin/', '/admin', '/comparison'];
 
 function isAdminOnlyHref(href: string | null): boolean {
@@ -102,6 +104,8 @@ async function applyRoleVisibility() {
   }
 }
 
+if (ExecutionEnvironmentRole.canUseDOM) {
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyRoleVisibility);
 } else {
@@ -114,5 +118,7 @@ history.pushState = function (...args) {
   return result;
 };
 window.addEventListener('popstate', () => setTimeout(applyRoleVisibility, 50));
+
+} // end if (ExecutionEnvironment.canUseDOM)
 
 export default {};
