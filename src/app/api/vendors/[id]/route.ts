@@ -1,51 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
 import { VendorService } from '@/lib/vendors/VendorService';
-import { isAppError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
 
-const service = new VendorService(prisma);
+const vendorService = new VendorService(prisma);
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
-
-    const vendor = await service.getByIdOrThrow(ctx, id);
-
-    const body: ApiResponse = { success: true, data: vendor };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/vendors/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+function parseId(req: NextRequest): string {
+  const segments = req.nextUrl.pathname.split('/');
+  return segments[segments.indexOf('vendors') + 1];
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
+class VendorHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
+    const vendor = await vendorService.getByIdOrThrow(ctx, id);
+    return this.success(vendor);
+  }
+
+  protected async onPut(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
     const data = await req.json();
-
-    await service.validateVendorData(data);
-
-    const vendor = await service.update(ctx, id, {
+    await vendorService.validateVendorData(data);
+    const vendor = await vendorService.update(ctx, id, {
       name: data.name,
       contactName: data.contactName || null,
       email: data.email,
@@ -59,47 +36,17 @@ export async function PUT(
       notes: data.notes || null,
       rating: data.rating ?? null,
     });
+    return this.success(vendor);
+  }
 
-    const body: ApiResponse = { success: true, data: vendor };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in PUT /api/vendors/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+  protected async onDelete(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
+    await vendorService.delete(ctx, id);
+    return this.successMessage('Vendor deactivated');
   }
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
-
-    await service.delete(ctx, id);
-
-    const body: ApiResponse = { success: true, message: 'Vendor deactivated' };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in DELETE /api/vendors/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+const handler = new VendorHandler();
+export const GET = handler.handle('GET');
+export const PUT = handler.handle('PUT');
+export const DELETE = handler.handle('DELETE');

@@ -1,25 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
 
 /**
- * Item-based inventory view.
- * Returns one row per catalog item with aggregated stock levels derived from
- * the assets that reference it.
+ * Item-based inventory view: one row per catalog item with aggregated
+ * stock counts derived from the assets that reference it.
  */
-export async function GET(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
+class InventoryItemsHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const url = req.nextUrl;
-
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
-    const pageSize = Math.min(200, Math.max(1, parseInt(url.searchParams.get('pageSize') ?? '50', 10)));
+    const pageSize = Math.min(
+      200,
+      Math.max(1, parseInt(url.searchParams.get('pageSize') ?? '50', 10)),
+    );
     const search = url.searchParams.get('search') ?? '';
     const sortField = url.searchParams.get('sortField') ?? 'name';
     const sortDirection =
-      url.searchParams.get('sortDirection') === 'desc' ? 'desc' as const : 'asc' as const;
+      url.searchParams.get('sortDirection') === 'desc' ? ('desc' as const) : ('asc' as const);
     const lowStockOnly = url.searchParams.get('lowStock') === 'true';
 
     const where: Record<string, unknown> = {
@@ -37,15 +36,11 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // Sortable columns on Item model
     const validSortFields = ['name', 'sku', 'unitCost', 'reorderPoint', 'createdAt'];
     const orderBy = validSortFields.includes(sortField)
       ? { [sortField]: sortDirection }
       : { name: 'asc' as const };
 
-    // Fetch all matching items (we may need to filter by computed stock) and
-    // paginate in-memory. For reasonable catalog sizes this is fine. If the
-    // catalog becomes huge we can add raw SQL with GROUP BY.
     const items = await prisma.item.findMany({
       where,
       orderBy,
@@ -53,9 +48,7 @@ export async function GET(req: NextRequest) {
         manufacturer: { select: { id: true, name: true } },
         vendor: { select: { id: true, name: true } },
         category: { select: { id: true, name: true } },
-        assets: {
-          select: { id: true, status: true },
-        },
+        assets: { select: { id: true, status: true } },
       },
     });
 
@@ -117,27 +110,15 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * pageSize;
     const paged = filtered.slice(start, start + pageSize);
 
-    const result = {
+    return this.success({
       data: paged,
       total,
       page,
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
-    };
-
-    const body: ApiResponse = { success: true, data: result };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/inventory/items:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    });
   }
 }
+
+const handler = new InventoryItemsHandler();
+export const GET = handler.handle('GET');

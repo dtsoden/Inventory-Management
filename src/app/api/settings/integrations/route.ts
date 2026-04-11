@@ -1,253 +1,156 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext, UserRole } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError, ForbiddenError } from '@/lib/errors';
-import { UserRole } from '@/lib/types';
-import type { ApiResponse } from '@/lib/types';
+import { SystemConfigRepository } from '@/lib/config/SystemConfigRepository';
 
-export async function GET(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
+const systemConfigRepo = new SystemConfigRepository(prisma);
 
-    if (ctx.role !== UserRole.ADMIN) {
-      throw new ForbiddenError('Only admins can view settings');
-    }
+async function setConfig(
+  key: string,
+  value: string,
+  category: string,
+  description: string,
+  isSecret = false,
+): Promise<void> {
+  await systemConfigRepo.upsert({ key, value, isSecret, category, description });
+}
 
+async function getConfigValue(key: string): Promise<string | null> {
+  const row = await systemConfigRepo.findByKey(key);
+  return row?.value ?? null;
+}
+
+async function getConfigsByKeys(keys: string[]): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+  for (const key of keys) {
+    const v = await getConfigValue(key);
+    if (v !== null) result[key] = v;
+  }
+  return result;
+}
+
+class IntegrationsHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const category = req.nextUrl.searchParams.get('category') || 'integrations';
 
     if (category === 'org') {
-      // Return tenant info
       const tenant = await prisma.tenant.findUnique({
         where: { id: ctx.tenantId },
         select: { name: true, slug: true },
       });
-
-      const platformConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'platform_name' },
+      const platformName = (await getConfigValue('platform_name')) || 'Shane Inventory';
+      return this.success({
+        tenantName: tenant?.name || '',
+        tenantSlug: tenant?.slug || '',
+        platformName,
       });
-
-      const body: ApiResponse = {
-        success: true,
-        data: {
-          tenantName: tenant?.name || '',
-          tenantSlug: tenant?.slug || '',
-          platformName: platformConfig?.value || 'Shane Inventory',
-        },
-      };
-      return NextResponse.json(body);
     }
 
     if (category === 'security') {
-      const corsConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'cors_origins' },
-      });
-      const sessionConfig = await prisma.systemConfig.findUnique({
-        where: { key: 'session_timeout' },
-      });
-
-      const body: ApiResponse = {
-        success: true,
-        data: {
-          corsOrigins: corsConfig?.value || '',
-          sessionTimeout: sessionConfig?.value || '480',
-        },
-      };
-      return NextResponse.json(body);
+      const corsOrigins = (await getConfigValue('cors_origins')) || '';
+      const sessionTimeout = (await getConfigValue('session_timeout')) || '480';
+      return this.success({ corsOrigins, sessionTimeout });
     }
 
     if (category === 'smtp_check') {
-      const smtpHost = await prisma.systemConfig.findUnique({
-        where: { key: 'smtp_host' },
-      });
-      return NextResponse.json({
-        success: true,
-        data: { smtpConfigured: !!smtpHost?.value },
-      });
+      const smtpHost = await getConfigValue('smtp_host');
+      return this.success({ smtpConfigured: !!smtpHost });
     }
 
     if (category === 'smtp') {
-      const smtpKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from'];
-      const configs = await prisma.systemConfig.findMany({
-        where: { key: { in: smtpKeys } },
-      });
-      const map = Object.fromEntries(configs.map((c) => [c.key, c.value]));
+      const map = await getConfigsByKeys([
+        'smtp_host',
+        'smtp_port',
+        'smtp_user',
+        'smtp_password',
+        'smtp_from',
+      ]);
 
-      // Mask the password for display
       let maskedPassword = '';
       if (map['smtp_password']) {
-        maskedPassword = map['smtp_password'].length > 4
-          ? '\u2022'.repeat(map['smtp_password'].length - 4) + map['smtp_password'].slice(-4)
-          : '\u2022'.repeat(8);
+        maskedPassword =
+          map['smtp_password'].length > 4
+            ? '\u2022'.repeat(map['smtp_password'].length - 4) + map['smtp_password'].slice(-4)
+            : '\u2022'.repeat(8);
       }
 
-      const body: ApiResponse = {
-        success: true,
-        data: {
-          smtp_host: map['smtp_host'] || '',
-          smtp_port: map['smtp_port'] || '587',
-          smtp_user: map['smtp_user'] || '',
-          smtp_password: maskedPassword,
-          smtp_from: map['smtp_from'] || '',
-        },
-      };
-      return NextResponse.json(body);
+      return this.success({
+        smtp_host: map['smtp_host'] || '',
+        smtp_port: map['smtp_port'] || '587',
+        smtp_user: map['smtp_user'] || '',
+        smtp_password: maskedPassword,
+        smtp_from: map['smtp_from'] || '',
+      });
     }
 
     if (category === 'password_policy') {
-      const fields = ['pw_min_length', 'pw_require_uppercase', 'pw_require_lowercase', 'pw_require_numbers', 'pw_require_special'];
-      const configs = await prisma.systemConfig.findMany({
-        where: { key: { in: fields } },
+      const map = await getConfigsByKeys([
+        'pw_min_length',
+        'pw_require_uppercase',
+        'pw_require_lowercase',
+        'pw_require_numbers',
+        'pw_require_special',
+      ]);
+      return this.success({
+        minLength: map['pw_min_length'] || '8',
+        requireUppercase: map['pw_require_uppercase'] || 'true',
+        requireLowercase: map['pw_require_lowercase'] || 'true',
+        requireNumbers: map['pw_require_numbers'] || 'true',
+        requireSpecialChars: map['pw_require_special'] || 'false',
       });
-      const map = Object.fromEntries(configs.map((c) => [c.key, c.value]));
-
-      const body: ApiResponse = {
-        success: true,
-        data: {
-          minLength: map['pw_min_length'] || '8',
-          requireUppercase: map['pw_require_uppercase'] || 'true',
-          requireLowercase: map['pw_require_lowercase'] || 'true',
-          requireNumbers: map['pw_require_numbers'] || 'true',
-          requireSpecialChars: map['pw_require_special'] || 'false',
-        },
-      };
-      return NextResponse.json(body);
     }
 
-    // Integrations category
-    const openaiConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'openai_api_key' },
-    });
+    // Default: integrations category
+    const openaiKey = await getConfigValue('openai_api_key');
+    const catalogApiUrl = (await getConfigValue('catalog_api_url')) || '';
+    const openaiModel = (await getConfigValue('openai_model')) || 'gpt-5.4-nano';
 
-    const catalogConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'catalog_api_url' },
-    });
-
-    const modelConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'openai_model' },
-    });
-
-    // Mask the API key for display
     let openaiKeyMasked = '';
-    if (openaiConfig?.value) {
-      const val = openaiConfig.value;
-      if (val.length > 11) {
-        openaiKeyMasked = val.slice(0, 7) + '...' + val.slice(-4);
-      } else {
-        openaiKeyMasked = '••••••••';
-      }
+    if (openaiKey) {
+      openaiKeyMasked =
+        openaiKey.length > 11
+          ? openaiKey.slice(0, 7) + '...' + openaiKey.slice(-4)
+          : '\u2022'.repeat(8);
     }
 
-    const body: ApiResponse = {
-      success: true,
-      data: {
-        openaiKeyMasked,
-        openaiModel: modelConfig?.value || 'gpt-5.4-nano',
-        catalogApiUrl: catalogConfig?.value || '',
-      },
-    };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/settings/integrations:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return this.success({ openaiKeyMasked, openaiModel, catalogApiUrl });
   }
-}
 
-export async function PUT(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
-
-    if (ctx.role !== UserRole.ADMIN) {
-      throw new ForbiddenError('Only admins can update settings');
-    }
-
+  protected async onPut(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const { category, settings } = await req.json();
 
     if (category === 'org') {
-      // Update tenant info
       if (settings.tenantName || settings.tenantSlug) {
         const updateData: Record<string, string> = {};
         if (settings.tenantName) updateData.name = settings.tenantName;
         if (settings.tenantSlug) updateData.slug = settings.tenantSlug;
-
         await prisma.tenant.update({
           where: { id: ctx.tenantId },
           data: updateData,
         });
       }
-
       if (settings.platformName) {
-        await prisma.systemConfig.upsert({
-          where: { key: 'platform_name' },
-          create: {
-            key: 'platform_name',
-            value: settings.platformName,
-            category: 'platform',
-            description: 'Platform display name',
-          },
-          update: { value: settings.platformName },
-        });
+        await setConfig('platform_name', settings.platformName, 'platform', 'Platform display name');
       }
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId: ctx.tenantId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'Settings',
-          details: 'Updated organization settings',
-        },
-      });
-
-      return NextResponse.json({ success: true });
+      await this.audit(ctx, 'Updated organization settings');
+      return this.success(null);
     }
 
     if (category === 'security') {
       if (settings.corsOrigins !== undefined) {
-        await prisma.systemConfig.upsert({
-          where: { key: 'cors_origins' },
-          create: {
-            key: 'cors_origins',
-            value: settings.corsOrigins,
-            category: 'cors',
-            description: 'Allowed CORS origins',
-          },
-          update: { value: settings.corsOrigins },
-        });
+        await setConfig('cors_origins', settings.corsOrigins, 'cors', 'Allowed CORS origins');
       }
-
       if (settings.sessionTimeout !== undefined) {
-        await prisma.systemConfig.upsert({
-          where: { key: 'session_timeout' },
-          create: {
-            key: 'session_timeout',
-            value: settings.sessionTimeout,
-            category: 'platform',
-            description: 'Session timeout in minutes',
-          },
-          update: { value: settings.sessionTimeout },
-        });
+        await setConfig(
+          'session_timeout',
+          settings.sessionTimeout,
+          'platform',
+          'Session timeout in minutes',
+        );
       }
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId: ctx.tenantId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'Settings',
-          details: 'Updated security settings',
-        },
-      });
-
-      return NextResponse.json({ success: true });
+      await this.audit(ctx, 'Updated security settings');
+      return this.success(null);
     }
 
     if (category === 'password_policy') {
@@ -258,26 +161,11 @@ export async function PUT(req: NextRequest) {
         pw_require_numbers: settings.requireNumbers || 'true',
         pw_require_special: settings.requireSpecialChars || 'false',
       };
-
       for (const [key, value] of Object.entries(policyFields)) {
-        await prisma.systemConfig.upsert({
-          where: { key },
-          create: { key, value, category: 'password_policy', description: `Password policy: ${key}` },
-          update: { value },
-        });
+        await setConfig(key, value, 'password_policy', `Password policy: ${key}`);
       }
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId: ctx.tenantId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'Settings',
-          details: 'Updated password policy',
-        },
-      });
-
-      return NextResponse.json({ success: true });
+      await this.audit(ctx, 'Updated password policy');
+      return this.success(null);
     }
 
     if (category === 'smtp') {
@@ -288,101 +176,58 @@ export async function PUT(req: NextRequest) {
         smtp_password: settings.smtp_password || '',
         smtp_from: settings.smtp_from || '',
       };
-
       for (const [key, value] of Object.entries(smtpFields)) {
-        // Skip updating password if it looks like a masked value (contains bullet chars)
+        // Skip writing the password if it's a masked display value.
         if (key === 'smtp_password' && value.includes('\u2022')) continue;
-
-        await prisma.systemConfig.upsert({
-          where: { key },
-          create: {
-            key,
-            value,
-            isSecret: key === 'smtp_password',
-            category: 'email',
-            description: `SMTP setting: ${key}`,
-          },
-          update: { value },
-        });
+        await setConfig(
+          key,
+          value,
+          'email',
+          `SMTP setting: ${key}`,
+          key === 'smtp_password',
+        );
       }
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId: ctx.tenantId,
-          userId: ctx.userId,
-          action: 'UPDATE',
-          entity: 'Settings',
-          details: 'Updated SMTP email settings',
-        },
-      });
-
-      return NextResponse.json({ success: true });
+      await this.audit(ctx, 'Updated SMTP email settings');
+      return this.success(null);
     }
 
-    // Integrations category
+    // Default: integrations category
     if (settings.openaiApiKey) {
-      await prisma.systemConfig.upsert({
-        where: { key: 'openai_api_key' },
-        create: {
-          key: 'openai_api_key',
-          value: settings.openaiApiKey,
-          isSecret: true,
-          category: 'ai',
-          description: 'OpenAI API key',
-        },
-        update: { value: settings.openaiApiKey },
-      });
+      await setConfig('openai_api_key', settings.openaiApiKey, 'ai', 'OpenAI API key', true);
     }
-
     if (settings.openaiModel !== undefined) {
-      await prisma.systemConfig.upsert({
-        where: { key: 'openai_model' },
-        create: {
-          key: 'openai_model',
-          value: settings.openaiModel,
-          category: 'ai',
-          description: 'Selected OpenAI model for AI assistant',
-        },
-        update: { value: settings.openaiModel },
-      });
+      await setConfig(
+        'openai_model',
+        settings.openaiModel,
+        'ai',
+        'Selected OpenAI model for AI assistant',
+      );
     }
-
     if (settings.catalogApiUrl !== undefined) {
-      await prisma.systemConfig.upsert({
-        where: { key: 'catalog_api_url' },
-        create: {
-          key: 'catalog_api_url',
-          value: settings.catalogApiUrl,
-          category: 'integrations',
-          description: 'External catalog API URL',
-        },
-        update: { value: settings.catalogApiUrl },
-      });
+      await setConfig(
+        'catalog_api_url',
+        settings.catalogApiUrl,
+        'integrations',
+        'External catalog API URL',
+      );
     }
+    await this.audit(ctx, 'Updated integration settings');
+    return this.success(null);
+  }
 
+  private async audit(ctx: TenantContext, details: string): Promise<void> {
     await prisma.auditLog.create({
       data: {
         tenantId: ctx.tenantId,
         userId: ctx.userId,
         action: 'UPDATE',
         entity: 'Settings',
-        details: 'Updated integration settings',
+        details,
       },
     });
-
-    const body: ApiResponse = { success: true };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in PUT /api/settings/integrations:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
   }
 }
+
+const handler = new IntegrationsHandler();
+export const GET = handler.handle('GET', { requiredRoles: [UserRole.ADMIN] });
+export const PUT = handler.handle('PUT', { requiredRoles: [UserRole.ADMIN] });

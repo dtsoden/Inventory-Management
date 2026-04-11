@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
+import { SystemConfigRepository } from '@/lib/config/SystemConfigRepository';
 
 const CONFIG_KEY_PREFIX = 'notification_prefs_';
 
@@ -18,48 +18,26 @@ const DEFAULT_PREFS: Record<string, boolean> = {
   systemNotifications: false,
 };
 
-export async function GET() {
-  try {
-    const ctx = await requireTenantContext();
-    const key = configKey(ctx.userId);
+const systemConfigRepo = new SystemConfigRepository(prisma);
 
-    const config = await prisma.systemConfig.findUnique({
-      where: { key },
-    });
-
+class NotificationPrefsHandler extends BaseApiHandler {
+  protected async onGet(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const config = await systemConfigRepo.findByKey(configKey(ctx.userId));
     let prefs = { ...DEFAULT_PREFS };
     if (config?.value) {
       try {
         prefs = { ...DEFAULT_PREFS, ...JSON.parse(config.value) };
       } catch {
-        // If the stored value is invalid JSON, fall back to defaults
+        // fall back to defaults if stored JSON is corrupt
       }
     }
-
-    const body: ApiResponse = { success: true, data: prefs };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: (error as { statusCode?: number }).statusCode ?? 500 }
-      );
-    }
-    console.error('GET /api/settings/notifications error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return this.success(prefs);
   }
-}
 
-export async function PUT(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
-    const key = configKey(ctx.userId);
+  protected async onPut(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const body = await req.json();
 
-    // Validate: only allow known preference keys with boolean values
+    // Whitelist: only known boolean preference keys.
     const prefs: Record<string, boolean> = {};
     for (const [k, v] of Object.entries(body)) {
       if (k in DEFAULT_PREFS && typeof v === 'boolean') {
@@ -67,32 +45,18 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    await prisma.systemConfig.upsert({
-      where: { key },
-      create: {
-        key,
-        value: JSON.stringify(prefs),
-        category: 'notifications',
-        description: `Notification preferences for user ${ctx.userId}`,
-      },
-      update: {
-        value: JSON.stringify(prefs),
-      },
+    await systemConfigRepo.upsert({
+      key: configKey(ctx.userId),
+      value: JSON.stringify(prefs),
+      isSecret: false,
+      category: 'notifications',
+      description: `Notification preferences for user ${ctx.userId}`,
     });
 
-    const response: ApiResponse = { success: true, data: prefs };
-    return NextResponse.json(response);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: (error as { statusCode?: number }).statusCode ?? 500 }
-      );
-    }
-    console.error('PUT /api/settings/notifications error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return this.success(prefs);
   }
 }
+
+const handler = new NotificationPrefsHandler();
+export const GET = handler.handle('GET');
+export const PUT = handler.handle('PUT');

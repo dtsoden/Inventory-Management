@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
 import { VendorService } from '@/lib/vendors/VendorService';
-import { isAppError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
 
-const service = new VendorService(prisma);
+const vendorService = new VendorService(prisma);
 
-export async function GET(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
+class VendorsHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const url = req.nextUrl;
-
     const page = parseInt(url.searchParams.get('page') ?? '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') ?? '20', 10);
     const sortField = url.searchParams.get('sortField') ?? 'createdAt';
     const sortDirection =
-      url.searchParams.get('sortDirection') === 'asc' ? 'asc' as const : 'desc' as const;
+      url.searchParams.get('sortDirection') === 'asc' ? ('asc' as const) : ('desc' as const);
     const search = url.searchParams.get('search') ?? '';
     const activeOnly = url.searchParams.get('activeOnly') !== 'false';
 
@@ -29,38 +26,16 @@ export async function GET(req: NextRequest) {
       where: activeOnly ? {} : { isActive: undefined },
     };
 
-    let result;
-    if (search) {
-      result = await service.search(ctx, search, options);
-    } else {
-      result = await service.list(ctx, options);
-    }
-
-    const body: ApiResponse = { success: true, data: result };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/vendors:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    const result = search
+      ? await vendorService.search(ctx, search, options)
+      : await vendorService.list(ctx, options);
+    return this.success(result);
   }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
+  protected async onPost(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const data = await req.json();
-
-    await service.validateVendorData(data);
-
-    const vendor = await service.create(ctx, {
+    await vendorService.validateVendorData(data);
+    const vendor = await vendorService.create(ctx, {
       name: data.name,
       contactName: data.contactName || null,
       email: data.email,
@@ -74,20 +49,10 @@ export async function POST(req: NextRequest) {
       notes: data.notes || null,
       rating: data.rating ?? null,
     });
-
-    const body: ApiResponse = { success: true, data: vendor };
-    return NextResponse.json(body, { status: 201 });
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in POST /api/vendors:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    return this.success(vendor, 201);
   }
 }
+
+const handler = new VendorsHandler();
+export const GET = handler.handle('GET');
+export const POST = handler.handle('POST');

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { prisma } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 import { isAppError } from '@/lib/errors';
+import { userService } from '@/lib/users';
 
 const UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads', 'avatars');
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
@@ -48,10 +48,7 @@ export async function POST(req: NextRequest) {
 
     const url = `/api/files/uploads/avatars/${filename}`;
 
-    await prisma.user.update({
-      where: { id: sessionUser.id },
-      data: { avatarUrl: url },
-    });
+    await userService.setMyAvatar(sessionUser.id, url);
 
     return NextResponse.json({ success: true, data: { url } });
   } catch (error: unknown) {
@@ -73,10 +70,7 @@ export async function DELETE() {
   try {
     const sessionUser = await requireAuth();
 
-    await prisma.user.update({
-      where: { id: sessionUser.id },
-      data: { avatarUrl: null },
-    });
+    await userService.setMyAvatar(sessionUser.id, null);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
