@@ -122,6 +122,10 @@ function setNavbarTitle(name: string) {
   // Hide any residual title element if Docusaurus rendered one.
   const titleEl = document.querySelector<HTMLElement>('.navbar__title');
   if (titleEl) titleEl.style.display = 'none';
+
+  // Homepage hero heading
+  const heroTitle = document.querySelector<HTMLElement>('.docs-home-hero-title');
+  if (heroTitle) heroTitle.textContent = name;
 }
 
 async function fetchAndApply() {

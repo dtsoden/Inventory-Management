@@ -9,20 +9,26 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title={siteConfig.title}
-      description="User and administrator documentation for the inventory management platform.">
+      description="User and administrator documentation.">
       <header
+        className="docs-home-hero"
         style={{
           padding: '4rem 1rem 3rem',
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #14532d 0%, #15803d 100%)',
+          background: 'var(--ifm-color-primary)',
           color: 'white',
         }}>
         <div style={{maxWidth: 880, margin: '0 auto'}}>
-          <Heading as="h1" style={{fontSize: '2.75rem', marginBottom: '0.5rem'}}>
+          <Heading
+            as="h1"
+            className="docs-home-hero-title"
+            style={{fontSize: '2.75rem', marginBottom: '0.5rem'}}>
             {siteConfig.title}
           </Heading>
-          <p style={{fontSize: '1.15rem', opacity: 0.9, marginBottom: '2rem'}}>
-            {siteConfig.tagline}
+          <p
+            className="docs-home-hero-tagline"
+            style={{fontSize: '1.15rem', opacity: 0.9, marginBottom: '2rem'}}>
+            Documentation
           </p>
           <div style={{display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap'}}>
             <Link
