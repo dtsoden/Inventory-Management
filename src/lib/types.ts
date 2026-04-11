@@ -66,6 +66,8 @@ export interface TenantContext {
   tenantId: string;
   userId: string;
   role: UserRole;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 // API Types

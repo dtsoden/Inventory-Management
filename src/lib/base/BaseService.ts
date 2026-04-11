@@ -75,6 +75,7 @@ export abstract class BaseService<T = unknown> {
           entity: this.entityName,
           entityId,
           details: details ? JSON.stringify(details) : undefined,
+          ipAddress: ctx.ipAddress,
         },
       });
     } catch {
