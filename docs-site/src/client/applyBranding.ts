@@ -101,17 +101,24 @@ function setFavicon(url: string) {
 
 function setNavbarLogo(lightUrl: string | null, darkUrl: string | null) {
   // Docusaurus renders the navbar logo as an <img>. React re-renders
-  // the navbar on theme toggle, route change, and other state updates,
-  // which wipes any plain `img.src` swap we did. We force the swap by
-  // setting the attribute directly AND removing/blocking any srcset.
+  // the navbar on theme toggle and route change, which wipes any plain
+  // `img.src` swap we did. We watch for those rerenders elsewhere and
+  // call back into this function. CRITICAL: we must NOT touch the DOM
+  // unless the value is actually changing, or the MutationObserver
+  // that called us will re-fire and we'll spin forever.
   const imgs = document.querySelectorAll<HTMLImageElement>('.navbar__logo img');
   if (imgs.length === 0) return;
   const isDark = document.documentElement.dataset.theme === 'dark';
   const url = isDark ? darkUrl || lightUrl : lightUrl || darkUrl;
   if (!url) return;
   imgs.forEach((img) => {
-    img.removeAttribute('srcset');
-    img.setAttribute('src', url);
+    const currentSrc = img.getAttribute('src');
+    if (img.hasAttribute('srcset')) {
+      img.removeAttribute('srcset');
+    }
+    if (currentSrc !== url) {
+      img.setAttribute('src', url);
+    }
   });
 }
 
@@ -122,12 +129,17 @@ function setNavbarTitle(name: string) {
     document.title = document.title.replace('Inventory Management Platform', name);
   }
   // Hide any residual title element if Docusaurus rendered one.
+  // Guarded so we never re-touch the DOM and re-trigger our own observer.
   const titleEl = document.querySelector<HTMLElement>('.navbar__title');
-  if (titleEl) titleEl.style.display = 'none';
+  if (titleEl && titleEl.style.display !== 'none') {
+    titleEl.style.display = 'none';
+  }
 
   // Homepage hero heading
   const heroTitle = document.querySelector<HTMLElement>('.docs-home-hero-title');
-  if (heroTitle) heroTitle.textContent = name;
+  if (heroTitle && heroTitle.textContent !== name) {
+    heroTitle.textContent = name;
+  }
 }
 
 // Cache the branding response so re-application is instant and never
@@ -163,6 +175,18 @@ function reapplyFromCache() {
   if (cachedBranding) applyAll(cachedBranding);
 }
 
+// Coalesce observer-triggered reapplies into one per animation frame so
+// we cannot possibly spin in a feedback loop with our own DOM mutations.
+let reapplyScheduled = false;
+function scheduleReapply() {
+  if (reapplyScheduled) return;
+  reapplyScheduled = true;
+  requestAnimationFrame(() => {
+    reapplyScheduled = false;
+    reapplyFromCache();
+  });
+}
+
 if (typeof window !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fetchAndApply);
@@ -192,7 +216,7 @@ if (typeof window !== 'undefined') {
       return;
     }
     const navObserver = new MutationObserver(() => {
-      reapplyFromCache();
+      scheduleReapply();
     });
     navObserver.observe(navbar, {
       childList: true,
