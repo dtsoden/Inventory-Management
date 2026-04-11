@@ -164,7 +164,6 @@ export default function IntegrationsSettingsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('gpt-5.4-nano');
   const [availableModels, setAvailableModels] = useState<{ id: string }[]>([]);
-  const [fetchingModels, setFetchingModels] = useState(false);
 
   // Data sources state
   const [sources, setSources] = useState<DataSource[]>([]);
@@ -293,23 +292,6 @@ export default function IntegrationsSettingsPage() {
     }
   }
 
-  async function fetchModels() {
-    setFetchingModels(true);
-    try {
-      const res = await fetch('/api/settings/ai-models');
-      const data = await res.json();
-      if (data.success && data.data) {
-        setAvailableModels(data.data);
-        toast.success(`Found ${data.data.length} available models`);
-      } else {
-        toast.error(data.error || 'Failed to fetch models');
-      }
-    } catch {
-      toast.error('Failed to fetch models');
-    } finally {
-      setFetchingModels(false);
-    }
-  }
 
   async function saveSelectedModel() {
     setSaving('model');
