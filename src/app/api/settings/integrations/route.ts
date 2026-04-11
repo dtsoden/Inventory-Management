@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: {
         openaiKeyMasked,
-        openaiModel: modelConfig?.value || 'gpt-4o-mini',
+        openaiModel: modelConfig?.value || 'gpt-5.4-nano',
         catalogApiUrl: catalogConfig?.value || '',
       },
     };

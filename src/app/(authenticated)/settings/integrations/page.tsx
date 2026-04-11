@@ -214,6 +214,19 @@ export default function IntegrationsSettingsPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
 
+    // Auto-fetch available models on mount (silently). This validates the
+    // API key and populates the dropdown without requiring a button click.
+    fetch('/api/settings/ai-models')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setAvailableModels(res.data);
+        }
+      })
+      .catch(() => {
+        // Silent failure - dropdown will fall back to defaults
+      });
+
     fetchSources();
 
     // Load SMTP settings
@@ -749,26 +762,6 @@ export default function IntegrationsSettingsPage() {
             </p>
 
             <div className="mt-4 max-w-lg space-y-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchModels}
-                  disabled={fetchingModels}
-                  className="gap-1.5"
-                >
-                  {fetchingModels ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
-                  {fetchingModels ? 'Fetching...' : 'Fetch Models'}
-                </Button>
-                <span className="text-xs text-muted-foreground">
-                  Requires a valid API key
-                </span>
-              </div>
-
               <div>
                 <Label htmlFor="model-select">Model</Label>
                 <div className="mt-1.5 flex gap-2">
