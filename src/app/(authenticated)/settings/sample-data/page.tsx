@@ -167,15 +167,23 @@ export default function SampleDataPage() {
             {countCards.map((card) => (
               <div
                 key={card.key}
-                className="flex flex-col items-center gap-1.5 rounded-lg border p-4 text-center"
+                className={`flex flex-col items-center gap-1.5 rounded-lg border p-4 text-center transition-colors ${
+                  isLoaded
+                    ? 'border-brand-green bg-brand-green text-white'
+                    : 'border-muted-foreground/25'
+                }`}
               >
-                <card.icon className="h-5 w-5 text-muted-foreground" />
+                <card.icon
+                  className={`h-5 w-5 ${isLoaded ? 'text-white' : 'text-muted-foreground'}`}
+                />
                 {loading ? (
                   <div className="h-7 w-8 animate-pulse rounded bg-muted" />
                 ) : (
                   <span className="text-2xl font-bold">{counts[card.key]}</span>
                 )}
-                <span className="text-xs text-muted-foreground">{card.label}</span>
+                <span className={`text-xs ${isLoaded ? 'text-white/90' : 'text-muted-foreground'}`}>
+                  {card.label}
+                </span>
               </div>
             ))}
           </div>
@@ -187,16 +195,6 @@ export default function SampleDataPage() {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
               {isLoaded ? 'Removing sample data...' : 'Inserting sample data...'}
-            </span>
-          </div>
-        )}
-
-        {/* Status indicator */}
-        {!loading && !processing && isLoaded && (
-          <div className="mt-6 flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 p-4">
-            <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <span className="text-sm text-green-700 dark:text-green-300">
-              Sample data is loaded and ready to explore.
             </span>
           </div>
         )}
