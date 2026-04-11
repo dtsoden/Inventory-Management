@@ -212,27 +212,38 @@ themeObserver.observe(document.documentElement, {
 });
 
 // React re-renders the navbar on route change, theme toggle, hover
-// state, and other internal updates. Each re-render replaces the logo
-// <img> with the static one Docusaurus baked in. Watch the navbar
-// subtree for any DOM mutation and instantly re-apply the cached
-// branding so the tenant logo never flickers back to the default.
+// state, and other internal updates. On the Docusaurus homepage React
+// fully unmounts the navbar element and mounts a new one, which would
+// orphan an observer attached to the old .navbar node. Attach the
+// observer to the stable Docusaurus root container instead so it
+// survives navbar replacement.
 function attachNavbarObserver() {
-  const navbar = document.querySelector('.navbar');
-  if (!navbar) {
+  const root =
+    document.getElementById('__docusaurus') ||
+    document.body;
+  if (!root) {
     requestAnimationFrame(attachNavbarObserver);
     return;
   }
   const navObserver = new MutationObserver(() => {
     scheduleReapply();
   });
-  navObserver.observe(navbar, {
+  navObserver.observe(root, {
     childList: true,
     subtree: true,
     attributes: true,
-    attributeFilter: ['src', 'srcset'],
+    attributeFilter: ['src', 'srcset', 'class'],
   });
 }
 attachNavbarObserver();
+
+// Belt-and-suspenders: reapply at fixed intervals during the first
+// 3 seconds after load. The homepage in particular hydrates the
+// navbar a few times after first paint and we want every render to
+// land on the tenant logo, not the static default.
+[100, 250, 500, 900, 1500, 2500].forEach((ms) => {
+  setTimeout(reapplyFromCache, ms);
+});
 
 // Reapply on SPA route changes too (Docusaurus uses pushState).
 const originalPushState = history.pushState;
