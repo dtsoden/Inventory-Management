@@ -192,8 +192,10 @@ export function generatePurchaseOrderPdf(
   y += 4;
 
   // ---------- Totals ----------
+  // The separator line above Subtotal must span the same width as the
+  // grey Total box below it (which starts at colX.unitPrice - 50).
   doc.setDrawColor(200, 200, 200);
-  doc.line(colX.unitPrice - 20, y - 2, pageWidth - margin, y - 2);
+  doc.line(colX.unitPrice - 50, y - 2, pageWidth - margin, y - 2);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
