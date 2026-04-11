@@ -105,12 +105,14 @@ function setNavbarLogo(lightUrl: string | null, darkUrl: string | null) {
 }
 
 function setNavbarTitle(name: string) {
-  const titleEl = document.querySelector<HTMLElement>('.navbar__title');
-  if (titleEl) titleEl.textContent = name;
-  // Also update the document title where it includes the site name
+  // Navbar shows the logo only, not a text title. We still update the
+  // browser document title so the tab text reflects the tenant.
   if (document.title.includes('Inventory Management Platform')) {
     document.title = document.title.replace('Inventory Management Platform', name);
   }
+  // Hide any residual title element if Docusaurus rendered one.
+  const titleEl = document.querySelector<HTMLElement>('.navbar__title');
+  if (titleEl) titleEl.style.display = 'none';
 }
 
 async function fetchAndApply() {

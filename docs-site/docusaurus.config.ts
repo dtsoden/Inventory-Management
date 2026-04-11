@@ -60,7 +60,6 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Inventory Management Platform',
       logo: {
         alt: 'Logo',
         src: 'img/logo.svg',
