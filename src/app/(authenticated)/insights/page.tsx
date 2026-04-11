@@ -353,21 +353,22 @@ export default function InsightsPage() {
                   key={i}
                   className="rounded-lg border bg-card p-4 shadow-sm"
                 >
-                  <div className="mb-1 flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-semibold">{obs.title}</h3>
+                  <div className="mb-2 flex items-start justify-between gap-2">
+                    <h3 className="text-base font-semibold leading-snug">
+                      {obs.title}
+                    </h3>
                     {obs.speculative && (
-                      <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      >
                         Speculative
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{obs.body}</p>
-                  {obs.references.length > 0 && (
-                    <p className="mt-2 text-xs text-muted-foreground/70">
-                      Source:{' '}
-                      <code className="text-[11px]">{obs.references.join(', ')}</code>
-                    </p>
-                  )}
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {obs.body}
+                  </p>
                 </div>
               ))}
             </div>
