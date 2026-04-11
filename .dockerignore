@@ -3,8 +3,14 @@ node_modules
 .git
 data
 *.md
+!docs-site/**/*.md
+!docs-site/**/*.mdx
+!docs-site/README.md
 docs
 tests
 .env
 .env.local
 .superpowers
+docs-site/node_modules
+docs-site/build
+docs-site/.docusaurus

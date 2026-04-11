@@ -1,16 +1,27 @@
 FROM node:20-alpine AS base
 
-# Install dependencies only when needed
+# ----- Next.js dependencies -----
 FROM base AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build the application
+# ----- Docusaurus build -----
+FROM base AS docs
+WORKDIR /docs
+COPY docs-site/package.json docs-site/package-lock.json ./
+RUN npm ci
+COPY docs-site/ ./
+RUN npm run build
+
+# ----- Next.js build -----
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Drop the static Docusaurus output into public/docs so Next serves it directly
+COPY --from=docs /docs/build ./public/docs
 
 # Generate Prisma client (outputs to node_modules/@prisma/client)
 RUN npx prisma generate
@@ -22,7 +33,7 @@ ENV NEXTAUTH_SECRET="build-time-placeholder"
 
 RUN npm run build
 
-# Production image
+# ----- Production image -----
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production

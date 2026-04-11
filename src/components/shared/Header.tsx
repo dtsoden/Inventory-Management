@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -88,6 +88,46 @@ export function Header() {
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           </Button>
         )}
+
+        {/* Help / Documentation dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Help and documentation"
+              />
+            }
+          >
+            <HelpCircle className="h-5 w-5" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem
+              onClick={() => window.open('/docs/user/getting-started', '_blank')}
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              User Guide
+            </DropdownMenuItem>
+            {user?.role === 'ADMIN' && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => window.open('/docs/admin/setup-wizard', '_blank')}
+                >
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  Admin Guide
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => window.open('/docs/comparison', '_blank')}
+                >
+                  <GitCompare className="mr-2 h-4 w-4" />
+                  Shane Comparison
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Notification bell with dropdown */}
         <DropdownMenu>
