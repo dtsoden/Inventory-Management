@@ -40,28 +40,37 @@ export function generatePurchaseOrderPdf(
   let y = margin;
 
   // ---------- Header ----------
-  let nameX = margin;
-  let headerBottom = y + 15;
+  // Logo on the left (height-constrained, width organic) and the
+  // PURCHASE ORDER label on the right. Tenant name is intentionally
+  // omitted, the logo IS the brand mark.
+  let headerBottom = y + 18;
   if (tenant.logoBytes && tenant.logoMime) {
     try {
       const logoData = `data:image/${tenant.logoMime.toLowerCase()};base64,${tenant.logoBytes.toString('base64')}`;
-      // Logo box: max 30mm wide, 18mm tall, preserve aspect by letting jsPDF decide
-      doc.addImage(logoData, tenant.logoMime, margin, y, 30, 18, undefined, 'FAST');
-      nameX = margin + 34;
-      headerBottom = y + 20;
+      const props = doc.getImageProperties(logoData);
+      const targetHeight = 18;
+      const targetWidth = (props.width / props.height) * targetHeight;
+      doc.addImage(logoData, tenant.logoMime, margin, y, targetWidth, targetHeight, undefined, 'FAST');
+      headerBottom = y + targetHeight + 4;
     } catch {
       // Embedding failed, fall back to text-only
-      nameX = margin;
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(tenant.name, margin, y + 12);
+      headerBottom = y + 18;
     }
+  } else {
+    // No logo configured, fall back to the tenant name
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(tenant.name, margin, y + 12);
+    headerBottom = y + 18;
   }
 
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text(tenant.name, nameX, y + 9);
-
   doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
   doc.setTextColor(60, 60, 60);
-  doc.text('PURCHASE ORDER', pageWidth - margin, y + 9, { align: 'right' });
+  doc.text('PURCHASE ORDER', pageWidth - margin, y + 12, { align: 'right' });
   doc.setTextColor(0, 0, 0);
 
   y = headerBottom;

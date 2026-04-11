@@ -11,6 +11,8 @@ interface SampleDataIds {
   purchaseOrders: string[];
   purchaseOrderLines: string[];
   assets: string[];
+  auditLogs: string[];
+  notifications: string[];
 }
 
 interface SampleDataCounts {
@@ -20,6 +22,8 @@ interface SampleDataCounts {
   categories: number;
   orders: number;
   assets: number;
+  auditLogs: number;
+  notifications: number;
 }
 
 function randomChoice<T>(arr: T[]): T {
@@ -57,7 +61,39 @@ export async function insertSampleData(
     purchaseOrders: [],
     purchaseOrderLines: [],
     assets: [],
+    auditLogs: [],
+    notifications: [],
   };
+
+  // Audit log entries we collect as we go so the dashboard "recent activity"
+  // widget has believable history the moment a fresh tenant lands.
+  const auditEntries: Array<{
+    id: string;
+    action: string;
+    entity: string;
+    entityId: string;
+    details: string;
+    createdAt: Date;
+  }> = [];
+
+  function recordAudit(
+    action: string,
+    entity: string,
+    entityId: string,
+    details: Record<string, unknown>,
+    createdAt: Date,
+  ) {
+    const id = uuidv4();
+    ids.auditLogs.push(id);
+    auditEntries.push({
+      id,
+      action,
+      entity,
+      entityId,
+      details: JSON.stringify(details),
+      createdAt,
+    });
+  }
 
   // --- Vendors ---
   const vendorData = [
@@ -73,10 +109,12 @@ export async function insertSampleData(
   for (const v of vendorData) {
     const id = uuidv4();
     ids.vendors.push(id);
+    const createdAt = randomDate(new Date('2025-11-01'), new Date('2025-12-15'));
     const vendor = await prisma.vendor.create({
-      data: { id, tenantId, ...v },
+      data: { id, tenantId, ...v, createdAt },
     });
     vendors.push(vendor);
+    recordAudit('CREATE', 'Vendor', id, { name: v.name }, createdAt);
   }
 
   // --- Manufacturers ---
@@ -93,10 +131,12 @@ export async function insertSampleData(
   for (const m of manufacturerData) {
     const id = uuidv4();
     ids.manufacturers.push(id);
+    const createdAt = randomDate(new Date('2025-11-01'), new Date('2025-12-15'));
     const created = await prisma.manufacturer.create({
-      data: { id, tenantId, ...m },
+      data: { id, tenantId, ...m, createdAt },
     });
     manufacturers.push(created);
+    recordAudit('CREATE', 'Manufacturer', id, { name: m.name }, createdAt);
   }
 
   // --- Item Categories ---
@@ -112,10 +152,12 @@ export async function insertSampleData(
   for (const c of categoryData) {
     const id = uuidv4();
     ids.categories.push(id);
+    const createdAt = randomDate(new Date('2025-11-01'), new Date('2025-12-01'));
     const cat = await prisma.itemCategory.create({
-      data: { id, tenantId, ...c },
+      data: { id, tenantId, ...c, createdAt },
     });
     categories.push(cat);
+    recordAudit('CREATE', 'ItemCategory', id, { name: c.name }, createdAt);
   }
 
   // --- Catalog Items (30 items) ---
@@ -166,6 +208,7 @@ export async function insertSampleData(
   for (const item of itemsData) {
     const id = uuidv4();
     ids.items.push(id);
+    const createdAt = randomDate(new Date('2025-12-01'), new Date('2026-01-15'));
     const created = await prisma.item.create({
       data: {
         id,
@@ -179,9 +222,17 @@ export async function insertSampleData(
         unitCost: item.unitCost,
         reorderPoint: item.reorderPoint,
         reorderQuantity: item.reorderQuantity,
+        createdAt,
       },
     });
     items.push(created);
+    recordAudit(
+      'CREATE',
+      'Item',
+      id,
+      { name: item.name, sku: item.sku },
+      createdAt,
+    );
   }
 
   // --- Purchase Orders (12 in various statuses) ---
@@ -236,6 +287,13 @@ export async function insertSampleData(
         createdAt: orderDate,
       },
     });
+    recordAudit(
+      'CREATE',
+      'PurchaseOrder',
+      poId,
+      { orderNumber: `SAMPLE-PO-${String(9000 + i + 1)}`, status, vendor: vendor.name, totalAmount },
+      orderDate,
+    );
 
     for (const line of lineData) {
       await prisma.purchaseOrderLine.create({
@@ -248,6 +306,21 @@ export async function insertSampleData(
           receivedQty: line.receivedQty,
         },
       });
+    }
+
+    // Status transitions get their own audit rows so the activity feed
+    // shows realistic workflow history (drafts moving through approval).
+    if (status !== 'DRAFT') {
+      const submittedAt = new Date(orderDate.getTime() + randomInt(1, 4) * 3600000);
+      recordAudit('UPDATE', 'PurchaseOrder', poId, { status: 'PENDING_APPROVAL' }, submittedAt);
+    }
+    if (status === 'APPROVED' || status === 'SUBMITTED' || status === 'PARTIALLY_RECEIVED' || status === 'RECEIVED') {
+      const approvedAt = new Date(orderDate.getTime() + randomInt(4, 24) * 3600000);
+      recordAudit('UPDATE', 'PurchaseOrder', poId, { status: 'APPROVED' }, approvedAt);
+    }
+    if (status === 'PARTIALLY_RECEIVED' || status === 'RECEIVED') {
+      const receivedAt = new Date(orderDate.getTime() + randomInt(5, 20) * 86400000);
+      recordAudit('UPDATE', 'PurchaseOrder', poId, { status }, receivedAt);
     }
   }
 
@@ -314,6 +387,68 @@ export async function insertSampleData(
         createdAt: purchasedAt,
       },
     });
+    recordAudit(
+      'CREATE',
+      'Asset',
+      assetId,
+      { assetTag: `SAMPLE-${String(10000 + i)}`, item: item.name, status },
+      purchasedAt,
+    );
+    if (status === 'ASSIGNED' && assignedTo) {
+      const assignedAt = new Date(purchasedAt.getTime() + randomInt(1, 30) * 86400000);
+      recordAudit(
+        'UPDATE',
+        'Asset',
+        assetId,
+        { status: 'ASSIGNED', assignedTo },
+        assignedAt,
+      );
+    }
+  }
+
+  // ---- Audit log batch insert ----
+  if (auditEntries.length > 0) {
+    await prisma.auditLog.createMany({
+      data: auditEntries.map((e) => ({
+        id: e.id,
+        tenantId,
+        userId,
+        action: e.action,
+        entity: e.entity,
+        entityId: e.entityId,
+        details: e.details,
+        ipAddress: '127.0.0.1',
+        createdAt: e.createdAt,
+      })),
+    });
+  }
+
+  // ---- Sample notifications ----
+  const notificationTemplates = [
+    { type: 'LOW_STOCK', title: 'Low stock: Cisco Meraki MR46 Access Point', message: '2 units remaining, reorder point is 5.', isRead: false },
+    { type: 'LOW_STOCK', title: 'Low stock: Dell UltraSharp U2723QE', message: '3 units remaining, reorder point is 5.', isRead: false },
+    { type: 'PO_APPROVED', title: 'Purchase order SAMPLE-PO-9008 approved', message: 'Your order has been approved and submitted to the vendor.', isRead: false },
+    { type: 'PO_RECEIVED', title: 'Purchase order SAMPLE-PO-9011 fully received', message: 'All line items have been received and tagged into inventory.', isRead: true },
+    { type: 'ASSET_ASSIGNED', title: 'Asset SAMPLE-10018 assigned to John Smith', message: 'Asset moved from AVAILABLE to ASSIGNED.', isRead: true },
+    { type: 'SYSTEM', title: 'Welcome to your inventory platform', message: 'Sample data has been loaded. Explore the dashboard, vendors, inventory, and procurement to see the full workflow.', isRead: false },
+  ];
+
+  for (const n of notificationTemplates) {
+    const id = uuidv4();
+    ids.notifications.push(id);
+    const createdAt = randomDate(new Date('2026-03-01'), new Date());
+    await prisma.notification.create({
+      data: {
+        id,
+        tenantId,
+        userId,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        isRead: n.isRead,
+        createdAt,
+      },
+    });
   }
 
   // Store the IDs in SystemConfig so we can remove them later
@@ -346,6 +481,20 @@ export async function removeSampleData(
   const ids: SampleDataIds = JSON.parse(config.value);
 
   // Delete in correct order to respect foreign keys:
+  // 0. Audit log entries (no FK constraints, but tracked so removal stays clean)
+  if (ids.auditLogs && ids.auditLogs.length > 0) {
+    await prisma.auditLog.deleteMany({
+      where: { id: { in: ids.auditLogs } },
+    });
+  }
+
+  // 0b. Notifications
+  if (ids.notifications && ids.notifications.length > 0) {
+    await prisma.notification.deleteMany({
+      where: { id: { in: ids.notifications } },
+    });
+  }
+
   // 1. Assets (references items)
   if (ids.assets.length > 0) {
     await prisma.asset.deleteMany({
@@ -413,7 +562,16 @@ export async function getSampleDataStatus(
   if (!config) {
     return {
       isLoaded: false,
-      counts: { vendors: 0, manufacturers: 0, items: 0, categories: 0, orders: 0, assets: 0 },
+      counts: {
+        vendors: 0,
+        manufacturers: 0,
+        items: 0,
+        categories: 0,
+        orders: 0,
+        assets: 0,
+        auditLogs: 0,
+        notifications: 0,
+      },
     };
   }
 
@@ -428,6 +586,8 @@ export async function getSampleDataStatus(
       categories: ids.categories.length,
       orders: ids.purchaseOrders.length,
       assets: ids.assets.length,
+      auditLogs: ids.auditLogs?.length ?? 0,
+      notifications: ids.notifications?.length ?? 0,
     },
   };
 }
