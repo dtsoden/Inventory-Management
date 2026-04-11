@@ -219,6 +219,38 @@ async function suiteNotification() {
 }
 
 // ----------------------------------------------------------------
+// DATA SOURCE suite
+// ----------------------------------------------------------------
+async function suiteDataSource() {
+  log('\n[data-source] CRUD tests');
+
+  const list = await api('GET', '/api/settings/data-sources');
+  record('list data sources', list.status === 200, `status ${list.status}`);
+
+  const create = await api('POST', '/api/settings/data-sources', {
+    name: `Harness DS ${Date.now()}`,
+    apiUrl: 'https://example.invalid/api',
+    fieldMappings: [],
+  });
+  record('create data source', create.status === 201, `status ${create.status}`);
+  const created = create.json?.data;
+  if (created?.id) {
+    const read = await api('GET', `/api/settings/data-sources/${created.id}`);
+    record('read data source', read.status === 200, `status ${read.status}`);
+
+    const update = await api('PUT', `/api/settings/data-sources/${created.id}`, {
+      name: 'Harness DS UPDATED',
+    });
+    record('update data source', update.status === 200, `status ${update.status}`);
+
+    const del = await api('DELETE', `/api/settings/data-sources/${created.id}`);
+    record('delete data source', del.status === 200, `status ${del.status}`);
+
+    sqlite(`DELETE FROM AuditLog WHERE entityId = '${created.id}'`);
+  }
+}
+
+// ----------------------------------------------------------------
 // USER suite (settings/users + profile)
 // ----------------------------------------------------------------
 async function suiteUser() {
@@ -296,6 +328,7 @@ async function main() {
     await suiteCategory();
     await suiteNotification();
     await suiteUser();
+    await suiteDataSource();
   } catch (e) {
     fail(e.stack || e.message);
     exitCode = 2;
