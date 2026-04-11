@@ -22,21 +22,72 @@ async function loadRoles(): Promise<StoredRole[]> {
     where: { key: SYSTEM_CONFIG_KEY },
   });
 
-  if (config) {
-    return JSON.parse(config.value) as StoredRole[];
+  // Build the canonical default list from code (ALWAYS the source of
+  // truth for default roles). Custom roles in the stored config are
+  // preserved verbatim.
+  const codeDefaults = getDefaultRoles();
+  const codeDefaultsByValue = new Map(
+    codeDefaults.map((r) => [r.value, r as StoredRole]),
+  );
+
+  if (!config) {
+    // First access for this tenant: seed from code defaults.
+    await prisma.systemConfig.create({
+      data: {
+        key: SYSTEM_CONFIG_KEY,
+        value: JSON.stringify(codeDefaults),
+        category: 'roles',
+        description: 'Custom role definitions with permissions',
+      },
+    });
+    return codeDefaults;
   }
 
-  // Seed from defaults on first access
-  const defaults = getDefaultRoles();
-  await prisma.systemConfig.create({
-    data: {
-      key: SYSTEM_CONFIG_KEY,
-      value: JSON.stringify(defaults),
-      category: 'roles',
-      description: 'Custom role definitions with permissions',
-    },
-  });
-  return defaults;
+  const stored = JSON.parse(config.value) as StoredRole[];
+
+  // Self-healing migration: if a previous version of the app cached
+  // roles before PURCHASING_MANAGER (or any other future default)
+  // existed, the stored blob will be missing it. We always reconcile:
+  //
+  //   1. Default roles in storage -> overwrite with the latest code
+  //      defaults so permissions stay accurate as the matrix evolves.
+  //   2. Default roles missing from storage -> insert from code.
+  //   3. Custom roles in storage -> preserve verbatim.
+  //
+  // The user's customizations to NON-default roles are never touched.
+  let mutated = false;
+  const reconciled: StoredRole[] = [];
+  const seenDefaults = new Set<string>();
+
+  for (const role of stored) {
+    if (codeDefaultsByValue.has(role.value)) {
+      // Default role: replace with current code definition.
+      const fresh = codeDefaultsByValue.get(role.value)!;
+      reconciled.push(fresh);
+      seenDefaults.add(role.value);
+      if (JSON.stringify(role) !== JSON.stringify(fresh)) mutated = true;
+    } else {
+      // Custom role: keep as-is.
+      reconciled.push(role);
+    }
+  }
+
+  // Append any default roles that were missing entirely.
+  for (const def of codeDefaults) {
+    if (!seenDefaults.has(def.value)) {
+      reconciled.push(def);
+      mutated = true;
+    }
+  }
+
+  if (mutated) {
+    await prisma.systemConfig.update({
+      where: { key: SYSTEM_CONFIG_KEY },
+      data: { value: JSON.stringify(reconciled) },
+    });
+  }
+
+  return reconciled;
 }
 
 async function saveRoles(roles: StoredRole[]): Promise<void> {

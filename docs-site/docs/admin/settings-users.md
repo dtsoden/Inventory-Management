@@ -24,6 +24,16 @@ Additional custom roles can be added (up to ten total). Custom roles start with 
 
 Role data is stored in `SystemConfig` under a dedicated category; the API serializes and deserializes through `src/lib/roles.ts`.
 
+#### Default-role auto-reconciliation
+
+`GET /api/settings/roles` self-heals on every load. The stored `SystemConfig` blob is reconciled against `getDefaultRoles()` from `src/lib/roles.ts`:
+
+1. If a default role (`ADMIN`, `MANAGER`, `PURCHASING_MANAGER`, `WAREHOUSE_STAFF`) is missing from the stored blob, it is inserted from the code defaults.
+2. If a default role exists in storage but its definition has drifted from the code defaults (label, description, or permission switches), it is overwritten with the current code defaults.
+3. Custom roles (anything not in `DEFAULT_ROLE_KEYS`) are preserved verbatim.
+
+This means a tenant whose `custom_roles` blob was cached BEFORE a new default role was added (e.g. tenants created before `PURCHASING_MANAGER` shipped) will see the new role appear automatically the next time the Roles tab is loaded. It also means hand-editing the `SystemConfig` row to change a default role's permissions will be silently overwritten on the next load: edit the code in `src/lib/roles.ts` instead.
+
 ### Editing a role
 
 1. Click any role pill at the top of the Roles tab. The selected role fills in the Role Name, Description, and Permissions panels below.
