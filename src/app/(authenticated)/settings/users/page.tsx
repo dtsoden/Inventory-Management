@@ -730,7 +730,7 @@ export default function UsersSettingsPage() {
                         {user.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </td>
-                    <td className="py-3 text-muted-foreground">
+                    <td className="py-3 text-muted-foreground" suppressHydrationWarning>
                       {user.lastLoginAt
                         ? new Date(user.lastLoginAt).toLocaleDateString()
                         : 'Never'}
@@ -746,13 +746,13 @@ export default function UsersSettingsPage() {
                         />
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onSelect={() => openEditDialog(user)}
+                            onClick={() => openEditDialog(user)}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit User
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onSelect={() => handleToggleActive(user)}
+                            onClick={() => handleToggleActive(user)}
                           >
                             {user.isActive ? (
                               <>
@@ -768,7 +768,7 @@ export default function UsersSettingsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onSelect={() => handleDeleteUser(user)}
+                            onClick={() => handleDeleteUser(user)}
                             className="text-destructive focus:text-destructive"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
