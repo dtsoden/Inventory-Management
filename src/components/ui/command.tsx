@@ -51,7 +51,7 @@ function CommandDialog({
     <Dialog {...props}>
       <DialogContent
         className={cn(
-          "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          "top-1/3 w-[92vw] max-w-[92vw] translate-y-0 overflow-hidden rounded-xl! p-0 sm:max-w-3xl md:max-w-4xl lg:max-w-5xl",
           className
         )}
         showCloseButton={showCloseButton}
