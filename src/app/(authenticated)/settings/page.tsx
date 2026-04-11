@@ -50,12 +50,15 @@ export default function OrganizationSettingsPage() {
   });
   const [logoPreviewLight, setLogoPreviewLight] = useState<string | null>(null);
   const [logoPreviewDark, setLogoPreviewDark] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingBranding, setSavingBranding] = useState(false);
   const [uploadingLightLogo, setUploadingLightLogo] = useState(false);
   const [uploadingDarkLogo, setUploadingDarkLogo] = useState(false);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
   const [dragOverMode, setDragOverMode] = useState<'light' | 'dark' | null>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   const lightFileInputRef = useRef<HTMLInputElement>(null);
   const darkFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -100,10 +103,49 @@ export default function OrganizationSettingsPage() {
           });
           if (lightLogo) setLogoPreviewLight(lightLogo);
           if (darkLogo) setLogoPreviewDark(darkLogo);
+          if (d.faviconUrl) setFaviconPreview(d.faviconUrl);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  }, []);
+
+  const handleFavicon = useCallback(async (file: File) => {
+    const allowedExt = /\.(ico|png|jpe?g|svg|webp)$/i;
+    if (!allowedExt.test(file.name)) {
+      toast.error('Invalid file type. Allowed: ICO, PNG, JPG, SVG, WebP.');
+      return;
+    }
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error('File too large. Maximum favicon size is 1MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => setFaviconPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    setUploadingFavicon(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/settings/branding/favicon', {
+        method: 'POST',
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        setBrandingSettings((s) => ({ ...s, faviconUrl: json.data.url }));
+        setFaviconPreview(json.data.url);
+        toast.success('Favicon uploaded');
+      } else {
+        toast.error(json.error || 'Failed to upload favicon');
+      }
+    } catch {
+      toast.error('Failed to upload favicon');
+    } finally {
+      setUploadingFavicon(false);
+    }
   }, []);
 
   const handleFile = useCallback(async (file: File, mode: 'light' | 'dark') => {
@@ -507,6 +549,63 @@ export default function OrganizationSettingsPage() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Favicon Upload */}
+          <div>
+            <Label>Favicon</Label>
+            <p className="text-xs text-muted-foreground mt-1">
+              The icon shown in browser tabs. ICO, PNG, JPG, SVG, or WebP. Max 1MB. Recommended: 32x32 or 64x64 pixels.
+            </p>
+            <div
+              onClick={() => faviconInputRef.current?.click()}
+              className="mt-1.5 relative flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 p-4 transition-colors hover:border-muted-foreground/50 max-w-md"
+            >
+              {faviconPreview ? (
+                <>
+                  <div className="relative shrink-0 rounded bg-white p-2 border">
+                    <img
+                      src={faviconPreview}
+                      alt="favicon preview"
+                      className="h-8 w-8 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 text-xs text-muted-foreground">
+                    Favicon uploaded. Click to replace.
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFaviconPreview(null);
+                      setBrandingSettings((s) => ({ ...s, faviconUrl: null }));
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-6 w-6 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">
+                    {uploadingFavicon ? 'Uploading...' : 'Click to upload favicon'}
+                  </span>
+                </>
+              )}
+            </div>
+            <input
+              ref={faviconInputRef}
+              type="file"
+              accept=".ico,image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg,image/svg+xml,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFavicon(file);
+              }}
+            />
           </div>
         </div>
 

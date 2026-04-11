@@ -21,7 +21,25 @@ function isValidHex(color: string): boolean {
 export function BrandingStep({ data, onChange }: BrandingStepProps) {
   const lightInputRef = useRef<HTMLInputElement>(null);
   const darkInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   const [dragOverMode, setDragOverMode] = useState<LogoMode | null>(null);
+
+  const handleFaviconFile = useCallback(
+    (file: File) => {
+      const allowedExt = /\.(ico|png|jpe?g|svg|webp)$/i;
+      if (!allowedExt.test(file.name)) return;
+      if (file.size > 1 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        onChange({
+          brandingFaviconPreview: reader.result as string,
+          brandingFaviconFile: file,
+        });
+      };
+      reader.readAsDataURL(file);
+    },
+    [onChange],
+  );
 
   const handleFile = useCallback(
     (file: File, mode: LogoMode) => {
@@ -265,6 +283,65 @@ export function BrandingStep({ data, onChange }: BrandingStepProps) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {renderLogoUploader('light')}
         {renderLogoUploader('dark')}
+      </div>
+
+      {/* Favicon Upload */}
+      <div className="space-y-2">
+        <Label>Favicon</Label>
+        <p className="text-xs text-muted-foreground">
+          The icon shown in browser tabs. ICO, PNG, JPG, SVG, or WebP. Max 1MB.
+        </p>
+        <div
+          onClick={() => faviconInputRef.current?.click()}
+          className="relative flex cursor-pointer items-center gap-4 rounded-xl border-2 border-dashed border-muted-foreground/25 p-4 transition-colors hover:border-muted-foreground/50"
+        >
+          {data.brandingFaviconPreview ? (
+            <>
+              <div className="relative shrink-0 rounded bg-white p-2 border">
+                <img
+                  src={data.brandingFaviconPreview}
+                  alt="favicon preview"
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <div className="flex-1 text-xs text-muted-foreground">
+                Favicon uploaded. Click to replace.
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-full bg-destructive/10 text-destructive hover:bg-destructive/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange({
+                    brandingFaviconPreview: '',
+                    brandingFaviconFile: undefined,
+                  });
+                }}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Upload className="h-6 w-6 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Click to upload favicon
+              </span>
+            </>
+          )}
+        </div>
+        <input
+          ref={faviconInputRef}
+          type="file"
+          accept=".ico,image/x-icon,image/vnd.microsoft.icon,image/png,image/jpeg,image/svg+xml,image/webp"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFaviconFile(file);
+          }}
+        />
       </div>
     </div>
   );

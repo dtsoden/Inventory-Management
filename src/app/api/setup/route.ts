@@ -45,6 +45,37 @@ async function saveDataUrlLogo(
   }
 }
 
+async function saveDataUrlFavicon(
+  dataUrl: string | null | undefined,
+  tenantId: string,
+): Promise<string | null> {
+  if (!dataUrl || typeof dataUrl !== 'string') return null;
+  // Match common image MIME types plus ICO formats
+  const match = /^data:(image\/(png|jpeg|svg\+xml|webp|x-icon|vnd\.microsoft\.icon));base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  const mime = match[1];
+  const base64 = match[3];
+  const extMap: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/svg+xml': 'svg',
+    'image/webp': 'webp',
+    'image/x-icon': 'ico',
+    'image/vnd.microsoft.icon': 'ico',
+  };
+  const ext = extMap[mime] || 'png';
+  try {
+    await mkdir(BRANDING_UPLOAD_DIR, { recursive: true });
+    const filename = `${tenantId}-favicon-${Date.now()}.${ext}`;
+    const filePath = path.join(BRANDING_UPLOAD_DIR, filename);
+    await writeFile(filePath, Buffer.from(base64, 'base64'));
+    return `/api/files/uploads/branding/${filename}`;
+  } catch (err) {
+    console.error('Failed to write setup favicon:', err);
+    return null;
+  }
+}
+
 interface SetupPayload {
   passphrase: string;
   platformName: string;
@@ -69,6 +100,7 @@ interface SetupPayload {
     themeMode?: 'auto' | 'light' | 'dark';
     logoDataUrlLight?: string | null;
     logoDataUrlDark?: string | null;
+    faviconDataUrl?: string | null;
   };
   seedDemoData?: boolean;
 }
@@ -246,12 +278,17 @@ export async function POST(request: NextRequest) {
       tenant.id,
       'dark',
     );
+    const faviconUrl = await saveDataUrlFavicon(
+      payload.branding?.faviconDataUrl,
+      tenant.id,
+    );
 
-    if (logoUrlLight || logoUrlDark) {
+    if (logoUrlLight || logoUrlDark || faviconUrl) {
       const finalBranding = {
         ...initialBranding,
         logoUrlLight: logoUrlLight ?? initialBranding.logoUrlLight,
         logoUrlDark: logoUrlDark ?? initialBranding.logoUrlDark,
+        faviconUrl: faviconUrl ?? initialBranding.faviconUrl,
       };
       const finalSettingsJson = mergeBrandingIntoSettings(
         initialSettingsJson,

@@ -38,6 +38,8 @@ export interface SetupData {
   brandingLogoFileLight?: File;
   brandingLogoPreviewDark: string;
   brandingLogoFileDark?: File;
+  brandingFaviconPreview: string;
+  brandingFaviconFile?: File;
   brandingThemeMode: 'auto' | 'light' | 'dark';
 }
 
@@ -74,6 +76,7 @@ const initialData: SetupData = {
   brandingPrimaryColorDark: '#7ed321',
   brandingLogoPreviewLight: '',
   brandingLogoPreviewDark: '',
+  brandingFaviconPreview: '',
   brandingThemeMode: 'auto',
 };
 
@@ -173,6 +176,7 @@ export function SetupWizard() {
             // upload endpoint is used for subsequent changes.
             logoDataUrlLight: data.brandingLogoPreviewLight || null,
             logoDataUrlDark: data.brandingLogoPreviewDark || null,
+            faviconDataUrl: data.brandingFaviconPreview || null,
           },
         }),
       });
