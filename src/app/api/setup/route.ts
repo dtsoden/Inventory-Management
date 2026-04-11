@@ -86,6 +86,7 @@ interface SetupPayload {
   orgName: string;
   orgSlug: string;
   openaiApiKey: string;
+  openaiModel?: string;
   corsOrigins: string;
   smtpHost?: string;
   smtpPort?: string;
@@ -188,6 +189,12 @@ export async function POST(request: NextRequest) {
       isSecret: true,
       category: 'integrations',
       description: 'OpenAI API key for AI features',
+    });
+
+    await configService.set('openai_model', payload.openaiModel || 'gpt-5.4-nano', {
+      isSecret: false,
+      category: 'integrations',
+      description: 'Default OpenAI model for AI features',
     });
 
     await configService.set('cors_origins', payload.corsOrigins, {

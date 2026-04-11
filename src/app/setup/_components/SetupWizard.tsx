@@ -41,6 +41,7 @@ export interface SetupData {
   brandingFaviconPreview: string;
   brandingFaviconFile?: File;
   brandingThemeMode: 'auto' | 'light' | 'dark';
+  openaiModel: string;
 }
 
 const STEP_TITLES = [
@@ -78,6 +79,7 @@ const initialData: SetupData = {
   brandingLogoPreviewDark: '',
   brandingFaviconPreview: '',
   brandingThemeMode: 'auto',
+  openaiModel: 'gpt-5.4-nano',
 };
 
 export function SetupWizard() {
@@ -165,6 +167,7 @@ export function SetupWizard() {
           smtpUser: data.smtpUser || undefined,
           smtpPassword: data.smtpPassword || undefined,
           catalogApiUrl: data.catalogApiUrl || undefined,
+          openaiModel: data.openaiModel || 'gpt-5.4-nano',
           seedDemoData: data.seedDemoData,
           branding: {
             appName: data.brandingAppName || 'Inventory Management Platform',
