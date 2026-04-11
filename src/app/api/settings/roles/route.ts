@@ -25,9 +25,9 @@ async function loadRoles(): Promise<StoredRole[]> {
   // Build the canonical default list from code (ALWAYS the source of
   // truth for default roles). Custom roles in the stored config are
   // preserved verbatim.
-  const codeDefaults = getDefaultRoles();
-  const codeDefaultsByValue = new Map(
-    codeDefaults.map((r) => [r.value, r as StoredRole]),
+  const codeDefaults = getDefaultRoles() as StoredRole[];
+  const codeDefaultsByValue = new Map<string, StoredRole>(
+    codeDefaults.map((r) => [r.value as string, r]),
   );
 
   if (!config) {
