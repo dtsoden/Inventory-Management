@@ -772,30 +772,38 @@ export default function IntegrationsSettingsPage() {
               <div>
                 <Label htmlFor="model-select">Model</Label>
                 <div className="mt-1.5 flex gap-2">
-                  <Select
-                    value={selectedModel}
-                    onValueChange={(v) => setSelectedModel(v ?? 'gpt-4o-mini')}
-                  >
-                    <SelectTrigger id="model-select" className="flex-1 w-full">
-                      <SelectValue placeholder="Select a model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableModels.length > 0
-                        ? availableModels.map((m) => (
-                            <SelectItem key={m.id} value={m.id}>
-                              {m.id}
+                  {(() => {
+                    // Build a stable union list of fallback + fetched models that always
+                    // includes the currently selected value so the Select can resolve it.
+                    const fallbackModels = [
+                      'gpt-5.4-nano',
+                      'gpt-4o-mini',
+                      'gpt-4o',
+                      'gpt-4-turbo',
+                      'gpt-3.5-turbo',
+                    ];
+                    const modelIds = new Set<string>(fallbackModels);
+                    availableModels.forEach((m) => modelIds.add(m.id));
+                    if (selectedModel) modelIds.add(selectedModel);
+                    const allModels = Array.from(modelIds).sort();
+                    return (
+                      <Select
+                        value={selectedModel || 'gpt-5.4-nano'}
+                        onValueChange={(v) => setSelectedModel(v ?? 'gpt-5.4-nano')}
+                      >
+                        <SelectTrigger id="model-select" className="flex-1 w-full">
+                          <SelectValue placeholder="Select a model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allModels.map((id) => (
+                            <SelectItem key={id} value={id}>
+                              {id}
                             </SelectItem>
-                          ))
-                        : (
-                            <>
-                              <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
-                              <SelectItem value="gpt-4o">gpt-4o</SelectItem>
-                              <SelectItem value="gpt-4-turbo">gpt-4-turbo</SelectItem>
-                              <SelectItem value="gpt-3.5-turbo">gpt-3.5-turbo</SelectItem>
-                            </>
-                          )}
-                    </SelectContent>
-                  </Select>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    );
+                  })()}
                   <Button
                     onClick={saveSelectedModel}
                     disabled={saving === 'model'}
