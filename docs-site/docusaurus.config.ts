@@ -48,6 +48,12 @@ const config: Config = {
     ],
   ],
 
+  clientModules: [
+    './src/client/applyBranding.ts',
+    './src/client/imageZoom.ts',
+    './src/client/applyRoleVisibility.ts',
+  ],
+
   themeConfig: {
     image: 'img/social-card.png',
     colorMode: {
@@ -105,7 +111,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Inventory Management Platform. Built with Docusaurus.`,
+      copyright: `© ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,
