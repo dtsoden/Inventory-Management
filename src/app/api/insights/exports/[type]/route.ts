@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext, UserRole } from '@/lib/types';
+import { AppError } from '@/lib/errors';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError, ForbiddenError } from '@/lib/errors';
-import { UserRole } from '@/lib/types';
 
 // One-click CSV exports for accounting and procurement reporting.
 // All queries are pure SQL (Prisma); no AI involvement.
@@ -22,34 +22,21 @@ const VALID_TYPES: ExportType[] = [
   'reorder-candidates',
 ];
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ type: string }> },
-) {
-  try {
-    const ctx = await requireTenantContext();
-    if (
-      ctx.role !== UserRole.ADMIN &&
-      ctx.role !== UserRole.MANAGER &&
-      ctx.role !== UserRole.PURCHASING_MANAGER
-    ) {
-      throw new ForbiddenError('Exports are restricted to procurement roles.');
-    }
+function parseType(req: NextRequest): string {
+  const segments = req.nextUrl.pathname.split('/');
+  return segments[segments.indexOf('exports') + 1];
+}
 
-    const { type } = await params;
+class InsightsExportsHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const type = parseType(req);
     if (!VALID_TYPES.includes(type as ExportType)) {
-      return NextResponse.json(
-        { success: false, error: 'Unknown export type' },
-        { status: 404 },
-      );
+      throw new AppError('Unknown export type', 404, 'UNKNOWN_EXPORT');
     }
 
     const periodDays = Math.max(
       1,
-      Math.min(
-        365,
-        parseInt(req.nextUrl.searchParams.get('period') ?? '90', 10) || 90,
-      ),
+      Math.min(365, parseInt(req.nextUrl.searchParams.get('period') ?? '90', 10) || 90),
     );
 
     const csv = await buildCsv(type as ExportType, ctx.tenantId, periodDays);
@@ -62,20 +49,13 @@ export async function GET(
         'Content-Disposition': `attachment; filename="${filename}"`,
       },
     });
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode },
-      );
-    }
-    console.error('GET /api/insights/exports error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 },
-    );
   }
 }
+
+const handler = new InsightsExportsHandler();
+export const GET = handler.handle('GET', {
+  requiredRoles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.PURCHASING_MANAGER],
+});
 
 async function buildCsv(
   type: ExportType,

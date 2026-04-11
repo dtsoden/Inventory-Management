@@ -1,15 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
 
-export async function GET() {
-  try {
-    const ctx = await requireTenantContext();
+class DashboardHandler extends BaseApiHandler {
+  protected async onGet(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const { tenantId } = ctx;
 
-    // Run all queries in parallel for performance
     const [
       totalAssets,
       pendingOrders,
@@ -19,52 +16,34 @@ export async function GET() {
       assetsByStatus,
       ordersByMonth,
     ] = await Promise.all([
-      // Total assets count
       prisma.asset.count({ where: { tenantId } }),
-
-      // Pending orders (PENDING_APPROVAL status only - matches the dashboard link)
       prisma.purchaseOrder.count({
-        where: {
-          tenantId,
-          status: 'PENDING_APPROVAL',
-        },
+        where: { tenantId, status: 'PENDING_APPROVAL' },
       }),
-
-      // Active vendors
       prisma.vendor.count({ where: { tenantId, isActive: true } }),
-
-      // Low stock alerts: items where the count of AVAILABLE assets is strictly
-      // below the item's reorder point. Must count by status since the total
-      // asset count includes assigned/retired/etc.
-      prisma.item.findMany({
-        where: { tenantId, isActive: true, reorderPoint: { gt: 0 } },
-        select: {
-          id: true,
-          reorderPoint: true,
-          assets: { where: { status: 'AVAILABLE' }, select: { id: true } },
-        },
-      }).then((items) =>
-        items.filter((item) => item.assets.length < item.reorderPoint).length
-      ),
-
-      // Recent activity (last 10 audit log entries)
+      prisma.item
+        .findMany({
+          where: { tenantId, isActive: true, reorderPoint: { gt: 0 } },
+          select: {
+            id: true,
+            reorderPoint: true,
+            assets: { where: { status: 'AVAILABLE' }, select: { id: true } },
+          },
+        })
+        .then((items) =>
+          items.filter((item) => item.assets.length < item.reorderPoint).length,
+        ),
       prisma.auditLog.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
         take: 10,
-        include: {
-          user: { select: { name: true, email: true } },
-        },
+        include: { user: { select: { name: true, email: true } } },
       }),
-
-      // Assets grouped by status
       prisma.asset.groupBy({
         by: ['status'],
         where: { tenantId },
         _count: { status: true },
       }),
-
-      // Orders by month (last 6 months)
       prisma.purchaseOrder.findMany({
         where: { tenantId },
         select: { createdAt: true, status: true, totalAmount: true },
@@ -72,7 +51,6 @@ export async function GET() {
       }),
     ]);
 
-    // Process orders by month
     const monthMap: Record<string, { count: number; total: number }> = {};
     const now = new Date();
     for (let i = 5; i >= 0; i--) {
@@ -88,13 +66,11 @@ export async function GET() {
         monthMap[key].total += order.totalAmount;
       }
     }
-
     const ordersByMonthData = Object.entries(monthMap).map(([month, data]) => ({
       month,
       ...data,
     }));
 
-    // Process assets by status into a clean format
     const statusColors: Record<string, string> = {
       AVAILABLE: '#22c55e',
       ASSIGNED: '#3b82f6',
@@ -105,14 +81,13 @@ export async function GET() {
       IN_REPAIR: '#f97316',
       DISPOSED: '#374151',
     };
-
     const assetStatusData = assetsByStatus.map((group) => ({
       status: group.status,
       count: group._count.status,
       color: statusColors[group.status] || '#6b7280',
     }));
 
-    const dashboard = {
+    return this.success({
       kpi: {
         totalAssets,
         pendingOrders,
@@ -131,21 +106,9 @@ export async function GET() {
       })),
       assetsByStatus: assetStatusData,
       ordersByMonth: ordersByMonthData,
-    };
-
-    const body: ApiResponse = { success: true, data: dashboard };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/dashboard:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    });
   }
 }
+
+const handler = new DashboardHandler();
+export const GET = handler.handle('GET');
