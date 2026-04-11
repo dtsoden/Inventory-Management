@@ -76,6 +76,21 @@ export function Header() {
           <span className="hidden sm:inline">AI Assistant</span>
         </Button>
 
+        {/* AI Insights, role-gated to procurement managers */}
+        {(user?.role === 'ADMIN' ||
+          user?.role === 'MANAGER' ||
+          user?.role === 'PURCHASING_MANAGER') && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/insights')}
+            className="gap-1.5"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">AI Insights</span>
+          </Button>
+        )}
+
         {/* Theme toggle: hidden when the tenant has locked the theme mode */}
         {!themeLocked && (
           <Button
@@ -86,21 +101,6 @@ export function Header() {
           >
             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          </Button>
-        )}
-
-        {/* Insights icon, role-gated to procurement managers */}
-        {(user?.role === 'ADMIN' ||
-          user?.role === 'MANAGER' ||
-          user?.role === 'PURCHASING_MANAGER') && (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Insights"
-            title="Insights"
-            onClick={() => router.push('/insights')}
-          >
-            <Sparkles className="h-5 w-5 text-brand-green" />
           </Button>
         )}
 
