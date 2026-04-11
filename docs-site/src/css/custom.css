@@ -28,3 +28,27 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+/* Make the navbar tall enough to fit a real logo with only a few pixels of breathing room. */
+.navbar {
+  --ifm-navbar-height: 70px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.navbar__brand {
+  height: 60px;
+  margin-right: 1rem;
+}
+.navbar__logo {
+  height: 60px;
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+.navbar__logo img {
+  height: 60px;
+  max-height: 60px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
