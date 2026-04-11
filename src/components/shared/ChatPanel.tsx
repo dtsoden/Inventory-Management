@@ -33,32 +33,35 @@ function timeAgo(dateStr: string): string {
   return date.toLocaleDateString();
 }
 
+/**
+ * Sanitize and render HTML from the AI assistant.
+ * Allows a safe subset of tags. Strips scripts, event handlers, and dangerous attributes.
+ */
 function renderMarkdown(content: string): string {
-  let html = content
-    // Code blocks (triple backtick)
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="my-2 rounded-lg bg-muted p-3 text-xs overflow-x-auto"><code>$2</code></pre>')
-    // Inline code
-    .replace(/`([^`]+)`/g, '<code class="rounded bg-muted px-1 py-0.5 text-xs">$1</code>')
-    // Bold
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // Unordered lists
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    // Ordered lists
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
-    // Line breaks
-    .replace(/\n/g, '<br/>');
+  // The AI now outputs HTML directly. We sanitize it to a safe allowlist.
+  const allowedTags = new Set([
+    'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'code', 'pre', 'blockquote',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'a', 'span', 'div',
+  ]);
 
-  // Wrap consecutive li elements in ul/ol
-  html = html.replace(
-    /((?:<li class="ml-4 list-disc">.*?<\/li><br\/>?)+)/g,
-    '<ul class="my-1 space-y-0.5">$1</ul>'
-  );
-  html = html.replace(
-    /((?:<li class="ml-4 list-decimal">.*?<\/li><br\/>?)+)/g,
-    '<ol class="my-1 space-y-0.5">$1</ol>'
-  );
+  // Strip script tags and their contents entirely
+  let html = content.replace(/<script[\s\S]*?<\/script>/gi, '');
+  // Strip style tags
+  html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+  // Strip event handlers (onclick, onload, etc.)
+  html = html.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+  html = html.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+  // Strip javascript: hrefs
+  html = html.replace(/href\s*=\s*"javascript:[^"]*"/gi, 'href="#"');
+  html = html.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#'");
+  // Remove any tags not in the allowlist
+  html = html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+    return allowedTags.has(tag.toLowerCase()) ? match : '';
+  });
 
   return html;
 }
@@ -219,7 +222,7 @@ export function ChatPanel() {
                         msg.content
                       ) : (
                         <div
-                          className="prose-sm prose-invert:prose-invert [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4"
+                          className="ai-message-content"
                           dangerouslySetInnerHTML={{
                             __html: renderMarkdown(msg.content),
                           }}

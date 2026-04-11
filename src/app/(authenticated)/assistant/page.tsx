@@ -59,29 +59,25 @@ function formatDate(dateStr: string): string {
 }
 
 function renderMarkdown(content: string): string {
-  let html = content
-    .replace(
-      /```(\w*)\n([\s\S]*?)```/g,
-      '<pre class="my-2 rounded-lg bg-muted p-3 text-xs overflow-x-auto"><code>$2</code></pre>'
-    )
-    .replace(
-      /`([^`]+)`/g,
-      '<code class="rounded bg-muted px-1 py-0.5 text-xs">$1</code>'
-    )
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    .replace(/^\d+\. (.+)$/gm, '<li class="ml-4 list-decimal">$1</li>')
-    .replace(/\n/g, '<br/>');
+  // The AI now outputs HTML directly. Sanitize to a safe allowlist.
+  const allowedTags = new Set([
+    'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's',
+    'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'code', 'pre', 'blockquote',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'a', 'span', 'div',
+  ]);
 
-  html = html.replace(
-    /((?:<li class="ml-4 list-disc">.*?<\/li><br\/>?)+)/g,
-    '<ul class="my-1 space-y-0.5">$1</ul>'
-  );
-  html = html.replace(
-    /((?:<li class="ml-4 list-decimal">.*?<\/li><br\/>?)+)/g,
-    '<ol class="my-1 space-y-0.5">$1</ol>'
-  );
+  let html = content.replace(/<script[\s\S]*?<\/script>/gi, '');
+  html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+  html = html.replace(/\son\w+\s*=\s*"[^"]*"/gi, '');
+  html = html.replace(/\son\w+\s*=\s*'[^']*'/gi, '');
+  html = html.replace(/href\s*=\s*"javascript:[^"]*"/gi, 'href="#"');
+  html = html.replace(/href\s*=\s*'javascript:[^']*'/gi, "href='#'");
+  html = html.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tag) => {
+    return allowedTags.has(tag.toLowerCase()) ? match : '';
+  });
 
   return html;
 }
@@ -514,7 +510,7 @@ export default function AssistantPage() {
                           msg.content
                         ) : (
                           <div
-                            className="prose-sm [&_ul]:list-disc [&_ol]:list-decimal [&_li]:ml-4"
+                            className="ai-message-content"
                             dangerouslySetInnerHTML={{
                               __html: renderMarkdown(msg.content),
                             }}
