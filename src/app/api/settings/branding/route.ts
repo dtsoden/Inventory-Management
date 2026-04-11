@@ -52,8 +52,11 @@ export async function PUT(req: NextRequest) {
       appName,
       primaryColorLight,
       primaryColorDark,
-      logoUrl,
+      logoUrl, // legacy single-logo field (backward compat)
+      logoUrlLight,
+      logoUrlDark,
       faviconUrl,
+      themeMode,
     } = body;
 
     // Validate colors if provided
@@ -77,14 +80,34 @@ export async function PUT(req: NextRequest) {
 
     const currentBranding = parseBranding(tenant?.settings as string | null);
 
+    const resolvedLogoLight =
+      logoUrlLight !== undefined
+        ? logoUrlLight
+        : logoUrl !== undefined
+          ? logoUrl
+          : currentBranding.logoUrlLight;
+    const resolvedLogoDark =
+      logoUrlDark !== undefined
+        ? logoUrlDark
+        : logoUrl !== undefined
+          ? logoUrl
+          : currentBranding.logoUrlDark;
+
+    const resolvedThemeMode: 'auto' | 'light' | 'dark' =
+      themeMode === 'light' || themeMode === 'dark' || themeMode === 'auto'
+        ? themeMode
+        : currentBranding.themeMode ?? DEFAULT_BRANDING.themeMode;
+
     const updatedBranding = {
       appName: appName ?? currentBranding.appName ?? DEFAULT_BRANDING.appName,
-      logoUrl: logoUrl !== undefined ? logoUrl : currentBranding.logoUrl,
+      logoUrlLight: resolvedLogoLight,
+      logoUrlDark: resolvedLogoDark,
       primaryColorLight:
         primaryColorLight ?? currentBranding.primaryColorLight ?? DEFAULT_BRANDING.primaryColorLight,
       primaryColorDark:
         primaryColorDark ?? currentBranding.primaryColorDark ?? DEFAULT_BRANDING.primaryColorDark,
       faviconUrl: faviconUrl !== undefined ? faviconUrl : currentBranding.faviconUrl,
+      themeMode: resolvedThemeMode,
     };
 
     const newSettings = mergeBrandingIntoSettings(

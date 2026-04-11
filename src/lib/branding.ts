@@ -1,21 +1,34 @@
+export type ThemeMode = 'auto' | 'light' | 'dark';
+
 export interface TenantBranding {
   appName: string;
-  logoUrl: string | null;
+  logoUrlLight: string | null;
+  logoUrlDark: string | null;
   primaryColorLight: string;
   primaryColorDark: string;
   faviconUrl: string | null;
+  themeMode: ThemeMode;
 }
 
 export const DEFAULT_BRANDING: TenantBranding = {
   appName: 'Inventory Management Platform',
-  logoUrl: null,
+  logoUrlLight: null,
+  logoUrlDark: null,
   primaryColorLight: '#7ed321',
   primaryColorDark: '#7ed321',
   faviconUrl: null,
+  themeMode: 'auto',
 };
+
+function normalizeThemeMode(value: unknown): ThemeMode {
+  if (value === 'light' || value === 'dark' || value === 'auto') return value;
+  return 'auto';
+}
 
 /**
  * Parse tenant settings JSON and extract branding, falling back to defaults.
+ * Preserves backward compatibility: if the legacy single `logoUrl` exists,
+ * it is used for both light and dark logos.
  */
 export function parseBranding(settingsJson: string | null | undefined): TenantBranding {
   if (!settingsJson) return { ...DEFAULT_BRANDING };
@@ -23,12 +36,21 @@ export function parseBranding(settingsJson: string | null | undefined): TenantBr
     const parsed = JSON.parse(settingsJson);
     const branding = parsed?.branding;
     if (!branding) return { ...DEFAULT_BRANDING };
+
+    const legacyLogo: string | null = branding.logoUrl ?? null;
+    const logoUrlLight: string | null =
+      branding.logoUrlLight !== undefined ? branding.logoUrlLight : legacyLogo;
+    const logoUrlDark: string | null =
+      branding.logoUrlDark !== undefined ? branding.logoUrlDark : legacyLogo;
+
     return {
       appName: branding.appName || DEFAULT_BRANDING.appName,
-      logoUrl: branding.logoUrl ?? null,
+      logoUrlLight: logoUrlLight ?? null,
+      logoUrlDark: logoUrlDark ?? null,
       primaryColorLight: branding.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
       primaryColorDark: branding.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
       faviconUrl: branding.faviconUrl ?? null,
+      themeMode: normalizeThemeMode(branding.themeMode),
     };
   } catch {
     return { ...DEFAULT_BRANDING };

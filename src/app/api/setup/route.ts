@@ -1,11 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 import { hash } from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { EncryptionService } from '@/lib/encryption/EncryptionService';
 import { ConfigService } from '@/lib/config/ConfigService';
 import { mergeBrandingIntoSettings, DEFAULT_BRANDING } from '@/lib/branding';
 import { insertSampleData } from '@/lib/seed/sample-data';
+
+const BRANDING_UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads', 'branding');
+
+/**
+ * Persist a base64 data URL to the branding upload directory and return
+ * the URL path that can be used to access it. Returns null if the data URL
+ * is missing or invalid.
+ */
+async function saveDataUrlLogo(
+  dataUrl: string | null | undefined,
+  tenantId: string,
+  mode: 'light' | 'dark',
+): Promise<string | null> {
+  if (!dataUrl || typeof dataUrl !== 'string') return null;
+  const match = /^data:(image\/(png|jpeg|svg\+xml|webp));base64,(.+)$/.exec(dataUrl);
+  if (!match) return null;
+  const mime = match[1];
+  const base64 = match[3];
+  const extMap: Record<string, string> = {
+    'image/png': 'png',
+    'image/jpeg': 'jpg',
+    'image/svg+xml': 'svg',
+    'image/webp': 'webp',
+  };
+  const ext = extMap[mime] || 'png';
+  try {
+    await mkdir(BRANDING_UPLOAD_DIR, { recursive: true });
+    const filename = `${tenantId}-logo-${mode}-${Date.now()}.${ext}`;
+    const filePath = path.join(BRANDING_UPLOAD_DIR, filename);
+    await writeFile(filePath, Buffer.from(base64, 'base64'));
+    return `/api/files/uploads/branding/${filename}`;
+  } catch (err) {
+    console.error('Failed to write setup logo:', err);
+    return null;
+  }
+}
 
 interface SetupPayload {
   passphrase: string;
@@ -28,6 +66,9 @@ interface SetupPayload {
     appName?: string;
     primaryColorLight?: string;
     primaryColorDark?: string;
+    themeMode?: 'auto' | 'light' | 'dark';
+    logoDataUrlLight?: string | null;
+    logoDataUrlDark?: string | null;
   };
   seedDemoData?: boolean;
 }
@@ -168,22 +209,59 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Create Tenant with branding settings
-    const brandingData = {
+    const themeMode: 'auto' | 'light' | 'dark' =
+      payload.branding?.themeMode === 'light' ||
+      payload.branding?.themeMode === 'dark' ||
+      payload.branding?.themeMode === 'auto'
+        ? payload.branding.themeMode
+        : DEFAULT_BRANDING.themeMode;
+
+    const initialBranding = {
       ...DEFAULT_BRANDING,
       appName: payload.branding?.appName || DEFAULT_BRANDING.appName,
       primaryColorLight: payload.branding?.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
       primaryColorDark: payload.branding?.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
+      themeMode,
     };
-    const settingsJson = mergeBrandingIntoSettings(null, brandingData);
+    const initialSettingsJson = mergeBrandingIntoSettings(null, initialBranding);
 
     const tenant = await prisma.tenant.create({
       data: {
         name: payload.orgName,
         slug: payload.orgSlug,
-        settings: settingsJson,
+        settings: initialSettingsJson,
         isActive: true,
       },
     });
+
+    // Persist any uploaded logos now that we know the tenant id, then
+    // update the tenant settings with the resolved logo URLs.
+    const logoUrlLight = await saveDataUrlLogo(
+      payload.branding?.logoDataUrlLight,
+      tenant.id,
+      'light',
+    );
+    const logoUrlDark = await saveDataUrlLogo(
+      payload.branding?.logoDataUrlDark,
+      tenant.id,
+      'dark',
+    );
+
+    if (logoUrlLight || logoUrlDark) {
+      const finalBranding = {
+        ...initialBranding,
+        logoUrlLight: logoUrlLight ?? initialBranding.logoUrlLight,
+        logoUrlDark: logoUrlDark ?? initialBranding.logoUrlDark,
+      };
+      const finalSettingsJson = mergeBrandingIntoSettings(
+        initialSettingsJson,
+        finalBranding,
+      );
+      await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { settings: finalSettingsJson },
+      });
+    }
 
     // 7. Create admin User with bcrypt-hashed password
     const hashedPassword = await hash(payload.adminPassword, 12);

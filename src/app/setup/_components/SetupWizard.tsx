@@ -34,8 +34,11 @@ export interface SetupData {
   brandingAppName: string;
   brandingPrimaryColorLight: string;
   brandingPrimaryColorDark: string;
-  brandingLogoPreview: string;
-  brandingLogoFile?: File;
+  brandingLogoPreviewLight: string;
+  brandingLogoFileLight?: File;
+  brandingLogoPreviewDark: string;
+  brandingLogoFileDark?: File;
+  brandingThemeMode: 'auto' | 'light' | 'dark';
 }
 
 const STEP_TITLES = [
@@ -69,7 +72,9 @@ const initialData: SetupData = {
   brandingAppName: 'Inventory Management Platform',
   brandingPrimaryColorLight: '#7ed321',
   brandingPrimaryColorDark: '#7ed321',
-  brandingLogoPreview: '',
+  brandingLogoPreviewLight: '',
+  brandingLogoPreviewDark: '',
+  brandingThemeMode: 'auto',
 };
 
 export function SetupWizard() {
@@ -162,6 +167,12 @@ export function SetupWizard() {
             appName: data.brandingAppName || 'Inventory Management Platform',
             primaryColorLight: data.brandingPrimaryColorLight || '#7ed321',
             primaryColorDark: data.brandingPrimaryColorDark || '#7ed321',
+            themeMode: data.brandingThemeMode || 'auto',
+            // Pass logos as data URLs so the setup API can persist them.
+            // These are only used during initial setup; after that the logo
+            // upload endpoint is used for subsequent changes.
+            logoDataUrlLight: data.brandingLogoPreviewLight || null,
+            logoDataUrlDark: data.brandingLogoPreviewDark || null,
           },
         }),
       });
@@ -171,18 +182,6 @@ export function SetupWizard() {
       if (!response.ok) {
         setError(result.error || 'Setup failed. Please try again.');
         return;
-      }
-
-      // If a logo file was selected, upload it after setup
-      if (data.brandingLogoFile) {
-        try {
-          const formData = new FormData();
-          formData.append('file', data.brandingLogoFile);
-          // Note: logo upload requires auth, which may not be available yet
-          // The user can upload the logo after login via Settings
-        } catch {
-          // Non-critical, skip logo upload during setup
-        }
       }
 
       router.push('/login');

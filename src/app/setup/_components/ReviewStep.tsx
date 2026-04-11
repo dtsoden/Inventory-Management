@@ -95,7 +95,24 @@ export function ReviewStep({ data, onChange, onSubmit, isSubmitting }: ReviewSte
             {data.brandingPrimaryColorDark || '#7ed321'}
           </span>
         </div>
-        <ReviewRow label="Logo" value={data.brandingLogoPreview ? 'Uploaded' : 'None'} />
+        <ReviewRow
+          label="Light Logo"
+          value={data.brandingLogoPreviewLight ? 'Uploaded' : 'None'}
+        />
+        <ReviewRow
+          label="Dark Logo"
+          value={data.brandingLogoPreviewDark ? 'Uploaded' : 'None'}
+        />
+        <ReviewRow
+          label="Theme Mode"
+          value={
+            data.brandingThemeMode === 'auto'
+              ? 'Auto (user can toggle)'
+              : data.brandingThemeMode === 'light'
+                ? 'Light Only'
+                : 'Dark Only'
+          }
+        />
       </div>
 
       <Separator />

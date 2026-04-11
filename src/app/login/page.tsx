@@ -16,9 +16,11 @@ export default async function LoginPage() {
     });
     if (tenant?.settings) {
       const parsed = parseBranding(tenant.settings as string);
+      // Login page is rendered in light mode styling; prefer light logo,
+      // fall back to dark if only that is set.
       branding = {
         primaryColor: parsed.primaryColorLight || '#7ed321',
-        logoUrl: parsed.logoUrl,
+        logoUrl: parsed.logoUrlLight ?? parsed.logoUrlDark ?? null,
         appName: parsed.appName,
       };
     }

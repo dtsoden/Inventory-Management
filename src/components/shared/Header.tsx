@@ -17,9 +17,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { useChatContext } from '@/components/providers/ChatProvider';
 import { ChatPanel } from '@/components/shared/ChatPanel';
+import { useBranding } from '@/components/providers/BrandingProvider';
 
 export function Header() {
   const { theme, setTheme } = useTheme();
+  const { branding } = useBranding();
+  const themeLocked = branding.themeMode === 'light' || branding.themeMode === 'dark';
   const user = useCurrentUser();
   const router = useRouter();
   const { togglePanel } = useChatContext();
@@ -51,16 +54,18 @@ export function Header() {
           <span className="hidden sm:inline">AI Assistant</span>
         </Button>
 
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          aria-label="Toggle theme"
-        >
-          <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        </Button>
+        {/* Theme toggle: hidden when the tenant has locked the theme mode */}
+        {!themeLocked && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle theme"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          </Button>
+        )}
 
         {/* Notification bell with dropdown */}
         <DropdownMenu>

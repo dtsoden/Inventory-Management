@@ -1,6 +1,7 @@
 'use client';
 
 import { Package } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { useBranding } from '@/components/providers/BrandingProvider';
 
 interface LogoProps {
@@ -9,16 +10,33 @@ interface LogoProps {
 
 export function Logo({ collapsed = false }: LogoProps) {
   const { branding } = useBranding();
+  const { resolvedTheme } = useTheme();
 
   const appName = branding.appName || 'Inventory';
+
+  // Determine which logo to show based on locked theme mode or resolved theme.
+  let effectiveTheme: 'light' | 'dark';
+  if (branding.themeMode === 'dark') {
+    effectiveTheme = 'dark';
+  } else if (branding.themeMode === 'light') {
+    effectiveTheme = 'light';
+  } else {
+    effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light';
+  }
+
+  // Pick the logo for the effective theme, falling back to the other variant.
+  const logoSrc =
+    effectiveTheme === 'dark'
+      ? branding.logoUrlDark || branding.logoUrlLight
+      : branding.logoUrlLight || branding.logoUrlDark;
 
   // Logo area is exclusively for the logo image. No text here.
   // The app name only appears in the browser tab title.
   return (
     <div className="flex items-center justify-center" style={{ padding: '5px 0' }}>
-      {branding.logoUrl ? (
+      {logoSrc ? (
         <img
-          src={branding.logoUrl}
+          src={logoSrc}
           alt={appName}
           className="shrink-0 object-contain"
           style={{

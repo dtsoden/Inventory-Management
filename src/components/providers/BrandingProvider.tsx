@@ -19,10 +19,12 @@ interface BrandingContextValue {
 
 const DEFAULT_BRANDING: TenantBranding = {
   appName: 'Inventory Management Platform',
-  logoUrl: null,
+  logoUrlLight: null,
+  logoUrlDark: null,
   primaryColorLight: '#7ed321',
   primaryColorDark: '#7ed321',
   faviconUrl: null,
+  themeMode: 'auto',
 };
 
 const BrandingContext = createContext<BrandingContextValue>({
@@ -86,12 +88,19 @@ function applyBrandingColors(branding: TenantBranding, isDark: boolean) {
 function getInitialBranding(): TenantBranding {
   if (typeof window !== 'undefined' && (window as any).__BRANDING__) {
     const b = (window as any).__BRANDING__;
+    // Backward compatibility: support legacy single `logoUrl` field.
+    const legacyLogo: string | null = b.logoUrl ?? null;
     return {
       appName: b.appName || DEFAULT_BRANDING.appName,
-      logoUrl: b.logoUrl || null,
+      logoUrlLight: b.logoUrlLight ?? legacyLogo,
+      logoUrlDark: b.logoUrlDark ?? legacyLogo,
       primaryColorLight: b.primaryColorLight || DEFAULT_BRANDING.primaryColorLight,
       primaryColorDark: b.primaryColorDark || DEFAULT_BRANDING.primaryColorDark,
       faviconUrl: b.faviconUrl || null,
+      themeMode:
+        b.themeMode === 'light' || b.themeMode === 'dark' || b.themeMode === 'auto'
+          ? b.themeMode
+          : 'auto',
     };
   }
   return DEFAULT_BRANDING;
@@ -100,7 +109,7 @@ function getInitialBranding(): TenantBranding {
 export function BrandingProvider({ children }: { children: ReactNode }) {
   const [branding, setBranding] = useState<TenantBranding>(getInitialBranding);
   const [loading, setLoading] = useState(false);
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const fetchBranding = useCallback(async () => {
     try {
@@ -120,10 +129,26 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
     fetchBranding();
   }, [fetchBranding]);
 
-  // Apply CSS custom properties when branding or theme changes
+  // Force theme when the tenant has locked it to light or dark.
   useEffect(() => {
-    const isDark = resolvedTheme === 'dark';
-    applyBrandingColors(branding, isDark);
+    if (branding.themeMode === 'light' || branding.themeMode === 'dark') {
+      if (resolvedTheme !== branding.themeMode) {
+        setTheme(branding.themeMode);
+      }
+    }
+  }, [branding.themeMode, resolvedTheme, setTheme]);
+
+  // Apply CSS custom properties when branding or theme changes. When the
+  // theme is locked we use the locked mode rather than the resolved theme so
+  // colors are correct immediately.
+  useEffect(() => {
+    const effectiveDark =
+      branding.themeMode === 'dark'
+        ? true
+        : branding.themeMode === 'light'
+          ? false
+          : resolvedTheme === 'dark';
+    applyBrandingColors(branding, effectiveDark);
   }, [branding, resolvedTheme]);
 
   // Update favicon link when branding changes

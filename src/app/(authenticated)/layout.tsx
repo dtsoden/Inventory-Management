@@ -37,17 +37,30 @@ export default async function AuthenticatedLayout({
       const lightColor = branding.primaryColorLight || '#7ed321';
       const darkColor = branding.primaryColorDark || '#7ed321';
 
-      brandingCss = `
-        :root { --brand-green: ${lightColor}; }
-        .dark { --brand-green: ${darkColor}; }
-      `;
+      if (branding.themeMode === 'light') {
+        // Locked to light: force the single color regardless of .dark class.
+        brandingCss = `
+          :root, .dark { --brand-green: ${lightColor}; }
+        `;
+      } else if (branding.themeMode === 'dark') {
+        brandingCss = `
+          :root, .dark { --brand-green: ${darkColor}; }
+        `;
+      } else {
+        brandingCss = `
+          :root { --brand-green: ${lightColor}; }
+          .dark { --brand-green: ${darkColor}; }
+        `;
+      }
 
       serverBranding = {
         appName: branding.appName,
-        logoUrl: branding.logoUrl,
+        logoUrlLight: branding.logoUrlLight,
+        logoUrlDark: branding.logoUrlDark,
         primaryColorLight: branding.primaryColorLight,
         primaryColorDark: branding.primaryColorDark,
         faviconUrl: branding.faviconUrl,
+        themeMode: branding.themeMode,
       };
     } catch {
       redirect('/api/auth/signout?callbackUrl=/login');

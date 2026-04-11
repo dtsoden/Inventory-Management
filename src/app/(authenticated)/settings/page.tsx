@@ -15,12 +15,16 @@ interface OrgSettings {
   platformName: string;
 }
 
+type ThemeMode = 'auto' | 'light' | 'dark';
+
 interface BrandingSettings {
   appName: string;
   primaryColorLight: string;
   primaryColorDark: string;
-  logoUrl: string | null;
+  logoUrlLight: string | null;
+  logoUrlDark: string | null;
   faviconUrl: string | null;
+  themeMode: ThemeMode;
 }
 
 function isValidHex(color: string): boolean {
@@ -39,16 +43,21 @@ export default function OrganizationSettingsPage() {
     appName: '',
     primaryColorLight: '#7ed321',
     primaryColorDark: '#7ed321',
-    logoUrl: null,
+    logoUrlLight: null,
+    logoUrlDark: null,
     faviconUrl: null,
+    themeMode: 'auto',
   });
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoPreviewLight, setLogoPreviewLight] = useState<string | null>(null);
+  const [logoPreviewDark, setLogoPreviewDark] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingBranding, setSavingBranding] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingLightLogo, setUploadingLightLogo] = useState(false);
+  const [uploadingDarkLogo, setUploadingDarkLogo] = useState(false);
+  const [dragOverMode, setDragOverMode] = useState<'light' | 'dark' | null>(null);
+  const lightFileInputRef = useRef<HTMLInputElement>(null);
+  const darkFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function safeFetch(url: string) {
@@ -73,23 +82,31 @@ export default function OrganizationSettingsPage() {
           });
         }
         if (brandingRes.success && brandingRes.data) {
+          const d = brandingRes.data;
+          // Backward compatibility: fall back to legacy single logoUrl
+          const lightLogo = d.logoUrlLight ?? d.logoUrl ?? null;
+          const darkLogo = d.logoUrlDark ?? d.logoUrl ?? null;
           setBrandingSettings({
-            appName: brandingRes.data.appName || '',
-            primaryColorLight: brandingRes.data.primaryColorLight || '#7ed321',
-            primaryColorDark: brandingRes.data.primaryColorDark || '#7ed321',
-            logoUrl: brandingRes.data.logoUrl || null,
-            faviconUrl: brandingRes.data.faviconUrl || null,
+            appName: d.appName || '',
+            primaryColorLight: d.primaryColorLight || '#7ed321',
+            primaryColorDark: d.primaryColorDark || '#7ed321',
+            logoUrlLight: lightLogo,
+            logoUrlDark: darkLogo,
+            faviconUrl: d.faviconUrl || null,
+            themeMode:
+              d.themeMode === 'light' || d.themeMode === 'dark' || d.themeMode === 'auto'
+                ? d.themeMode
+                : 'auto',
           });
-          if (brandingRes.data.logoUrl) {
-            setLogoPreview(brandingRes.data.logoUrl);
-          }
+          if (lightLogo) setLogoPreviewLight(lightLogo);
+          if (darkLogo) setLogoPreviewDark(darkLogo);
         }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback(async (file: File, mode: 'light' | 'dark') => {
     const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
     if (!allowed.includes(file.type)) {
       toast.error('Invalid file type. Allowed: PNG, JPG, SVG, WebP.');
@@ -102,11 +119,15 @@ export default function OrganizationSettingsPage() {
 
     // Show local preview immediately
     const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.onload = () => {
+      if (mode === 'light') setLogoPreviewLight(reader.result as string);
+      else setLogoPreviewDark(reader.result as string);
+    };
     reader.readAsDataURL(file);
 
     // Upload
-    setUploadingLogo(true);
+    if (mode === 'light') setUploadingLightLogo(true);
+    else setUploadingDarkLogo(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -116,25 +137,31 @@ export default function OrganizationSettingsPage() {
       });
       const json = await res.json();
       if (json.success && json.data?.url) {
-        setBrandingSettings((s) => ({ ...s, logoUrl: json.data.url }));
-        setLogoPreview(json.data.url);
-        toast.success('Logo uploaded');
+        if (mode === 'light') {
+          setBrandingSettings((s) => ({ ...s, logoUrlLight: json.data.url }));
+          setLogoPreviewLight(json.data.url);
+        } else {
+          setBrandingSettings((s) => ({ ...s, logoUrlDark: json.data.url }));
+          setLogoPreviewDark(json.data.url);
+        }
+        toast.success(`${mode === 'light' ? 'Light' : 'Dark'} mode logo uploaded`);
       } else {
         toast.error(json.error || 'Failed to upload logo');
       }
     } catch {
       toast.error('Failed to upload logo');
     } finally {
-      setUploadingLogo(false);
+      if (mode === 'light') setUploadingLightLogo(false);
+      else setUploadingDarkLogo(false);
     }
   }, []);
 
   const handleDrop = useCallback(
-    (e: React.DragEvent) => {
+    (e: React.DragEvent, mode: 'light' | 'dark') => {
       e.preventDefault();
-      setDragOver(false);
+      setDragOverMode(null);
       const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (file) handleFile(file, mode);
     },
     [handleFile],
   );
@@ -284,7 +311,7 @@ export default function OrganizationSettingsPage() {
             Customize your platform appearance with custom colors and logo.
           </p>
 
-        <div className="mt-6 space-y-6 max-w-lg">
+        <div className="mt-6 space-y-6 max-w-2xl">
           {/* App Name */}
           <div>
             <Label htmlFor="brandingAppName">Application Name</Label>
@@ -372,90 +399,114 @@ export default function OrganizationSettingsPage() {
             )}
           </div>
 
-          {/* Logo Upload */}
+          {/* Theme Mode */}
           <div>
-            <Label>Logo</Label>
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`mt-1.5 relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors ${
-                dragOver
-                  ? 'border-brand-green bg-brand-green/5'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              }`}
-            >
-              {logoPreview ? (
-                <div className="relative">
-                  <img
-                    src={logoPreview}
-                    alt="Logo preview"
-                    className="max-h-20 max-w-full object-contain"
-                  />
-                  <Button
+            <Label>Theme Mode</Label>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {(['auto', 'light', 'dark'] as const).map((mode) => {
+                const active = brandingSettings.themeMode === mode;
+                const label =
+                  mode === 'auto' ? 'Auto' : mode === 'light' ? 'Light Only' : 'Dark Only';
+                return (
+                  <button
+                    key={mode}
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLogoPreview(null);
-                      setBrandingSettings((s) => ({ ...s, logoUrl: null }));
-                    }}
+                    onClick={() => setBrandingSettings((s) => ({ ...s, themeMode: mode }))}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                      active
+                        ? 'border-brand-green bg-brand-green/10 text-foreground'
+                        : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                    }`}
                   >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-8 w-8 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {uploadingLogo ? 'Uploading...' : 'Click or drag to upload a logo'}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    PNG, JPG, SVG, or WebP. Max 2MB.
-                  </p>
-                </>
-              )}
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/svg+xml,image/webp"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleFile(file);
-              }}
-            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Auto allows users to toggle between light and dark mode. Light Only or Dark Only
+              locks the app to that mode.
+            </p>
           </div>
 
-          {/* Live Preview */}
-          <div className="rounded-xl border p-4">
-            <p className="text-xs font-medium text-muted-foreground mb-3">Live Preview</p>
-            <div className="flex items-center gap-3 rounded-lg bg-card p-3 border">
-              {logoPreview ? (
-                <img
-                  src={logoPreview}
-                  alt="Preview"
-                  className="h-9 max-w-[120px] object-contain"
-                />
-              ) : (
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white text-sm font-bold"
-                  style={{ backgroundColor: brandingSettings.primaryColorLight }}
-                >
-                  {(brandingSettings.appName || 'I')[0].toUpperCase()}
+          {/* Logo Uploads */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {(['light', 'dark'] as const).map((mode) => {
+              const isLight = mode === 'light';
+              const preview = isLight ? logoPreviewLight : logoPreviewDark;
+              const uploading = isLight ? uploadingLightLogo : uploadingDarkLogo;
+              const inputRef = isLight ? lightFileInputRef : darkFileInputRef;
+              const isDragOver = dragOverMode === mode;
+              const bgClass = isLight ? 'bg-white' : 'bg-neutral-900';
+              const fgMuted = isLight ? 'text-neutral-500' : 'text-neutral-400';
+              return (
+                <div key={mode}>
+                  <Label>{isLight ? 'Light Mode Logo' : 'Dark Mode Logo'}</Label>
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverMode(mode);
+                    }}
+                    onDragLeave={() => setDragOverMode(null)}
+                    onDrop={(e) => handleDrop(e, mode)}
+                    onClick={() => inputRef.current?.click()}
+                    className={`mt-1.5 relative flex min-h-[140px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 transition-colors ${bgClass} ${
+                      isDragOver
+                        ? 'border-brand-green bg-brand-green/5'
+                        : 'border-muted-foreground/25 hover:border-muted-foreground/50'
+                    }`}
+                  >
+                    {preview ? (
+                      <div className="relative">
+                        <img
+                          src={preview}
+                          alt={`${mode} logo preview`}
+                          className="max-h-20 max-w-full object-contain"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isLight) {
+                              setLogoPreviewLight(null);
+                              setBrandingSettings((s) => ({ ...s, logoUrlLight: null }));
+                            } else {
+                              setLogoPreviewDark(null);
+                              setBrandingSettings((s) => ({ ...s, logoUrlDark: null }));
+                            }
+                          }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className={`h-8 w-8 ${fgMuted}`} />
+                        <p className={`mt-2 text-sm ${fgMuted}`}>
+                          {uploading ? 'Uploading...' : 'Click or drag to upload'}
+                        </p>
+                        <p className={`text-xs ${fgMuted}`}>
+                          PNG, JPG, SVG, or WebP. Max 2MB.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFile(file, mode);
+                    }}
+                  />
                 </div>
-              )}
-              <span className="text-lg font-bold tracking-tight">
-                {brandingSettings.appName || 'Inventory'}
-              </span>
-            </div>
+              );
+            })}
           </div>
         </div>
 
