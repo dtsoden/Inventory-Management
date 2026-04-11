@@ -76,18 +76,27 @@ function setPrimaryColor(hex: string) {
 }
 
 function setFavicon(url: string) {
-  const links = document.querySelectorAll<HTMLLinkElement>(
-    'link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]',
+  // Remove every existing favicon link so the browser can't fall back
+  // to the static one Docusaurus baked into the HTML head.
+  const existing = document.querySelectorAll<HTMLLinkElement>(
+    'link[rel~="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"], link[rel="mask-icon"]',
   );
-  links.forEach((link) => {
-    link.href = url;
-  });
-  if (links.length === 0) {
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.href = url;
-    document.head.appendChild(link);
-  }
+  existing.forEach((l) => l.parentNode?.removeChild(l));
+
+  // Append a fresh link with a cache-busting query so the browser refetches.
+  const cacheBust = url.includes('?') ? `&_=${Date.now()}` : `?_=${Date.now()}`;
+  const fresh = document.createElement('link');
+  fresh.rel = 'icon';
+  fresh.type = 'image/x-icon';
+  fresh.href = url + cacheBust;
+  document.head.appendChild(fresh);
+
+  // Belt-and-suspenders: also drop in a shortcut-icon variant for older
+  // browsers that ignore link[rel="icon"] when there's no shortcut alias.
+  const shortcut = document.createElement('link');
+  shortcut.rel = 'shortcut icon';
+  shortcut.href = url + cacheBust;
+  document.head.appendChild(shortcut);
 }
 
 function setNavbarLogo(lightUrl: string | null, darkUrl: string | null) {
