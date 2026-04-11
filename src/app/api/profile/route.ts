@@ -16,6 +16,7 @@ export async function GET() {
         email: true,
         role: true,
         isActive: true,
+        avatarUrl: true,
         lastLoginAt: true,
         createdAt: true,
         tenant: {
@@ -99,6 +100,7 @@ export async function PUT(req: NextRequest) {
         email: true,
         role: true,
         isActive: true,
+        avatarUrl: true,
         lastLoginAt: true,
         createdAt: true,
         tenant: {

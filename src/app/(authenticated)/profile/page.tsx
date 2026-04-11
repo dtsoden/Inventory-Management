@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { User, Mail, Shield, Calendar, Key, Loader2, Save } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { User, Mail, Shield, Calendar, Key, Loader2, Save, Camera, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface ProfileData {
   id: string;
@@ -17,6 +17,7 @@ interface ProfileData {
   email: string;
   role: string;
   isActive: boolean;
+  avatarUrl: string | null;
   lastLoginAt: string | null;
   createdAt: string;
   tenant: {
@@ -39,6 +40,8 @@ const roleVariantMap: Record<string, 'default' | 'secondary' | 'outline'> = {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // Profile form state
   const [name, setName] = useState('');
@@ -171,6 +174,57 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleAvatarUpload(file: File) {
+    const allowed = ['image/png', 'image/jpeg', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Invalid file type. Use PNG, JPG, or WebP.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File too large. Max 2MB.');
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        setProfile((p) => (p ? { ...p, avatarUrl: json.data.url } : p));
+        toast.success('Avatar updated');
+      } else {
+        toast.error(json.error || 'Failed to upload avatar');
+      }
+    } catch {
+      toast.error('Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  }
+
+  async function handleAvatarRemove() {
+    setUploadingAvatar(true);
+    try {
+      const res = await fetch('/api/profile/avatar', { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setProfile((p) => (p ? { ...p, avatarUrl: null } : p));
+        toast.success('Avatar removed');
+      } else {
+        toast.error(json.error || 'Failed to remove avatar');
+      }
+    } catch {
+      toast.error('Failed to remove avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   function getInitials(fullName: string): string {
     const parts = fullName.split(' ').filter(Boolean);
     if (parts.length === 0) return '??';
@@ -227,11 +281,39 @@ export default function ProfilePage() {
       {/* Avatar and identity */}
       <Card>
         <CardContent className="flex flex-col items-center gap-4 pt-6 sm:flex-row sm:items-start">
-          <Avatar className="h-20 w-20 text-2xl">
-            <AvatarFallback className="bg-purple-600 text-white">
-              {getInitials(profile.name)}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-24 w-24 text-2xl">
+              {profile.avatarUrl && (
+                <AvatarImage src={profile.avatarUrl} alt={profile.name} />
+              )}
+              <AvatarFallback className="bg-purple-600 text-white">
+                {getInitials(profile.name)}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition hover:scale-105 disabled:opacity-50"
+              title="Upload avatar"
+            >
+              {uploadingAvatar ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleAvatarUpload(file);
+              }}
+            />
+          </div>
           <div className="flex-1 text-center sm:text-left">
             <h2 className="text-xl font-semibold">{profile.name}</h2>
             <p className="text-sm text-muted-foreground">{profile.email}</p>
@@ -244,6 +326,18 @@ export default function ProfilePage() {
                 {profile.tenant.name}
               </span>
             </div>
+            {profile.avatarUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleAvatarRemove}
+                disabled={uploadingAvatar}
+                className="mt-2 h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="mr-1 h-3 w-3" />
+                Remove avatar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

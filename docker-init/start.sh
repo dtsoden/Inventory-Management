@@ -6,5 +6,9 @@ if [ ! -f /app/data/inventory.db ]; then
   echo "Database initialized."
 fi
 
+# Apply idempotent runtime migrations for existing databases.
+# Never delete user data — only ALTER TABLE additions.
+node /app/docker-init/migrate.mjs
+
 # Start the application
 exec node server.js
