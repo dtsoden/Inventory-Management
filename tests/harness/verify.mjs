@@ -219,6 +219,51 @@ async function suiteNotification() {
 }
 
 // ----------------------------------------------------------------
+// USER suite (settings/users + profile)
+// ----------------------------------------------------------------
+async function suiteUser() {
+  log('\n[user] CRUD + profile tests');
+
+  const list = await api('GET', '/api/settings/users');
+  record('list users', list.status === 200, `status ${list.status}`);
+
+  const newEmail = `temp-${Date.now()}@harness.test`;
+  const create = await api('POST', '/api/settings/users', {
+    name: 'Temp Harness',
+    email: newEmail,
+    password: 'temp1234harness',
+    role: 'WAREHOUSE_STAFF',
+  });
+  record('create user', create.status === 201, `status ${create.status}`);
+  const created = create.json?.data;
+  if (created?.id) {
+    const update = await api('PUT', `/api/settings/users/${created.id}`, {
+      name: 'Temp Harness Updated',
+    });
+    record('update user', update.status === 200, `status ${update.status}`);
+
+    const del = await api('DELETE', `/api/settings/users/${created.id}`);
+    record('deactivate user', del.status === 200, `status ${del.status}`);
+
+    // Hard scrub the temp record so the harness leaves no trace.
+    sqlite(`DELETE FROM AuditLog WHERE entityId = '${created.id}'`);
+    sqlite(`DELETE FROM Notification WHERE userId = '${created.id}'`);
+    sqlite(`DELETE FROM User WHERE id = '${created.id}'`);
+  } else {
+    record('created user has id', false, 'no id in response');
+  }
+
+  const profile = await api('GET', '/api/profile');
+  record('read profile', profile.status === 200, `status ${profile.status}`);
+
+  const updateProfile = await api('PUT', '/api/profile', {
+    name: 'Harness Admin',
+    email: TEST_EMAIL,
+  });
+  record('update profile', updateProfile.status === 200, `status ${updateProfile.status}`);
+}
+
+// ----------------------------------------------------------------
 // SMOKE: hit existing working routes to make sure refactor did not
 // break anything peripheral.
 // ----------------------------------------------------------------
@@ -250,6 +295,7 @@ async function main() {
     await suiteManufacturer();
     await suiteCategory();
     await suiteNotification();
+    await suiteUser();
   } catch (e) {
     fail(e.stack || e.message);
     exitCode = 2;
