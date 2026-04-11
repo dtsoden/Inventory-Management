@@ -704,81 +704,105 @@ export default function UsersSettingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-border/50 last:border-0">
-                    <td className="py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarFallback className="text-xs">
-                            {getInitials(user.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                {users.map((user) => {
+                  const activeAdminCount = users.filter(
+                    (u) => u.role === 'ADMIN' && u.isActive,
+                  ).length;
+                  const isLastAdmin =
+                    user.role === 'ADMIN' && user.isActive && activeAdminCount <= 1;
+
+                  return (
+                    <tr key={user.id} className="border-b border-border/50 last:border-0">
+                      <td className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarFallback className="text-xs">
+                              {getInitials(user.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <Badge variant={roleBadgeVariant[user.role] || 'outline'}>
-                        <Shield className="mr-1 h-3 w-3" />
-                        {roleLabels[user.role] || user.role}
-                      </Badge>
-                    </td>
-                    <td className="py-3">
-                      <Badge variant={user.isActive ? 'default' : 'secondary'}>
-                        {user.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </td>
-                    <td className="py-3 text-muted-foreground" suppressHydrationWarning>
-                      {user.lastLoginAt
-                        ? new Date(user.lastLoginAt).toLocaleDateString()
-                        : 'Never'}
-                    </td>
-                    <td className="py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button variant="ghost" size="icon-sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => openEditDialog(user)}
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit User
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleActive(user)}
-                          >
-                            {user.isActive ? (
-                              <>
-                                <UserX className="mr-2 h-4 w-4" />
-                                Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="mr-2 h-4 w-4" />
-                                Reactivate
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            onClick={() => handleDeleteUser(user)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3">
+                        <Badge variant={roleBadgeVariant[user.role] || 'outline'}>
+                          <Shield className="mr-1 h-3 w-3" />
+                          {roleLabels[user.role] || user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3">
+                        <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 text-muted-foreground" suppressHydrationWarning>
+                        {user.lastLoginAt
+                          ? new Date(user.lastLoginAt).toLocaleDateString()
+                          : 'Never'}
+                      </td>
+                      <td className="py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button variant="ghost" size="icon-sm">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={isLastAdmin}
+                              onClick={() => {
+                                if (isLastAdmin) {
+                                  toast.error(
+                                    'Cannot deactivate the last administrator. Create another admin first.',
+                                  );
+                                  return;
+                                }
+                                handleToggleActive(user);
+                              }}
+                            >
+                              {user.isActive ? (
+                                <>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="mr-2 h-4 w-4" />
+                                  Reactivate
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              disabled={isLastAdmin}
+                              onClick={() => {
+                                if (isLastAdmin) {
+                                  toast.error(
+                                    'Cannot delete the last administrator. Create another admin first.',
+                                  );
+                                  return;
+                                }
+                                handleDeleteUser(user);
+                              }}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
