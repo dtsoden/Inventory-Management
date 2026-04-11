@@ -22,11 +22,11 @@ export async function GET() {
       // Total assets count
       prisma.asset.count({ where: { tenantId } }),
 
-      // Pending orders (DRAFT, SUBMITTED, APPROVED, ORDERED statuses)
+      // Pending orders (PENDING_APPROVAL status only - matches the dashboard link)
       prisma.purchaseOrder.count({
         where: {
           tenantId,
-          status: { in: ['DRAFT', 'SUBMITTED', 'APPROVED', 'PENDING_APPROVAL'] },
+          status: 'PENDING_APPROVAL',
         },
       }),
 

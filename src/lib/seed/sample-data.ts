@@ -158,10 +158,10 @@ export async function insertSampleData(
     items.push(created);
   }
 
-  // --- Purchase Orders (8 in various statuses) ---
+  // --- Purchase Orders (12 in various statuses) ---
   const poStatuses = [
     'DRAFT', 'DRAFT',
-    'PENDING_APPROVAL',
+    'PENDING_APPROVAL', 'PENDING_APPROVAL', 'PENDING_APPROVAL', 'PENDING_APPROVAL', 'PENDING_APPROVAL',
     'APPROVED',
     'SUBMITTED',
     'PARTIALLY_RECEIVED',
