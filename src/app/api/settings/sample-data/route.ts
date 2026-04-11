@@ -1,33 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext, UserRole } from '@/lib/types';
 import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
 import {
   getSampleDataStatus,
   insertSampleData,
   removeSampleData,
 } from '@/lib/seed/sample-data';
 
-// GET /api/settings/sample-data - Check if sample data is loaded
-export async function GET() {
-  try {
-    const ctx = await requireTenantContext();
+class SampleDataHandler extends BaseApiHandler {
+  protected async onGet(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const status = await getSampleDataStatus(prisma, ctx.tenantId);
-    return NextResponse.json({ success: true, data: status });
-  } catch (error) {
-    console.error('Failed to check sample data status:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to check sample data status.' },
-      { status: 500 }
-    );
+    return this.success(status);
   }
-}
 
-// POST /api/settings/sample-data - Insert sample data
-export async function POST() {
-  try {
-    const ctx = await requireTenantContext();
+  protected async onPost(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     const ids = await insertSampleData(prisma, ctx.tenantId, ctx.userId);
-
     const counts = {
       vendors: ids.vendors.length,
       items: ids.items.length,
@@ -35,32 +23,16 @@ export async function POST() {
       orders: ids.purchaseOrders.length,
       assets: ids.assets.length,
     };
-
-    return NextResponse.json({ success: true, data: { counts } }, { status: 201 });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Failed to insert sample data.';
-    console.error('Failed to insert sample data:', error);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 400 }
-    );
+    return this.success({ counts }, 201);
   }
-}
 
-// DELETE /api/settings/sample-data - Remove sample data
-export async function DELETE() {
-  try {
-    const ctx = await requireTenantContext();
+  protected async onDelete(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     await removeSampleData(prisma, ctx.tenantId);
-    return NextResponse.json({ success: true, message: 'Sample data removed.' });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'Failed to remove sample data.';
-    console.error('Failed to remove sample data:', error);
-    return NextResponse.json(
-      { success: false, error: message },
-      { status: 400 }
-    );
+    return this.successMessage('Sample data removed.');
   }
 }
+
+const handler = new SampleDataHandler();
+export const GET = handler.handle('GET', { requiredRoles: [UserRole.ADMIN] });
+export const POST = handler.handle('POST', { requiredRoles: [UserRole.ADMIN] });
+export const DELETE = handler.handle('DELETE', { requiredRoles: [UserRole.ADMIN] });
