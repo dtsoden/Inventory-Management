@@ -296,8 +296,8 @@ export default function InsightsPage() {
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="size-5 text-brand-green" />
+              <CardTitle className="flex items-center gap-2 text-xl font-semibold text-brand-green">
+                <Sparkles className="size-5" />
                 AI Observations
               </CardTitle>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -380,7 +380,9 @@ export default function InsightsPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Top vendors by spend</CardTitle>
+              <CardTitle className="text-xl font-semibold text-brand-green">
+                Top vendors by spend
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {snapshot.topVendors.length === 0 ? (
@@ -405,7 +407,7 @@ export default function InsightsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-xl font-semibold text-brand-green">
                 Single-source risk
                 <Badge
                   className={`border ${riskColor(snapshot.singleSourceRisk.riskLevel)}`}
@@ -443,7 +445,9 @@ export default function InsightsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Spend by category</CardTitle>
+              <CardTitle className="text-xl font-semibold text-brand-green">
+                Spend by category
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {snapshot.spendByCategory.length === 0 ? (
@@ -468,7 +472,9 @@ export default function InsightsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Reorder candidates</CardTitle>
+              <CardTitle className="text-xl font-semibold text-brand-green">
+                Reorder candidates
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {snapshot.reorderAlerts.items.length === 0 ? (
@@ -510,7 +516,7 @@ export default function InsightsPage() {
       {/* CSV Exports */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-xl font-semibold text-brand-green">
             <Download className="size-5" />
             Reports
           </CardTitle>
