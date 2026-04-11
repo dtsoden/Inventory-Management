@@ -829,16 +829,39 @@ export default function UsersSettingsPage() {
             </div>
             <div>
               <Label>Role</Label>
-              <Select value={editRole} onValueChange={(v) => setEditRole(v ?? 'WAREHOUSE_STAFF')}>
-                <SelectTrigger className="mt-1.5 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="MANAGER">Manager</SelectItem>
-                  <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
-                </SelectContent>
-              </Select>
+              {(() => {
+                const activeAdminCount = users.filter(
+                  (u) => u.role === 'ADMIN' && u.isActive,
+                ).length;
+                const isLastAdmin =
+                  editingUser?.role === 'ADMIN' &&
+                  editingUser?.isActive &&
+                  activeAdminCount <= 1;
+                return (
+                  <>
+                    <Select
+                      value={editRole}
+                      onValueChange={(v) => setEditRole(v ?? 'WAREHOUSE_STAFF')}
+                      disabled={isLastAdmin}
+                    >
+                      <SelectTrigger className="mt-1.5 w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="MANAGER">Manager</SelectItem>
+                        <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {isLastAdmin && (
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        This is the only active administrator. The role cannot be changed
+                        until another admin is created.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
           <DialogFooter>

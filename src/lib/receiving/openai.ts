@@ -29,11 +29,11 @@ export async function extractPackingSlipData(
 
   const openai = new OpenAI({ apiKey });
 
-  // Read configured model from SystemConfig, fall back to gpt-4o-mini
+  // Read configured model from SystemConfig, fall back to gpt-5.4-nano
   const modelConfig = await prisma.systemConfig.findUnique({
     where: { key: 'openai_model' },
   });
-  const modelId = modelConfig?.value || 'gpt-4o-mini';
+  const modelId = modelConfig?.value || 'gpt-5.4-nano';
 
   const response = await openai.chat.completions.create({
     model: modelId,

@@ -247,11 +247,11 @@ export class AssistantService {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // Read configured model from SystemConfig, fall back to gpt-4o-mini
+    // Read configured model from SystemConfig, fall back to gpt-5.4-nano
     const modelConfig = await (this.db as any).systemConfig.findUnique({
       where: { key: 'openai_model' },
     });
-    const modelId = (modelConfig as { value?: string } | null)?.value || 'gpt-4o-mini';
+    const modelId = (modelConfig as { value?: string } | null)?.value || 'gpt-5.4-nano';
 
     let response = await openai.chat.completions.create({
       model: modelId,

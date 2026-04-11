@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 /* ------------------------------------------------------------------ */
@@ -161,7 +162,7 @@ export default function IntegrationsSettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
+  const [selectedModel, setSelectedModel] = useState('gpt-5.4-nano');
   const [availableModels, setAvailableModels] = useState<{ id: string }[]>([]);
   const [fetchingModels, setFetchingModels] = useState(false);
 
@@ -771,30 +772,30 @@ export default function IntegrationsSettingsPage() {
               <div>
                 <Label htmlFor="model-select">Model</Label>
                 <div className="mt-1.5 flex gap-2">
-                  <div className="relative flex-1">
-                    <select
-                      id="model-select"
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring appearance-none cursor-pointer"
-                    >
-                      {availableModels.length > 0 ? (
-                        availableModels.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.id}
-                          </option>
-                        ))
-                      ) : (
-                        <>
-                          <option value="gpt-4o-mini">gpt-4o-mini</option>
-                          <option value="gpt-4o">gpt-4o</option>
-                          <option value="gpt-4-turbo">gpt-4-turbo</option>
-                          <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                        </>
-                      )}
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  </div>
+                  <Select
+                    value={selectedModel}
+                    onValueChange={(v) => setSelectedModel(v ?? 'gpt-4o-mini')}
+                  >
+                    <SelectTrigger id="model-select" className="flex-1 w-full">
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableModels.length > 0
+                        ? availableModels.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.id}
+                            </SelectItem>
+                          ))
+                        : (
+                            <>
+                              <SelectItem value="gpt-4o-mini">gpt-4o-mini</SelectItem>
+                              <SelectItem value="gpt-4o">gpt-4o</SelectItem>
+                              <SelectItem value="gpt-4-turbo">gpt-4-turbo</SelectItem>
+                              <SelectItem value="gpt-3.5-turbo">gpt-3.5-turbo</SelectItem>
+                            </>
+                          )}
+                    </SelectContent>
+                  </Select>
                   <Button
                     onClick={saveSelectedModel}
                     disabled={saving === 'model'}
