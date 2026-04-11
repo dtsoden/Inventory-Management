@@ -54,17 +54,10 @@
 }
 
 /* Align the left-side nav items (User Guide, Admin Guide, Shane Comparison)
- * with the main content column instead of butting them up against the logo.
- * The doc sidebar is 300px wide; push the first nav item past the sidebar
- * boundary plus a 15px breathing pad. The brand/logo stays on the far left.
- * Sidebar 300px minus the brand area (~76px logo, 16px gap) plus 15px pad. */
+ * with the main content column. Confirmed visually in devtools at 30px. */
 @media (min-width: 997px) {
   .navbar__items > .navbar__brand ~ .navbar__item,
   .navbar__items > .navbar__brand ~ .dropdown {
-    margin-left: 0;
-  }
-  .navbar__items > .navbar__brand ~ .navbar__item:first-of-type,
-  .navbar__items > .navbar__brand ~ .dropdown:first-of-type {
-    margin-left: 223px;
+    margin-left: 30px;
   }
 }
