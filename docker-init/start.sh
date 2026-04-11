@@ -8,7 +8,11 @@ fi
 
 # Apply idempotent runtime migrations for existing databases.
 # Never delete user data — only ALTER TABLE additions.
-node /app/docker-init/migrate.mjs
+DB=/app/data/inventory.db
+if ! sqlite3 "$DB" "PRAGMA table_info(User)" | grep -q "|avatarUrl|"; then
+  echo "[migrate] Adding User.avatarUrl"
+  sqlite3 "$DB" 'ALTER TABLE "User" ADD COLUMN "avatarUrl" TEXT;'
+fi
 
 # Start the application
 exec node server.js

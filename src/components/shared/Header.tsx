@@ -1,12 +1,13 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
 import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useSession';
 import { useNotifications } from '@/hooks/useNotifications';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +33,27 @@ export function Header() {
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : '??';
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  const refreshAvatar = useCallback(async () => {
+    try {
+      const res = await fetch('/api/profile');
+      const json = await res.json();
+      if (json.success && json.data) {
+        setAvatarUrl(json.data.avatarUrl ?? null);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAvatar();
+    const handler = () => refreshAvatar();
+    window.addEventListener('profile:avatar-updated', handler);
+    return () => window.removeEventListener('profile:avatar-updated', handler);
+  }, [refreshAvatar]);
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4">
@@ -135,10 +157,11 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Avatar>
+              {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile" />}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" side="bottom" sideOffset={8}>
+          <DropdownMenuContent align="end" side="bottom" sideOffset={8} className="w-64">
             {user && (
               <div className="px-2 py-1.5 text-sm">
                 <p className="font-medium">

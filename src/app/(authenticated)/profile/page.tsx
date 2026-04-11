@@ -195,6 +195,7 @@ export default function ProfilePage() {
       const json = await res.json();
       if (json.success && json.data?.url) {
         setProfile((p) => (p ? { ...p, avatarUrl: json.data.url } : p));
+        window.dispatchEvent(new Event('profile:avatar-updated'));
         toast.success('Avatar updated');
       } else {
         toast.error(json.error || 'Failed to upload avatar');
@@ -214,6 +215,7 @@ export default function ProfilePage() {
       const json = await res.json();
       if (json.success) {
         setProfile((p) => (p ? { ...p, avatarUrl: null } : p));
+        window.dispatchEvent(new Event('profile:avatar-updated'));
         toast.success('Avatar removed');
       } else {
         toast.error(json.error || 'Failed to remove avatar');

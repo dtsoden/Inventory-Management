@@ -28,6 +28,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV DATA_DIR=/app/data
 
+# Install sqlite for runtime migrations
+RUN apk add --no-cache sqlite
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
