@@ -1,129 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError, NotFoundError } from '@/lib/errors';
-import type { ApiResponse } from '@/lib/types';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext } from '@/lib/types';
+import { manufacturerService } from '@/lib/manufacturers';
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
-
-    const manufacturer = await prisma.manufacturer.findFirst({
-      where: { id, tenantId: ctx.tenantId },
-      include: {
-        _count: { select: { items: true } },
-        items: {
-          select: { id: true, name: true, sku: true, manufacturerPartNumber: true },
-          orderBy: { name: 'asc' },
-        },
-      },
-    });
-
-    if (!manufacturer) {
-      throw new NotFoundError('Manufacturer', id);
-    }
-
-    const body: ApiResponse = { success: true, data: manufacturer };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in GET /api/manufacturers/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+function parseId(req: NextRequest): string {
+  const segments = req.nextUrl.pathname.split('/');
+  return segments[segments.indexOf('manufacturers') + 1];
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
+class ManufacturerHandler extends BaseApiHandler {
+  protected async onGet(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
+    const mfg = await manufacturerService.getByIdWithItems(ctx, id);
+    return this.success(mfg);
+  }
+
+  protected async onPut(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
     const data = await req.json();
+    const updated = await manufacturerService.updateOne(ctx, id, data);
+    return this.success(updated);
+  }
 
-    const existing = await prisma.manufacturer.findFirst({
-      where: { id, tenantId: ctx.tenantId },
-    });
-    if (!existing) {
-      throw new NotFoundError('Manufacturer', id);
-    }
-
-    const manufacturer = await prisma.manufacturer.update({
-      where: { id },
-      data: {
-        name: data.name?.trim() ?? existing.name,
-        website: data.website ?? existing.website,
-        supportUrl: data.supportUrl ?? existing.supportUrl,
-        supportPhone: data.supportPhone ?? existing.supportPhone,
-        supportEmail: data.supportEmail ?? existing.supportEmail,
-        notes: data.notes ?? existing.notes,
-        isActive: data.isActive ?? existing.isActive,
-      },
-    });
-
-    const body: ApiResponse = { success: true, data: manufacturer };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in PUT /api/manufacturers/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+  protected async onDelete(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const id = parseId(req);
+    await manufacturerService.deactivate(ctx, id);
+    return this.successMessage('Manufacturer deactivated');
   }
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const ctx = await requireTenantContext();
-    const { id } = await params;
-
-    const existing = await prisma.manufacturer.findFirst({
-      where: { id, tenantId: ctx.tenantId },
-    });
-    if (!existing) {
-      throw new NotFoundError('Manufacturer', id);
-    }
-
-    // Soft-delete by deactivating so item references are preserved
-    await prisma.manufacturer.update({
-      where: { id },
-      data: { isActive: false },
-    });
-
-    const body: ApiResponse = { success: true, message: 'Manufacturer deactivated' };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode }
-      );
-    }
-    console.error('Unhandled error in DELETE /api/manufacturers/[id]:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+const handler = new ManufacturerHandler();
+export const GET = handler.handle('GET');
+export const PUT = handler.handle('PUT');
+export const DELETE = handler.handle('DELETE');
