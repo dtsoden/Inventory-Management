@@ -24,6 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { VendorFormSheet } from '../vendor-form-sheet';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Vendor {
   id: string;
@@ -147,7 +148,7 @@ export default function VendorDetailPage() {
 
   const fetchVendor = useCallback(async () => {
     try {
-      const res = await fetch(`/api/vendors/${id}`);
+      const res = await apiFetch(`/api/vendors/${id}`);
       const json = await res.json();
       if (json.success) {
         setVendor(json.data);
@@ -169,7 +170,7 @@ export default function VendorDetailPage() {
 
   const handleRate = async (rating: number) => {
     try {
-      const res = await fetch(`/api/vendors/${id}`, {
+      const res = await apiFetch(`/api/vendors/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...vendor, rating }),
@@ -189,7 +190,7 @@ export default function VendorDetailPage() {
   const handleDeactivate = async () => {
     if (!vendor) return;
     try {
-      const res = await fetch(`/api/vendors/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/vendors/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         toast.success('Vendor deactivated');

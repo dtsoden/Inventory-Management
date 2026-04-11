@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 /* ------------------------------------------------------------------ */
 /*  Static list definitions                                            */
@@ -82,7 +83,7 @@ export default function ManageListsPage() {
   const [savingOrder, setSavingOrder] = useState(false);
 
   useEffect(() => {
-    fetch('/api/categories')
+    apiFetch('/api/categories')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -92,7 +93,7 @@ export default function ManageListsPage() {
       .catch(() => {})
       .finally(() => setCategoriesLoading(false));
 
-    fetch('/api/settings/lists')
+    apiFetch('/api/settings/lists')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -108,7 +109,7 @@ export default function ManageListsPage() {
     const setLoading = listType === 'asset' ? setSavingAsset : setSavingOrder;
     setLoading(true);
     try {
-      const res = await fetch('/api/settings/lists', {
+      const res = await apiFetch('/api/settings/lists', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ listType, customValues: values }),

@@ -23,6 +23,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface CategoryItem {
   id: string;
@@ -47,7 +48,7 @@ export default function CategoriesPage() {
   const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/categories');
+      const res = await apiFetch('/api/categories');
       if (!res.ok) throw new Error();
       const json = await res.json();
       // Handle both paginated and direct array responses
@@ -91,7 +92,7 @@ export default function CategoriesPage() {
 
     try {
       if (editingId) {
-        const res = await fetch(`/api/categories/${editingId}`, {
+        const res = await apiFetch(`/api/categories/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -99,7 +100,7 @@ export default function CategoriesPage() {
         if (!res.ok) throw new Error();
         toast.success('Category updated');
       } else {
-        const res = await fetch('/api/categories', {
+        const res = await apiFetch('/api/categories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -116,7 +117,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/categories/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       toast.success('Category deleted');
       setDeleteConfirmId(null);

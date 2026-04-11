@@ -29,6 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import type { FieldMapping, ApiSchemaField } from '@/lib/integrations/types';
 import { TARGET_FIELDS } from '@/lib/integrations/types';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 type WizardStep = 1 | 2 | 3;
 
@@ -70,7 +71,7 @@ function DataSourceWizardContent() {
   // Load existing source when editing
   useEffect(() => {
     if (editId) {
-      fetch(`/api/settings/data-sources/${editId}`)
+      apiFetch(`/api/settings/data-sources/${editId}`)
         .then((res) => res.json())
         .then((res) => {
           if (res.success && res.data) {
@@ -115,7 +116,7 @@ function DataSourceWizardContent() {
     setTestResult(null);
 
     try {
-      const res = await fetch('/api/settings/data-sources/_/test', {
+      const res = await apiFetch('/api/settings/data-sources/_/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -153,7 +154,7 @@ function DataSourceWizardContent() {
 
     setAnalyzing(true);
     try {
-      const res = await fetch('/api/settings/data-sources/_/analyze', {
+      const res = await apiFetch('/api/settings/data-sources/_/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schema }),
@@ -229,7 +230,7 @@ function DataSourceWizardContent() {
         : '/api/settings/data-sources';
       const method = editId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

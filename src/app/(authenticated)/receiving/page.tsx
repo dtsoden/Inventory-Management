@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface ReceivingSession {
   id: string;
@@ -97,7 +98,7 @@ export default function ReceivingPage() {
   const fetchSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/receiving?pageSize=50&sortDirection=desc');
+      const res = await apiFetch('/api/receiving?pageSize=50&sortDirection=desc');
       const json = await res.json();
       if (json.success) {
         setSessions(json.data.data ?? []);
@@ -111,14 +112,14 @@ export default function ReceivingPage() {
 
   const fetchAvailablePOs = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         '/api/procurement/orders?pageSize=100&status=SUBMITTED'
       );
       const json = await res.json();
       if (json.success) {
         const submitted = json.data.data ?? [];
         // Also fetch partially received
-        const res2 = await fetch(
+        const res2 = await apiFetch(
           '/api/procurement/orders?pageSize=100&status=PARTIALLY_RECEIVED'
         );
         const json2 = await res2.json();
@@ -142,7 +143,7 @@ export default function ReceivingPage() {
   const handleSelectPO = async (poId: string) => {
     setStarting(true);
     try {
-      const res = await fetch('/api/receiving', {
+      const res = await apiFetch('/api/receiving', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ purchaseOrderId: poId }),

@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { useChatContext } from '@/components/providers/ChatProvider';
 import { ChatPanel } from '@/components/shared/ChatPanel';
 import { useBranding } from '@/components/providers/BrandingProvider';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 export function Header() {
   const { theme, setTheme } = useTheme();
@@ -82,7 +83,7 @@ export function Header() {
     setPaletteLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const res = await apiFetch(`/api/search?q=${encodeURIComponent(q)}`);
         const json = await res.json();
         if (cancelled) return;
         if (json?.success && Array.isArray(json.data)) {
@@ -116,7 +117,7 @@ export function Header() {
 
   const refreshAvatar = useCallback(async () => {
     try {
-      const res = await fetch('/api/profile');
+      const res = await apiFetch('/api/profile');
       const json = await res.json();
       if (json.success && json.data) {
         setAvatarUrl(json.data.avatarUrl ?? null);

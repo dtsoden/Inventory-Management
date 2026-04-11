@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface StockCounts {
   total: number;
@@ -76,7 +77,7 @@ export default function InventoryPage() {
       if (searchQuery) params.set('search', searchQuery);
       if (lowStockOnly) params.set('lowStock', 'true');
 
-      const res = await fetch(`/api/inventory/items?${params.toString()}`);
+      const res = await apiFetch(`/api/inventory/items?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to load inventory');
       const json = await res.json();
       const result: PaginatedResponse = json.data;

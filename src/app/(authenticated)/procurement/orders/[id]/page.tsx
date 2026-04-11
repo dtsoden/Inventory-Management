@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrentUser } from '@/hooks/useSession';
 import { Undo2 } from 'lucide-react';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface OrderLine {
   id: string;
@@ -262,7 +263,7 @@ export default function OrderDetailPage() {
 
   const fetchOrder = useCallback(async () => {
     try {
-      const res = await fetch(`/api/procurement/orders/${orderId}`);
+      const res = await apiFetch(`/api/procurement/orders/${orderId}`);
       const json = await res.json();
       if (json.success) {
         setOrder(json.data);
@@ -277,7 +278,7 @@ export default function OrderDetailPage() {
 
   const fetchAuditLog = useCallback(async () => {
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/audit-log?entity=PurchaseOrder&entityId=${orderId}`
       );
       const json = await res.json();
@@ -304,7 +305,7 @@ export default function OrderDetailPage() {
         action === 'delete'
           ? `/api/procurement/orders/${orderId}`
           : `/api/procurement/orders/${orderId}/${action}`;
-      const res = await fetch(url, { method });
+      const res = await apiFetch(url, { method });
       const json = await res.json();
       if (!json.success) {
         alert(json.error ?? 'Action failed');
@@ -340,7 +341,7 @@ export default function OrderDetailPage() {
     }
     setActionLoading(true);
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/procurement/orders/${orderId}/${endpoint}`,
         {
           method: 'POST',
@@ -368,7 +369,7 @@ export default function OrderDetailPage() {
     setSendConfirmOpen(false);
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/procurement/orders/${orderId}/send`, {
+      const res = await apiFetch(`/api/procurement/orders/${orderId}/send`, {
         method: 'POST',
       });
       const json = await res.json();
@@ -544,7 +545,7 @@ export default function OrderDetailPage() {
                 onClick={async () => {
                   setActionLoading(true);
                   try {
-                    const res = await fetch(
+                    const res = await apiFetch(
                       `/api/procurement/orders/${orderId}`,
                       {
                         method: 'PUT',

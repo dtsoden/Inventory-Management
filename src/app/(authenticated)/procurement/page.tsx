@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface PurchaseOrder {
   id: string;
@@ -129,7 +130,7 @@ export default function PurchaseOrdersPage() {
     try {
       const params = new URLSearchParams({ pageSize: '50' });
       if (status !== 'ALL') params.set('status', status);
-      const res = await fetch(`/api/procurement/orders?${params}`);
+      const res = await apiFetch(`/api/procurement/orders?${params}`);
       const json = await res.json();
       if (json.success) {
         setOrders(json.data.data ?? []);

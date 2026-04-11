@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Manufacturer {
   id: string;
@@ -75,7 +76,7 @@ export default function ManufacturersPage() {
     try {
       const params = new URLSearchParams();
       if (search) params.set('search', search);
-      const res = await fetch(`/api/manufacturers?${params.toString()}`);
+      const res = await apiFetch(`/api/manufacturers?${params.toString()}`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setManufacturers(json.data.data);
@@ -124,7 +125,7 @@ export default function ManufacturersPage() {
         ? `/api/manufacturers/${editing.id}`
         : '/api/manufacturers';
       const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,7 +149,7 @@ export default function ManufacturersPage() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      const res = await fetch(`/api/manufacturers/${deleteTarget.id}`, {
+      const res = await apiFetch(`/api/manufacturers/${deleteTarget.id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error();

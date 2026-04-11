@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface NotificationItem {
   id: string;
@@ -55,7 +56,7 @@ export default function NotificationsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch('/api/notifications?pageSize=50');
+      const res = await apiFetch('/api/notifications?pageSize=50');
       const json = await res.json();
       if (json.success) {
         setNotifications(json.data.notifications);
@@ -87,7 +88,7 @@ export default function NotificationsPage() {
 
   const markAsRead = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/notifications/${id}/read`, {
+      const res = await apiFetch(`/api/notifications/${id}/read`, {
         method: 'PATCH',
       });
       const json = await res.json();
@@ -106,7 +107,7 @@ export default function NotificationsPage() {
   const markAllAsRead = useCallback(async () => {
     setBusy(true);
     try {
-      const res = await fetch('/api/notifications/read-all', {
+      const res = await apiFetch('/api/notifications/read-all', {
         method: 'PATCH',
       });
       const json = await res.json();
@@ -125,7 +126,7 @@ export default function NotificationsPage() {
 
   const deleteOne = useCallback(async (id: string) => {
     try {
-      const res = await fetch(`/api/notifications/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/notifications/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -140,7 +141,7 @@ export default function NotificationsPage() {
   const clearRead = useCallback(async () => {
     setBusy(true);
     try {
-      const res = await fetch('/api/notifications/clear-read', {
+      const res = await apiFetch('/api/notifications/clear-read', {
         method: 'POST',
       });
       const json = await res.json();

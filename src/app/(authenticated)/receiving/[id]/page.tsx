@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { BarcodeScanner } from '@/components/shared/BarcodeScanner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 // ------------------------------------------------------------------
 // Types
@@ -163,7 +164,7 @@ export default function ReceivingFlowPage() {
   // Fetch session data
   const fetchSession = useCallback(async () => {
     try {
-      const res = await fetch(`/api/receiving/${sessionId}`);
+      const res = await apiFetch(`/api/receiving/${sessionId}`);
       const json = await res.json();
       if (json.success) {
         setSession(json.data);
@@ -211,7 +212,7 @@ export default function ReceivingFlowPage() {
     setProcessing(true);
 
     try {
-      const res = await fetch(`/api/receiving/${sessionId}/extract`, {
+      const res = await apiFetch(`/api/receiving/${sessionId}/extract`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: capturedImage }),
@@ -250,7 +251,7 @@ export default function ReceivingFlowPage() {
 
     try {
       // Send the extracted item name so the server can resolve it to a real catalog item
-      const res = await fetch(`/api/receiving/${sessionId}/tag`, {
+      const res = await apiFetch(`/api/receiving/${sessionId}/tag`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -289,7 +290,7 @@ export default function ReceivingFlowPage() {
   const handleComplete = async () => {
     setCompleting(true);
     try {
-      const res = await fetch(`/api/receiving/${sessionId}/complete`, {
+      const res = await apiFetch(`/api/receiving/${sessionId}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useBranding } from '@/components/providers/BrandingProvider';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface OrgSettings {
   tenantName: string;
@@ -64,7 +65,7 @@ export default function OrganizationSettingsPage() {
 
   useEffect(() => {
     async function safeFetch(url: string) {
-      const r = await fetch(url);
+      const r = await apiFetch(url);
       if (r.status === 401 || r.redirected) {
         window.location.href = '/login';
         return { success: false };
@@ -129,7 +130,7 @@ export default function OrganizationSettingsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/settings/branding/favicon', {
+      const res = await apiFetch('/api/settings/branding/favicon', {
         method: 'POST',
         body: formData,
       });
@@ -173,7 +174,7 @@ export default function OrganizationSettingsPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/settings/branding/logo', {
+      const res = await apiFetch('/api/settings/branding/logo', {
         method: 'POST',
         body: formData,
       });
@@ -211,7 +212,7 @@ export default function OrganizationSettingsPage() {
   async function handleSave() {
     setSaving(true);
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -254,7 +255,7 @@ export default function OrganizationSettingsPage() {
         ...brandingSettings,
         appName: settings.tenantName || brandingSettings.appName,
       };
-      const res = await fetch('/api/settings/branding', {
+      const res = await apiFetch('/api/settings/branding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

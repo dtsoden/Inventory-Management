@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -200,7 +201,7 @@ export default function IntegrationsSettingsPage() {
   const [savingSource, setSavingSource] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings/integrations?category=integrations')
+    apiFetch('/api/settings/integrations?category=integrations')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -215,7 +216,7 @@ export default function IntegrationsSettingsPage() {
 
     // Auto-fetch available models on mount (silently). This validates the
     // API key and populates the dropdown without requiring a button click.
-    fetch('/api/settings/ai-models')
+    apiFetch('/api/settings/ai-models')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -229,7 +230,7 @@ export default function IntegrationsSettingsPage() {
     fetchSources();
 
     // Load SMTP settings
-    fetch('/api/settings/integrations?category=smtp')
+    apiFetch('/api/settings/integrations?category=smtp')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -246,7 +247,7 @@ export default function IntegrationsSettingsPage() {
 
   const fetchSources = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/data-sources');
+      const res = await apiFetch('/api/settings/data-sources');
       const data = await res.json();
       if (data.success) {
         setSources(data.data || []);
@@ -267,7 +268,7 @@ export default function IntegrationsSettingsPage() {
     }
     setSaving('openai');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -296,7 +297,7 @@ export default function IntegrationsSettingsPage() {
   async function saveSelectedModel() {
     setSaving('model');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -322,7 +323,7 @@ export default function IntegrationsSettingsPage() {
   async function saveSmtpSettings() {
     setSaving('smtp');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -373,7 +374,7 @@ export default function IntegrationsSettingsPage() {
   async function handleSync(id: string) {
     setSyncingId(id);
     try {
-      const res = await fetch(`/api/settings/data-sources/${id}/sync`, {
+      const res = await apiFetch(`/api/settings/data-sources/${id}/sync`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -401,7 +402,7 @@ export default function IntegrationsSettingsPage() {
       return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/settings/data-sources/${id}`, {
+      const res = await apiFetch(`/api/settings/data-sources/${id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -474,7 +475,7 @@ export default function IntegrationsSettingsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/settings/data-sources/_/test', {
+      const res = await apiFetch('/api/settings/data-sources/_/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiUrl: wizardUrl }),
@@ -507,7 +508,7 @@ export default function IntegrationsSettingsPage() {
     }
     setAnalyzing(true);
     try {
-      const res = await fetch('/api/settings/data-sources/_/analyze', {
+      const res = await apiFetch('/api/settings/data-sources/_/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ schema: sourceSchema }),
@@ -587,7 +588,7 @@ export default function IntegrationsSettingsPage() {
     }
     setSavingSource(true);
     try {
-      const res = await fetch('/api/settings/data-sources', {
+      const res = await apiFetch('/api/settings/data-sources', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

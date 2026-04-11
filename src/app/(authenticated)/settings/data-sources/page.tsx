@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface DataSource {
   id: string;
@@ -39,7 +40,7 @@ export default function DataSourcesPage() {
 
   async function fetchSources() {
     try {
-      const res = await fetch('/api/settings/data-sources');
+      const res = await apiFetch('/api/settings/data-sources');
       const data = await res.json();
       if (data.success) {
         setSources(data.data || []);
@@ -54,7 +55,7 @@ export default function DataSourcesPage() {
   async function handleSync(id: string) {
     setSyncingId(id);
     try {
-      const res = await fetch(`/api/settings/data-sources/${id}/sync`, {
+      const res = await apiFetch(`/api/settings/data-sources/${id}/sync`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -79,7 +80,7 @@ export default function DataSourcesPage() {
     if (!confirm(`Delete data source "${name}"? This cannot be undone.`)) return;
     setDeletingId(id);
     try {
-      const res = await fetch(`/api/settings/data-sources/${id}`, {
+      const res = await apiFetch(`/api/settings/data-sources/${id}`, {
         method: 'DELETE',
       });
       const data = await res.json();

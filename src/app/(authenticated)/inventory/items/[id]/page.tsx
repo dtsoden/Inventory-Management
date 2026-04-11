@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface StockCounts {
   total: number;
@@ -110,7 +111,7 @@ export default function ItemDetailPage() {
   const fetchItem = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/inventory/items/${id}`);
+      const res = await apiFetch(`/api/inventory/items/${id}`);
       if (!res.ok) throw new Error();
       const json = await res.json();
       setItem(json.data);

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface SecuritySettings {
   corsOrigins: string;
@@ -39,8 +40,8 @@ export default function SecuritySettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/settings/integrations?category=security').then((r) => r.json()),
-      fetch('/api/settings/integrations?category=password_policy').then((r) => r.json()),
+      apiFetch('/api/settings/integrations?category=security').then((r) => r.json()),
+      apiFetch('/api/settings/integrations?category=password_policy').then((r) => r.json()),
     ])
       .then(([secRes, pwRes]) => {
         if (secRes.success && secRes.data) {
@@ -66,7 +67,7 @@ export default function SecuritySettingsPage() {
   async function saveCors() {
     setSaving('cors');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -87,7 +88,7 @@ export default function SecuritySettingsPage() {
   async function saveSession() {
     setSaving('session');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,7 +109,7 @@ export default function SecuritySettingsPage() {
   async function savePasswordPolicy() {
     setSaving('password');
     try {
-      const res = await fetch('/api/settings/integrations', {
+      const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

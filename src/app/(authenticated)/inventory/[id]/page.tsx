@@ -48,6 +48,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface AssetDetail {
   id: string;
@@ -176,7 +177,7 @@ export default function AssetDetailPage() {
 
   const fetchAsset = useCallback(async () => {
     try {
-      const res = await fetch(`/api/inventory/${id}`);
+      const res = await apiFetch(`/api/inventory/${id}`);
       if (!res.ok) throw new Error('Failed to load asset');
       const json = await res.json();
       setAsset(json.data);
@@ -204,7 +205,7 @@ export default function AssetDetailPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      const res = await fetch(`/api/inventory/${id}/status`, {
+      const res = await apiFetch(`/api/inventory/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -226,7 +227,7 @@ export default function AssetDetailPage() {
       return;
     }
     try {
-      const res = await fetch(`/api/inventory/${id}/assign`, {
+      const res = await apiFetch(`/api/inventory/${id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: assignUserId }),
@@ -246,7 +247,7 @@ export default function AssetDetailPage() {
 
   const handleUnassign = async () => {
     try {
-      const res = await fetch(`/api/inventory/${id}/assign`, {
+      const res = await apiFetch(`/api/inventory/${id}/assign`, {
         method: 'DELETE',
       });
       if (!res.ok) {
@@ -274,7 +275,7 @@ export default function AssetDetailPage() {
 
   const handleSave = async () => {
     try {
-      const res = await fetch(`/api/inventory/${id}`, {
+      const res = await apiFetch(`/api/inventory/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm),
@@ -290,7 +291,7 @@ export default function AssetDetailPage() {
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/inventory/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');
       toast.success('Asset deleted');
       router.push('/inventory');

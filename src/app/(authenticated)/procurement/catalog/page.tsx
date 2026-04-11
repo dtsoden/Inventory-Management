@@ -28,6 +28,7 @@ import {
   DialogFooter,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface CatalogItem {
   id: string;
@@ -87,7 +88,7 @@ export default function CatalogPage() {
     try {
       const params = new URLSearchParams({ pageSize: '200' });
       if (search) params.set('search', search);
-      const res = await fetch(`/api/procurement/items?${params}`);
+      const res = await apiFetch(`/api/procurement/items?${params}`);
       const json = await res.json();
       if (json.success) {
         setItems(json.data.data ?? []);
@@ -142,7 +143,7 @@ export default function CatalogPage() {
         : '/api/procurement/items';
       const method = editingItem ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -166,7 +167,7 @@ export default function CatalogPage() {
   const handleDeactivate = async (item: CatalogItem) => {
     if (!confirm(`Deactivate "${item.name}"?`)) return;
     try {
-      const res = await fetch(`/api/procurement/items/${item.id}`, {
+      const res = await apiFetch(`/api/procurement/items/${item.id}`, {
         method: 'DELETE',
       });
       const json = await res.json();
@@ -188,7 +189,7 @@ export default function CatalogPage() {
     setImportedIds(new Set());
 
     try {
-      const res = await fetch('/api/procurement/catalog/fetch', {
+      const res = await apiFetch('/api/procurement/catalog/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -210,7 +211,7 @@ export default function CatalogPage() {
     setImportingIds((prev) => new Set(prev).add(product.externalId));
 
     try {
-      const res = await fetch('/api/procurement/items', {
+      const res = await apiFetch('/api/procurement/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

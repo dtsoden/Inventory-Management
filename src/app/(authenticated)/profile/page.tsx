@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface ProfileData {
   id: string;
@@ -69,7 +70,7 @@ export default function ProfilePage() {
 
   async function fetchProfile() {
     try {
-      const res = await fetch('/api/profile');
+      const res = await apiFetch('/api/profile');
       const json = await res.json();
       if (json.success && json.data) {
         setProfile(json.data);
@@ -132,7 +133,7 @@ export default function ProfilePage() {
     if (!validateProfile()) return;
     setSavingProfile(true);
     try {
-      const res = await fetch('/api/profile', {
+      const res = await apiFetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name.trim(), email: email.trim() }),
@@ -155,7 +156,7 @@ export default function ProfilePage() {
     if (!validatePassword()) return;
     setSavingPassword(true);
     try {
-      const res = await fetch('/api/profile/password', {
+      const res = await apiFetch('/api/profile/password', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
@@ -190,7 +191,7 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/profile/avatar', {
+      const res = await apiFetch('/api/profile/avatar', {
         method: 'POST',
         body: formData,
       });
@@ -213,7 +214,7 @@ export default function ProfilePage() {
   async function handleAvatarRemove() {
     setUploadingAvatar(true);
     try {
-      const res = await fetch('/api/profile/avatar', { method: 'DELETE' });
+      const res = await apiFetch('/api/profile/avatar', { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setProfile((p) => (p ? { ...p, avatarUrl: null } : p));

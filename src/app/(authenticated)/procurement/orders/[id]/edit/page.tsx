@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Vendor {
   id: string;
@@ -79,9 +80,9 @@ export default function EditOrderPage() {
   const fetchOrder = useCallback(async () => {
     try {
       const [orderRes, vendorsRes, itemsRes] = await Promise.all([
-        fetch(`/api/procurement/orders/${orderId}`),
-        fetch('/api/vendors'),
-        fetch('/api/procurement/items'),
+        apiFetch(`/api/procurement/orders/${orderId}`),
+        apiFetch('/api/vendors'),
+        apiFetch('/api/procurement/items'),
       ]);
       const orderJson = await orderRes.json();
       const vendorsJson = await vendorsRes.json();
@@ -177,7 +178,7 @@ export default function EditOrderPage() {
     setSaving(true);
     try {
       // 1. Update order header
-      const headerRes = await fetch(`/api/procurement/orders/${orderId}`, {
+      const headerRes = await apiFetch(`/api/procurement/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,7 +195,7 @@ export default function EditOrderPage() {
 
       // 2. Delete removed lines
       for (const lineId of removedLineIds) {
-        await fetch(
+        await apiFetch(
           `/api/procurement/orders/${orderId}/lines/${lineId}`,
           { method: 'DELETE' },
         );
@@ -208,7 +209,7 @@ export default function EditOrderPage() {
           unitCost: line.unitCost,
         };
         if (line.id) {
-          await fetch(
+          await apiFetch(
             `/api/procurement/orders/${orderId}/lines/${line.id}`,
             {
               method: 'PUT',
@@ -217,7 +218,7 @@ export default function EditOrderPage() {
             },
           );
         } else {
-          await fetch(`/api/procurement/orders/${orderId}/lines`, {
+          await apiFetch(`/api/procurement/orders/${orderId}/lines`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

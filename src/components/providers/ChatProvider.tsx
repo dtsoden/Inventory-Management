@@ -7,6 +7,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Message {
   id: string;
@@ -68,7 +69,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const loadConversations = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/assistant/conversations');
+      const res = await apiFetch('/api/assistant/conversations');
       const data = await res.json();
       if (data.success) {
         setConversations(data.data);
@@ -83,7 +84,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const loadConversation = useCallback(async (id: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/assistant/conversations/${id}`);
+      const res = await apiFetch(`/api/assistant/conversations/${id}`);
       const data = await res.json();
       if (data.success) {
         setMessages(data.data.messages || []);
@@ -98,7 +99,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const createConversation = useCallback(async () => {
     try {
-      const res = await fetch('/api/assistant/conversations', {
+      const res = await apiFetch('/api/assistant/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -135,7 +136,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsSending(true);
 
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/assistant/conversations/${convoId}/messages`,
           {
             method: 'POST',
@@ -176,7 +177,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const deleteConversation = useCallback(
     async (id: string) => {
       try {
-        await fetch(`/api/assistant/conversations/${id}`, {
+        await apiFetch(`/api/assistant/conversations/${id}`, {
           method: 'DELETE',
         });
         setConversations((prev) => prev.filter((c) => c.id !== id));

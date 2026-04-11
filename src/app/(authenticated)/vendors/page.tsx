@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VendorFormSheet } from './vendor-form-sheet';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface Vendor {
   id: string;
@@ -158,7 +159,7 @@ export default function VendorsPage() {
       if (debouncedSearch) {
         params.set('search', debouncedSearch);
       }
-      const res = await fetch(`/api/vendors?${params}`);
+      const res = await apiFetch(`/api/vendors?${params}`);
       const json = await res.json();
       if (json.success) {
         const result = json.data as PaginatedResponse;

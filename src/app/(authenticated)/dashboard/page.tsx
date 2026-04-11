@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface DashboardData {
   kpi: {
@@ -131,7 +132,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/dashboard')
+    apiFetch('/api/dashboard')
       .then((res) => res.json())
       .then((res) => {
         if (res.success) {

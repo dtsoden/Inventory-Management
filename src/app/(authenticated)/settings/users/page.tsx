@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface UserRecord {
   id: string;
@@ -98,7 +99,7 @@ function RolesManager() {
 
   const fetchRoles = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/roles');
+      const res = await apiFetch('/api/settings/roles');
       const data = await res.json();
       if (data.success) {
         setRoles(data.data);
@@ -151,7 +152,7 @@ function RolesManager() {
     if (!selectedRole || isAdmin) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/settings/roles', {
+      const res = await apiFetch('/api/settings/roles', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -183,7 +184,7 @@ function RolesManager() {
     }
     setAddingRole(true);
     try {
-      const res = await fetch('/api/settings/roles', {
+      const res = await apiFetch('/api/settings/roles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -213,7 +214,7 @@ function RolesManager() {
   async function handleDeleteRole() {
     if (isDefaultRole) return;
     try {
-      const res = await fetch(`/api/settings/roles?value=${encodeURIComponent(selectedRoleKey)}`, {
+      const res = await apiFetch(`/api/settings/roles?value=${encodeURIComponent(selectedRoleKey)}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -429,7 +430,7 @@ export default function UsersSettingsPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings/users');
+      const res = await apiFetch('/api/settings/users');
       const data = await res.json();
       if (data.success) {
         setUsers(data.data);
@@ -452,7 +453,7 @@ export default function UsersSettingsPage() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch('/api/settings/users', {
+      const res = await apiFetch('/api/settings/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -497,7 +498,7 @@ export default function UsersSettingsPage() {
     const combinedName = lastName ? `${firstName} ${lastName}` : firstName;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/settings/users/${editingUser.id}`, {
+      const res = await apiFetch(`/api/settings/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -526,7 +527,7 @@ export default function UsersSettingsPage() {
       return;
     }
     try {
-      const res = await fetch(`/api/settings/users/${user.id}`, {
+      const res = await apiFetch(`/api/settings/users/${user.id}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -543,7 +544,7 @@ export default function UsersSettingsPage() {
 
   async function handleToggleActive(user: UserRecord) {
     try {
-      const res = await fetch(`/api/settings/users/${user.id}`, {
+      const res = await apiFetch(`/api/settings/users/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !user.isActive }),
