@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { requireTenantContext } from '@/lib/auth';
-import { isAppError, ForbiddenError, ValidationError } from '@/lib/errors';
-import { UserRole } from '@/lib/types';
-import type { ApiResponse } from '@/lib/types';
+import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
+import { TenantContext, UserRole } from '@/lib/types';
+import { itemCategoryService } from '@/lib/categories';
+import { ForbiddenError } from '@/lib/errors';
 
-export async function GET() {
-  try {
-    const ctx = await requireTenantContext();
-
-    const categories = await prisma.itemCategory.findMany({
-      where: { tenantId: ctx.tenantId },
-      orderBy: { name: 'asc' },
-      include: { _count: { select: { items: true } } },
-    });
-
-    const data = categories.map((c) => ({
+class CategoriesHandler extends BaseApiHandler {
+  protected async onGet(_req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
+    const cats = await itemCategoryService.listAll(ctx);
+    const data = cats.map((c) => ({
       id: c.id,
       name: c.name,
       description: c.description,
@@ -23,60 +15,19 @@ export async function GET() {
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
     }));
-
-    const body: ApiResponse = { success: true, data };
-    return NextResponse.json(body);
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode },
-      );
-    }
-    console.error('GET /api/categories error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 },
-    );
+    return this.success(data);
   }
-}
 
-export async function POST(req: NextRequest) {
-  try {
-    const ctx = await requireTenantContext();
-
+  protected async onPost(req: NextRequest, ctx: TenantContext): Promise<NextResponse> {
     if (ctx.role !== UserRole.ADMIN && ctx.role !== UserRole.MANAGER) {
       throw new ForbiddenError('Only admins or managers can create categories');
     }
-
-    const body = await req.json();
-    const { name, description } = body as { name?: string; description?: string };
-
-    if (!name || !name.trim()) {
-      throw new ValidationError('Category name is required');
-    }
-
-    const created = await prisma.itemCategory.create({
-      data: {
-        tenantId: ctx.tenantId,
-        name: name.trim(),
-        description: description?.trim() || null,
-      },
-    });
-
-    const result: ApiResponse = { success: true, data: created };
-    return NextResponse.json(result, { status: 201 });
-  } catch (error: unknown) {
-    if (isAppError(error)) {
-      return NextResponse.json(
-        { success: false, error: error.message, code: error.code },
-        { status: error.statusCode },
-      );
-    }
-    console.error('POST /api/categories error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 },
-    );
+    const data = await req.json();
+    const created = await itemCategoryService.createOne(ctx, data);
+    return this.success(created, 201);
   }
 }
+
+const handler = new CategoriesHandler();
+export const GET = handler.handle('GET');
+export const POST = handler.handle('POST');
