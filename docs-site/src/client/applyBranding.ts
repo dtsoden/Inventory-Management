@@ -100,16 +100,18 @@ function setFavicon(url: string) {
 }
 
 function setNavbarLogo(lightUrl: string | null, darkUrl: string | null) {
-  // Docusaurus renders the navbar logo as <img> elements. There are
-  // typically two when both light and dark logos are configured, with
-  // theme-aware classes. We replace whatever's there.
+  // Docusaurus renders the navbar logo as an <img>. React re-renders
+  // the navbar on theme toggle, route change, and other state updates,
+  // which wipes any plain `img.src` swap we did. We force the swap by
+  // setting the attribute directly AND removing/blocking any srcset.
   const imgs = document.querySelectorAll<HTMLImageElement>('.navbar__logo img');
   if (imgs.length === 0) return;
   const isDark = document.documentElement.dataset.theme === 'dark';
   const url = isDark ? darkUrl || lightUrl : lightUrl || darkUrl;
   if (!url) return;
   imgs.forEach((img) => {
-    img.src = url;
+    img.removeAttribute('srcset');
+    img.setAttribute('src', url);
   });
 }
 
@@ -128,26 +130,37 @@ function setNavbarTitle(name: string) {
   if (heroTitle) heroTitle.textContent = name;
 }
 
+// Cache the branding response so re-application is instant and never
+// blocked on a network round-trip.
+let cachedBranding: PublicBranding | null = null;
+
+function applyAll(branding: PublicBranding) {
+  if (branding.appName) setNavbarTitle(branding.appName);
+  if (branding.faviconUrl) setFavicon(branding.faviconUrl);
+  setNavbarLogo(branding.logoUrlLight, branding.logoUrlDark);
+
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const color = isDark
+    ? branding.primaryColorDark || branding.primaryColorLight
+    : branding.primaryColorLight || branding.primaryColorDark;
+  if (color) setPrimaryColor(color);
+}
+
 async function fetchAndApply() {
   try {
     const res = await fetch('/api/branding/public', {credentials: 'same-origin'});
     if (!res.ok) return;
     const json = await res.json();
     if (!json?.success || !json.data) return;
-    const branding: PublicBranding = json.data;
-
-    if (branding.appName) setNavbarTitle(branding.appName);
-    if (branding.faviconUrl) setFavicon(branding.faviconUrl);
-    setNavbarLogo(branding.logoUrlLight, branding.logoUrlDark);
-
-    const isDark = document.documentElement.dataset.theme === 'dark';
-    const color = isDark
-      ? branding.primaryColorDark || branding.primaryColorLight
-      : branding.primaryColorLight || branding.primaryColorDark;
-    if (color) setPrimaryColor(color);
+    cachedBranding = json.data;
+    if (cachedBranding) applyAll(cachedBranding);
   } catch {
     // Network failure: leave the static defaults in place
   }
+}
+
+function reapplyFromCache() {
+  if (cachedBranding) applyAll(cachedBranding);
 }
 
 if (typeof window !== 'undefined') {
@@ -156,13 +169,51 @@ if (typeof window !== 'undefined') {
   } else {
     fetchAndApply();
   }
-  // Re-apply when the user toggles dark mode so logo and color follow
-  const observer = new MutationObserver(() => {
-    fetchAndApply();
+
+  // Re-apply when the user toggles dark mode so logo and color follow.
+  const themeObserver = new MutationObserver(() => {
+    reapplyFromCache();
   });
-  observer.observe(document.documentElement, {
+  themeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-theme'],
+  });
+
+  // React re-renders the navbar on route change, theme toggle, hover
+  // state, and other internal updates. Each re-render replaces the logo
+  // <img> with the static one Docusaurus baked in. Watch the navbar
+  // subtree for any DOM mutation and instantly re-apply the cached
+  // branding so the tenant logo never flickers back to the default.
+  function attachNavbarObserver() {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) {
+      // Navbar not in DOM yet, retry on the next frame.
+      requestAnimationFrame(attachNavbarObserver);
+      return;
+    }
+    const navObserver = new MutationObserver(() => {
+      reapplyFromCache();
+    });
+    navObserver.observe(navbar, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src', 'srcset'],
+    });
+  }
+  attachNavbarObserver();
+
+  // Reapply on SPA route changes too (Docusaurus uses pushState).
+  const originalPushState = history.pushState;
+  history.pushState = function (...args) {
+    const result = originalPushState.apply(this, args);
+    setTimeout(reapplyFromCache, 50);
+    setTimeout(reapplyFromCache, 250);
+    return result;
+  };
+  window.addEventListener('popstate', () => {
+    setTimeout(reapplyFromCache, 50);
+    setTimeout(reapplyFromCache, 250);
   });
 }
 

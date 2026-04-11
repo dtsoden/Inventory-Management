@@ -42,8 +42,7 @@ export default function Home(): ReactNode {
               Admin Guide
             </Link>
             <Link
-              className="button button--outline button--lg"
-              style={{color: 'white', borderColor: 'white'}}
+              className="button button--secondary button--lg"
               to="/comparison">
               Shane Comparison
             </Link>
