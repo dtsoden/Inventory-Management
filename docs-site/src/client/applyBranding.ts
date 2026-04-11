@@ -187,58 +187,60 @@ function scheduleReapply() {
   });
 }
 
-if (typeof window !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fetchAndApply);
-  } else {
-    fetchAndApply();
-  }
+// Docusaurus client modules already run client-side only. The previous
+// `if (typeof window !== 'undefined')` guard was being mangled by the
+// production minifier into `if ("u" > typeof window)` which is always
+// false, silently disabling the entire script. Run unconditionally.
 
-  // Re-apply when the user toggles dark mode so logo and color follow.
-  const themeObserver = new MutationObserver(() => {
-    reapplyFromCache();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', fetchAndApply);
+} else {
+  fetchAndApply();
+}
+
+// Re-apply when the user toggles dark mode so logo and color follow.
+const themeObserver = new MutationObserver(() => {
+  reapplyFromCache();
+});
+themeObserver.observe(document.documentElement, {
+  attributes: true,
+  attributeFilter: ['data-theme'],
+});
+
+// React re-renders the navbar on route change, theme toggle, hover
+// state, and other internal updates. Each re-render replaces the logo
+// <img> with the static one Docusaurus baked in. Watch the navbar
+// subtree for any DOM mutation and instantly re-apply the cached
+// branding so the tenant logo never flickers back to the default.
+function attachNavbarObserver() {
+  const navbar = document.querySelector('.navbar');
+  if (!navbar) {
+    requestAnimationFrame(attachNavbarObserver);
+    return;
+  }
+  const navObserver = new MutationObserver(() => {
+    scheduleReapply();
   });
-  themeObserver.observe(document.documentElement, {
+  navObserver.observe(navbar, {
+    childList: true,
+    subtree: true,
     attributes: true,
-    attributeFilter: ['data-theme'],
-  });
-
-  // React re-renders the navbar on route change, theme toggle, hover
-  // state, and other internal updates. Each re-render replaces the logo
-  // <img> with the static one Docusaurus baked in. Watch the navbar
-  // subtree for any DOM mutation and instantly re-apply the cached
-  // branding so the tenant logo never flickers back to the default.
-  function attachNavbarObserver() {
-    const navbar = document.querySelector('.navbar');
-    if (!navbar) {
-      // Navbar not in DOM yet, retry on the next frame.
-      requestAnimationFrame(attachNavbarObserver);
-      return;
-    }
-    const navObserver = new MutationObserver(() => {
-      scheduleReapply();
-    });
-    navObserver.observe(navbar, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['src', 'srcset'],
-    });
-  }
-  attachNavbarObserver();
-
-  // Reapply on SPA route changes too (Docusaurus uses pushState).
-  const originalPushState = history.pushState;
-  history.pushState = function (...args) {
-    const result = originalPushState.apply(this, args);
-    setTimeout(reapplyFromCache, 50);
-    setTimeout(reapplyFromCache, 250);
-    return result;
-  };
-  window.addEventListener('popstate', () => {
-    setTimeout(reapplyFromCache, 50);
-    setTimeout(reapplyFromCache, 250);
+    attributeFilter: ['src', 'srcset'],
   });
 }
+attachNavbarObserver();
+
+// Reapply on SPA route changes too (Docusaurus uses pushState).
+const originalPushState = history.pushState;
+history.pushState = function (...args) {
+  const result = originalPushState.apply(this, args);
+  setTimeout(reapplyFromCache, 50);
+  setTimeout(reapplyFromCache, 250);
+  return result;
+};
+window.addEventListener('popstate', () => {
+  setTimeout(reapplyFromCache, 50);
+  setTimeout(reapplyFromCache, 250);
+});
 
 export default {};

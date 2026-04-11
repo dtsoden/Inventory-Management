@@ -102,20 +102,17 @@ async function applyRoleVisibility() {
   }
 }
 
-if (typeof window !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', applyRoleVisibility);
-  } else {
-    applyRoleVisibility();
-  }
-  // Re-apply on SPA navigation
-  const originalPushState = history.pushState;
-  history.pushState = function (...args) {
-    const result = originalPushState.apply(this, args);
-    setTimeout(applyRoleVisibility, 50);
-    return result;
-  };
-  window.addEventListener('popstate', () => setTimeout(applyRoleVisibility, 50));
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyRoleVisibility);
+} else {
+  applyRoleVisibility();
 }
+const originalPushStateRole = history.pushState;
+history.pushState = function (...args) {
+  const result = originalPushStateRole.apply(this, args);
+  setTimeout(applyRoleVisibility, 50);
+  return result;
+};
+window.addEventListener('popstate', () => setTimeout(applyRoleVisibility, 50));
 
 export default {};

@@ -231,26 +231,25 @@ function attach() {
   });
 }
 
-if (typeof window !== 'undefined') {
-  // Initial attach + re-attach after route changes (Mermaid renders async)
-  const tick = () => {
-    attach();
-    setTimeout(attach, 200);
-    setTimeout(attach, 800);
-  };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', tick);
-  } else {
-    tick();
-  }
-  // Re-run on SPA navigation (Docusaurus uses history API)
-  const originalPushState = history.pushState;
-  history.pushState = function (...args) {
-    const result = originalPushState.apply(this, args);
-    setTimeout(tick, 50);
-    return result;
-  };
-  window.addEventListener('popstate', () => setTimeout(tick, 50));
+// Initial attach + re-attach after route changes (Mermaid renders async).
+// No `typeof window` guard: minifier mangled it into a tautologically
+// false comparison and disabled the script in prod.
+const tick = () => {
+  attach();
+  setTimeout(attach, 200);
+  setTimeout(attach, 800);
+};
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', tick);
+} else {
+  tick();
 }
+const originalPushStateZoom = history.pushState;
+history.pushState = function (...args) {
+  const result = originalPushStateZoom.apply(this, args);
+  setTimeout(tick, 50);
+  return result;
+};
+window.addEventListener('popstate', () => setTimeout(tick, 50));
 
 export default {};
