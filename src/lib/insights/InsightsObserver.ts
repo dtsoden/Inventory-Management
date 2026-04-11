@@ -109,31 +109,66 @@ export class InsightsObserver {
       });
       raw = response.choices[0]?.message?.content ?? '';
     } catch (err) {
-      console.error('InsightsObserver OpenAI call failed:', err);
+      console.error('[Insights] OpenAI call failed:', err);
       return [];
     }
 
-    // Parse + schema-validate + reference-validate
+    console.log('[Insights] raw model output (first 500 chars):', raw.slice(0, 500));
+
     const parsed = this.safeParse(raw);
-    if (!parsed) return [];
+    if (!parsed) {
+      console.warn('[Insights] safeParse returned null, raw was:', raw);
+      return [];
+    }
+    console.log(`[Insights] parsed ${parsed.length} candidate observations`);
 
     const validated: Observation[] = [];
+    const snapshotObj = snapshot as unknown as Record<string, unknown>;
+
     for (const candidate of parsed) {
-      if (!isObservation(candidate)) continue;
-      // Verify every reference path actually exists in the snapshot.
-      const allReferencesValid = candidate.references.every((path) =>
-        pathExists(snapshot as unknown as Record<string, unknown>, path),
+      // Be permissive: accept anything with title and body. Default
+      // missing fields rather than dropping the whole observation, so
+      // we don't burn user tokens on silently-rejected output.
+      if (typeof candidate !== 'object' || candidate === null) {
+        console.warn('[Insights] dropped non-object candidate:', candidate);
+        continue;
+      }
+      const c = candidate as Record<string, unknown>;
+      const title = typeof c.title === 'string' ? c.title : '';
+      const body = typeof c.body === 'string' ? c.body : '';
+      if (!title.trim() || !body.trim()) {
+        console.warn('[Insights] dropped candidate with no title/body:', c);
+        continue;
+      }
+      const rawReferences = Array.isArray(c.references)
+        ? (c.references.filter((r) => typeof r === 'string') as string[])
+        : [];
+      // Filter references to only those that actually resolve in the
+      // snapshot. The observation is shown even if zero references
+      // survive; we just rely on the schema (title/body) and the
+      // model's mode-locked instructions.
+      const verifiedReferences = rawReferences.filter((path) =>
+        pathExists(snapshotObj, path),
       );
-      if (!allReferencesValid) continue;
-      // Trim to length caps to be defensive
+      const droppedReferences = rawReferences.length - verifiedReferences.length;
+      if (droppedReferences > 0) {
+        console.warn(
+          `[Insights] dropped ${droppedReferences} of ${rawReferences.length} references for "${title}":`,
+          rawReferences.filter((p) => !pathExists(snapshotObj, p)),
+        );
+      }
+
       validated.push({
-        title: candidate.title.slice(0, 80),
-        body: candidate.body.slice(0, 280),
-        references: candidate.references.slice(0, 6),
-        speculative: Boolean(candidate.speculative),
+        title: title.slice(0, 120),
+        body: body.slice(0, 320),
+        references: verifiedReferences.slice(0, 6),
+        speculative: Boolean(c.speculative),
       });
     }
 
+    console.log(
+      `[Insights] returning ${validated.length} observations to client`,
+    );
     return validated;
   }
 

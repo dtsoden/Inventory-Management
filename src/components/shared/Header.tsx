@@ -193,7 +193,7 @@ export function Header() {
                         <DropdownMenuItem
                           key={notif.id}
                           className="flex flex-col items-start gap-1 px-3 py-2"
-                          onSelect={() => {
+                          onClick={() => {
                             if (!notif.isRead) markAsRead(notif.id);
                             if (notif.link) router.push(notif.link);
                           }}
@@ -219,7 +219,7 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="justify-center text-sm font-medium text-brand-green"
-                    onSelect={() => router.push('/notifications')}
+                    onClick={() => router.push('/notifications')}
                   >
                     View notification center
                   </DropdownMenuItem>
