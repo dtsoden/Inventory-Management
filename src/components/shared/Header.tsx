@@ -1,7 +1,16 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare, Sparkles } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare, Sparkles, Building2, Boxes, ShoppingCart, Tag, Package } from 'lucide-react';
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@/components/ui/command';
 import { useTheme } from 'next-themes';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -36,6 +45,75 @@ export function Header() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  // Command palette state
+  interface SearchHit {
+    type: 'vendor' | 'item' | 'order' | 'asset' | 'manufacturer';
+    id: string;
+    title: string;
+    subtitle?: string;
+    href: string;
+  }
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState('');
+  const [paletteHits, setPaletteHits] = useState<SearchHit[]>([]);
+  const [paletteLoading, setPaletteLoading] = useState(false);
+
+  // Cmd+K / Ctrl+K opens the palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Debounced search whenever the query changes
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const q = paletteQuery.trim();
+    if (q.length === 0) {
+      setPaletteHits([]);
+      return;
+    }
+    let cancelled = false;
+    setPaletteLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        if (cancelled) return;
+        if (json?.success && Array.isArray(json.data)) {
+          setPaletteHits(json.data);
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (!cancelled) setPaletteLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [paletteQuery, paletteOpen]);
+
+  function gotoHit(hit: SearchHit) {
+    setPaletteOpen(false);
+    setPaletteQuery('');
+    router.push(hit.href);
+  }
+
+  const groupedHits = {
+    vendor: paletteHits.filter((h) => h.type === 'vendor'),
+    item: paletteHits.filter((h) => h.type === 'item'),
+    order: paletteHits.filter((h) => h.type === 'order'),
+    asset: paletteHits.filter((h) => h.type === 'asset'),
+    manufacturer: paletteHits.filter((h) => h.type === 'manufacturer'),
+  };
+
   const refreshAvatar = useCallback(async () => {
     try {
       const res = await fetch('/api/profile');
@@ -58,9 +136,18 @@ export function Header() {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-4">
       {/* Search */}
-      <button className="flex w-[35%] min-w-[200px] items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent">
+      <button
+        type="button"
+        onClick={() => setPaletteOpen(true)}
+        className="flex w-[35%] min-w-[200px] items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent"
+      >
         <Search className="h-4 w-4 shrink-0" />
-        <span className="truncate">Search inventory, vendors, orders... (Ctrl+K)</span>
+        <span className="truncate flex-1 text-left">
+          Search inventory, vendors, orders...
+        </span>
+        <kbd className="hidden shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:inline-block">
+          Ctrl+K
+        </kbd>
       </button>
 
       {/* Right side actions */}
@@ -266,6 +353,142 @@ export function Header() {
 
       {/* Chat Panel */}
       <ChatPanel />
+
+      {/* Command palette (Cmd+K / Ctrl+K) */}
+      <CommandDialog
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        title="Search"
+        description="Search vendors, items, purchase orders, and assets"
+      >
+        <CommandInput
+          placeholder="Search vendors, items, orders, assets..."
+          value={paletteQuery}
+          onValueChange={setPaletteQuery}
+        />
+        <CommandList>
+          {paletteQuery.trim().length === 0 ? (
+            <CommandEmpty>Type to search across the platform.</CommandEmpty>
+          ) : paletteLoading && paletteHits.length === 0 ? (
+            <CommandEmpty>Searching...</CommandEmpty>
+          ) : paletteHits.length === 0 ? (
+            <CommandEmpty>No results.</CommandEmpty>
+          ) : (
+            <>
+              {groupedHits.vendor.length > 0 && (
+                <CommandGroup heading="Vendors">
+                  {groupedHits.vendor.map((h) => (
+                    <CommandItem
+                      key={h.id}
+                      value={`vendor-${h.id}-${h.title}`}
+                      onSelect={() => gotoHit(h)}
+                    >
+                      <Building2 className="mr-2 h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span>{h.title}</span>
+                        {h.subtitle && (
+                          <span className="text-xs text-muted-foreground">
+                            {h.subtitle}
+                          </span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {groupedHits.item.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Items">
+                    {groupedHits.item.map((h) => (
+                      <CommandItem
+                        key={h.id}
+                        value={`item-${h.id}-${h.title}`}
+                        onSelect={() => gotoHit(h)}
+                      >
+                        <Boxes className="mr-2 h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>{h.title}</span>
+                          {h.subtitle && (
+                            <span className="text-xs text-muted-foreground">
+                              {h.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+              {groupedHits.order.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Purchase Orders">
+                    {groupedHits.order.map((h) => (
+                      <CommandItem
+                        key={h.id}
+                        value={`order-${h.id}-${h.title}`}
+                        onSelect={() => gotoHit(h)}
+                      >
+                        <ShoppingCart className="mr-2 h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>{h.title}</span>
+                          {h.subtitle && (
+                            <span className="text-xs text-muted-foreground">
+                              {h.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+              {groupedHits.asset.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Assets">
+                    {groupedHits.asset.map((h) => (
+                      <CommandItem
+                        key={h.id}
+                        value={`asset-${h.id}-${h.title}`}
+                        onSelect={() => gotoHit(h)}
+                      >
+                        <Tag className="mr-2 h-4 w-4" />
+                        <div className="flex flex-col">
+                          <span>{h.title}</span>
+                          {h.subtitle && (
+                            <span className="text-xs text-muted-foreground">
+                              {h.subtitle}
+                            </span>
+                          )}
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+              {groupedHits.manufacturer.length > 0 && (
+                <>
+                  <CommandSeparator />
+                  <CommandGroup heading="Manufacturers">
+                    {groupedHits.manufacturer.map((h) => (
+                      <CommandItem
+                        key={h.id}
+                        value={`manufacturer-${h.id}-${h.title}`}
+                        onSelect={() => gotoHit(h)}
+                      >
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>{h.title}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+            </>
+          )}
+        </CommandList>
+      </CommandDialog>
     </header>
   );
 }
