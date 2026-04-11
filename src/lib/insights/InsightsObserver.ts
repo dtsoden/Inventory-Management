@@ -54,26 +54,40 @@ array.`,
 
 const SYSTEM_PROMPT_BASE = `You are a procurement analyst writing concise observations for a manager.
 
+OUTPUT FORMAT (this is non-negotiable):
+You MUST return a JSON object with EXACTLY this top-level shape:
+
+{
+  "observations": [
+    {
+      "title": "<= 80 chars",
+      "body": "<= 280 chars",
+      "references": ["dot.notation.path", "topVendors[0].name", ...],
+      "speculative": false
+    },
+    ... more observations ...
+  ]
+}
+
+The top-level key MUST be "observations" and its value MUST be an
+array. Even if you have only one observation, it goes inside an array.
+Do not return a single observation object at the top level. Do not
+return anything else outside the "observations" array.
+
 ABSOLUTE RULES (these override everything else):
 1. You may ONLY reference values present in the DATA object below. You may
    not invent vendor names, item names, dates, percentages, dollar amounts,
    or any other facts not in DATA.
-2. You must return a JSON array of observations matching this exact schema:
-   [{ "title": string (max 80 chars), "body": string (max 280 chars),
-      "references": string[] (each entry is a JSON path into DATA, e.g.
-      "spend.percentChange" or "topVendors[0].name"),
-      "speculative": boolean }]
-3. Every reference path you list MUST exist in the actual DATA. If you
+2. Every reference path you list MUST exist in the actual DATA. If you
    cannot trace a claim to a specific DATA path, do not write that
    observation.
-4. Write 3 to 6 observations. If DATA is too thin (e.g. zero spend),
-   return fewer or an empty array.
-5. Do not output anything outside the JSON array. No prose, no markdown
-   fences, no commentary.
-6. Each observation must mark itself "speculative": true if it speculates
+3. Write 3 to 6 observations. If DATA is too thin (e.g. zero spend),
+   return fewer.
+4. Each observation must mark itself "speculative": true if it speculates
    on causes or future state, false if it is a direct restatement of
    DATA values.
-7. Do not use em dashes. Use commas, semicolons, or periods instead.`;
+5. Do not use em dashes. Use commas, semicolons, or periods instead.
+6. Do not output markdown fences. Pure JSON object only.`;
 
 export class InsightsObserver {
   constructor(private readonly prisma: PrismaClient) {}
@@ -175,17 +189,44 @@ export class InsightsObserver {
   private safeParse(raw: string): unknown[] | null {
     try {
       const obj = JSON.parse(raw);
-      // Accept either { observations: [...] } or a bare array.
-      if (Array.isArray(obj)) return obj;
-      if (obj && Array.isArray(obj.observations)) return obj.observations;
-      // Some models wrap as { data: [...] } or { insights: [...] }
-      for (const key of Object.keys(obj ?? {})) {
-        if (Array.isArray(obj[key])) return obj[key];
+
+      // Bare array of observation objects.
+      if (Array.isArray(obj) && this.isArrayOfObjects(obj)) return obj;
+
+      if (!obj || typeof obj !== 'object') return null;
+
+      // Preferred shape: { observations: [...] }
+      if (Array.isArray(obj.observations) && this.isArrayOfObjects(obj.observations)) {
+        return obj.observations;
       }
+
+      // Fallback: scan keys for the FIRST array-of-objects, ignoring
+      // arrays of strings/numbers (e.g. a misnamed `references` field).
+      for (const key of Object.keys(obj)) {
+        const value = obj[key];
+        if (Array.isArray(value) && this.isArrayOfObjects(value)) {
+          return value;
+        }
+      }
+
+      // Last resort: the model returned a single observation object
+      // at the top level. Wrap it in an array so the caller can handle
+      // it uniformly.
+      if ('title' in obj && 'body' in obj) {
+        return [obj];
+      }
+
       return null;
     } catch {
       return null;
     }
+  }
+
+  private isArrayOfObjects(arr: unknown[]): boolean {
+    if (arr.length === 0) return true; // empty array is fine
+    return arr.every(
+      (item) => typeof item === 'object' && item !== null && !Array.isArray(item),
+    );
   }
 }
 
