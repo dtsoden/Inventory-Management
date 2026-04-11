@@ -23,19 +23,6 @@ export function WelcomeStep({ data, onChange }: WelcomeStepProps) {
       </p>
 
       <div className="space-y-2">
-        <Label htmlFor="platformName">Platform Name</Label>
-        <Input
-          id="platformName"
-          placeholder="e.g. Shane Inventory"
-          value={data.platformName}
-          onChange={(e) => onChange({ platformName: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">
-          This name will appear in the header and browser tab.
-        </p>
-      </div>
-
-      <div className="space-y-2">
         <Label htmlFor="passphrase">Encryption Passphrase</Label>
         <div className="relative">
           <Input

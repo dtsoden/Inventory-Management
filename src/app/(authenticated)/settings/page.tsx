@@ -219,7 +219,8 @@ export default function OrganizationSettingsPage() {
           settings: {
             tenantName: settings.tenantName,
             tenantSlug: settings.tenantSlug,
-            platformName: settings.platformName,
+            // Platform name = organization name (single source of truth)
+            platformName: settings.tenantName,
           },
         }),
       });
@@ -248,10 +249,15 @@ export default function OrganizationSettingsPage() {
 
     setSavingBranding(true);
     try {
+      // App name is always synced from the organization name (single source of truth)
+      const payload = {
+        ...brandingSettings,
+        appName: settings.tenantName || brandingSettings.appName,
+      };
       const res = await fetch('/api/settings/branding', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(brandingSettings),
+        body: JSON.stringify(payload),
       });
       if (res.status === 401 || res.redirected) {
         window.location.href = '/login';
@@ -354,23 +360,6 @@ export default function OrganizationSettingsPage() {
           </p>
 
         <div className="mt-6 space-y-6 max-w-2xl">
-          {/* App Name */}
-          <div>
-            <Label htmlFor="brandingAppName">Application Name</Label>
-            <Input
-              id="brandingAppName"
-              className="mt-1.5"
-              value={brandingSettings.appName}
-              onChange={(e) =>
-                setBrandingSettings((s) => ({ ...s, appName: e.target.value }))
-              }
-              placeholder="Inventory Management Platform"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Displayed in the browser tab. The sidebar logo area is reserved for your logo image only.
-            </p>
-          </div>
-
           {/* Primary Color Light */}
           <div>
             <Label htmlFor="brandingColorLight">Primary Color (Light Mode)</Label>

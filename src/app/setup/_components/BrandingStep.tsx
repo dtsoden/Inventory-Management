@@ -175,20 +175,6 @@ export function BrandingStep({ data, onChange }: BrandingStepProps) {
         Customize the look and feel of your platform. All settings can be changed later.
       </p>
 
-      {/* App Name */}
-      <div className="space-y-2">
-        <Label htmlFor="brandingAppName">Application Name</Label>
-        <Input
-          id="brandingAppName"
-          placeholder="Inventory Management Platform"
-          value={data.brandingAppName}
-          onChange={(e) => onChange({ brandingAppName: e.target.value })}
-        />
-        <p className="text-xs text-muted-foreground">
-          Displayed in the sidebar, browser tab, and throughout the app.
-        </p>
-      </div>
-
       {/* Primary Color Light */}
       <div className="space-y-2">
         <Label htmlFor="brandingColorLight">Primary Color (Light Mode)</Label>

@@ -15,7 +15,6 @@ import { ReviewStep } from './ReviewStep';
 
 export interface SetupData {
   passphrase: string;
-  platformName: string;
   adminEmail: string;
   adminPassword: string;
   adminFirstName: string;
@@ -31,7 +30,6 @@ export interface SetupData {
   corsOrigins: string;
   seedDemoData: boolean;
   // Branding fields
-  brandingAppName: string;
   brandingPrimaryColorLight: string;
   brandingPrimaryColorDark: string;
   brandingLogoPreviewLight: string;
@@ -56,7 +54,6 @@ const STEP_TITLES = [
 
 const initialData: SetupData = {
   passphrase: '',
-  platformName: '',
   adminEmail: '',
   adminPassword: '',
   adminFirstName: '',
@@ -72,7 +69,6 @@ const initialData: SetupData = {
   corsOrigins: '*',
   seedDemoData: true,
   // Branding defaults
-  brandingAppName: 'Inventory Management Platform',
   brandingPrimaryColorLight: '#7ed321',
   brandingPrimaryColorDark: '#7ed321',
   brandingLogoPreviewLight: '',
@@ -98,7 +94,6 @@ export function SetupWizard() {
   function validateCurrentStep(): string | null {
     switch (currentStep) {
       case 0: // Welcome
-        if (!data.platformName.trim()) return 'Platform name is required.';
         if (data.passphrase.length < 12) return 'Encryption passphrase must be at least 12 characters.';
         return null;
       case 1: // Admin
@@ -153,7 +148,8 @@ export function SetupWizard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           passphrase: data.passphrase,
-          platformName: data.platformName,
+          // Platform name = organization name (single source of truth, single tenant)
+          platformName: data.orgName,
           adminEmail: data.adminEmail,
           adminPassword: data.adminPassword,
           adminFirstName: data.adminFirstName,
@@ -170,7 +166,8 @@ export function SetupWizard() {
           openaiModel: data.openaiModel || 'gpt-5.4-nano',
           seedDemoData: data.seedDemoData,
           branding: {
-            appName: data.brandingAppName || 'Inventory Management Platform',
+            // App name = organization name (single source of truth)
+            appName: data.orgName,
             primaryColorLight: data.brandingPrimaryColorLight || '#7ed321',
             primaryColorDark: data.brandingPrimaryColorDark || '#7ed321',
             themeMode: data.brandingThemeMode || 'auto',

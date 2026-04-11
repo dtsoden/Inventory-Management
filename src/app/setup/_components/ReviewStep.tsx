@@ -38,9 +38,8 @@ export function ReviewStep({ data, onChange, onSubmit, isSubmitting }: ReviewSte
       <div className="space-y-1">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
-          Platform
+          Security
         </h3>
-        <ReviewRow label="Platform Name" value={data.platformName} />
         <ReviewRow label="Passphrase" value={maskValue(data.passphrase)} />
       </div>
 
@@ -74,7 +73,6 @@ export function ReviewStep({ data, onChange, onSubmit, isSubmitting }: ReviewSte
           <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
           Branding
         </h3>
-        <ReviewRow label="App Name" value={data.brandingAppName || 'Inventory Management Platform'} />
         <div className="flex justify-between py-1">
           <span className="text-sm text-muted-foreground">Primary Color (Light)</span>
           <span className="flex items-center gap-2 text-sm font-medium">
