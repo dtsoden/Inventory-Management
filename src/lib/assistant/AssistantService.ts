@@ -183,7 +183,7 @@ DATABASE SCHEMA:
 - purchaseOrder: id, tenantId, orderNumber, status (DRAFT/PENDING_APPROVAL/APPROVED/SUBMITTED/PARTIALLY_RECEIVED/RECEIVED/CANCELLED), vendorName, notes, orderedById, orderedAt, expectedDate, totalAmount. Relations: lines (PurchaseOrderLine[]), orderedBy (User)
 - purchaseOrderLine: id, purchaseOrderId, itemId, quantity, unitCost, receivedQty. Relations: purchaseOrder (PurchaseOrder), item (Item), assets (Asset[])
 - itemCategory: id, tenantId, name, description, parentId. Relations: items (Item[])
-- user: id, tenantId, email, name, role (ADMIN/MANAGER/WAREHOUSE_STAFF), isActive
+- user: id, tenantId, email, name, role (ADMIN/MANAGER/PURCHASING_MANAGER/WAREHOUSE_STAFF), isActive
 
 KEY CONCEPTS:
 - An "Item" is a catalog product (e.g., "Dell Latitude 5540"). Items have a reorder point.

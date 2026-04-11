@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 export interface SendPurchaseOrderOptions {
   to: string;
   vendorName: string;
+  contactName?: string | null;
   orderNumber: string;
   pdfBuffer: Buffer;
   fromEmail?: string;
@@ -28,12 +29,19 @@ export class EmailService {
       process.env.SMTP_FROM ||
       'noreply@inventory.local';
 
+    // Greet the contact by name when we have one, otherwise fall back to
+    // the company name.
+    const greetingName =
+      options.contactName && options.contactName.trim()
+        ? options.contactName.trim()
+        : options.vendorName;
+
     await transport.sendMail({
       from: fromAddress,
       to: options.to,
       subject: `Purchase Order ${options.orderNumber}`,
       html: [
-        `<p>Dear ${escapeHtml(options.vendorName)},</p>`,
+        `<p>Hello ${escapeHtml(greetingName)},</p>`,
         `<p>Please find attached purchase order <strong>${escapeHtml(options.orderNumber)}</strong>.</p>`,
         `<p>Thank you for your continued partnership.</p>`,
         `<p>Regards</p>`,

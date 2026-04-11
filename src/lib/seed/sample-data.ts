@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { hash } from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 const SAMPLE_DATA_CONFIG_KEY = 'sample_data_ids';
@@ -8,6 +9,7 @@ interface SampleDataIds {
   manufacturers: string[];
   categories: string[];
   items: string[];
+  users: string[];
   purchaseOrders: string[];
   purchaseOrderLines: string[];
   assets: string[];
@@ -24,6 +26,7 @@ interface SampleDataCounts {
   assets: number;
   auditLogs: number;
   notifications: number;
+  users: number;
 }
 
 function randomChoice<T>(arr: T[]): T {
@@ -63,7 +66,51 @@ export async function insertSampleData(
     assets: [],
     auditLogs: [],
     notifications: [],
+    users: [],
   };
+
+  // ---- Sample users (so the demo can showcase role-based workflows) ----
+  // Demo password is 'demo1234' for every seeded user. Surfaced in the
+  // setup-success screen so admins know how to log in as each persona.
+  const demoPassword = await hash('demo1234', 10);
+  const demoUserData = [
+    {
+      email: 'purchasing@example.com',
+      name: 'Pat Purchasing',
+      role: 'PURCHASING_MANAGER',
+    },
+    {
+      email: 'manager@example.com',
+      name: 'Morgan Manager',
+      role: 'MANAGER',
+    },
+    {
+      email: 'warehouse@example.com',
+      name: 'Wendy Warehouse',
+      role: 'WAREHOUSE_STAFF',
+    },
+  ];
+  for (const u of demoUserData) {
+    // Skip if a user with this email already exists in this tenant.
+    const existing = await prisma.user.findFirst({
+      where: { tenantId, email: u.email },
+      select: { id: true },
+    });
+    if (existing) continue;
+    const id = uuidv4();
+    ids.users.push(id);
+    await prisma.user.create({
+      data: {
+        id,
+        tenantId,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        passwordHash: demoPassword,
+        isActive: true,
+      },
+    });
+  }
 
   // Audit log entries we collect as we go so the dashboard "recent activity"
   // widget has believable history the moment a fresh tenant lands.
@@ -502,6 +549,13 @@ export async function removeSampleData(
     });
   }
 
+  // 1b. Demo users
+  if (ids.users && ids.users.length > 0) {
+    await prisma.user.deleteMany({
+      where: { id: { in: ids.users } },
+    });
+  }
+
   // 2. Purchase order lines (references POs and items)
   if (ids.purchaseOrderLines.length > 0) {
     await prisma.purchaseOrderLine.deleteMany({
@@ -571,6 +625,7 @@ export async function getSampleDataStatus(
         assets: 0,
         auditLogs: 0,
         notifications: 0,
+        users: 0,
       },
     };
   }
@@ -588,6 +643,7 @@ export async function getSampleDataStatus(
       assets: ids.assets.length,
       auditLogs: ids.auditLogs?.length ?? 0,
       notifications: ids.notifications?.length ?? 0,
+      users: ids.users?.length ?? 0,
     },
   };
 }

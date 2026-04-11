@@ -8,7 +8,7 @@ import type { ApiResponse } from '@/lib/types';
 
 const SYSTEM_CONFIG_KEY = 'custom_roles';
 const MAX_ROLES = 10;
-const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
+const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'PURCHASING_MANAGER', 'WAREHOUSE_STAFF'];
 
 interface StoredRole {
   value: string;

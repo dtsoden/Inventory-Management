@@ -44,7 +44,8 @@ const ORDER_STATUSES = [
 
 const USER_ROLES = [
   { value: 'ADMIN', label: 'Admin', description: 'Full access to everything including settings and users' },
-  { value: 'MANAGER', label: 'Manager', description: 'Can manage vendors, create and approve orders, view reports' },
+  { value: 'MANAGER', label: 'Manager', description: 'Can manage vendors, create orders, and view reports. Cannot approve POs (segregation of duties).' },
+  { value: 'PURCHASING_MANAGER', label: 'Purchasing Manager', description: 'Approves, rejects, and revokes purchase orders. Receives approval-request notifications.' },
   { value: 'WAREHOUSE_STAFF', label: 'Warehouse Staff', description: 'Can receive shipments, scan assets, and view inventory' },
 ];
 

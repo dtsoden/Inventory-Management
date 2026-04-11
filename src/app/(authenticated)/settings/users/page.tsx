@@ -62,12 +62,14 @@ interface UserRecord {
 const roleLabels: Record<string, string> = {
   ADMIN: 'Admin',
   MANAGER: 'Manager',
+  PURCHASING_MANAGER: 'Purchasing Manager',
   WAREHOUSE_STAFF: 'Warehouse Staff',
 };
 
 const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   ADMIN: 'default',
   MANAGER: 'secondary',
+  PURCHASING_MANAGER: 'secondary',
   WAREHOUSE_STAFF: 'outline',
 };
 
@@ -872,9 +874,11 @@ export default function UsersSettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
-                        <SelectItem value="MANAGER">Manager</SelectItem>
-                        <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
+                        {ROLE_DEFINITIONS.map((r) => (
+                          <SelectItem key={r.value} value={r.value}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {isLastAdmin && (

@@ -23,7 +23,19 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { useCurrentUser } from '@/hooks/useSession';
+import { Undo2 } from 'lucide-react';
 
 interface OrderLine {
   id: string;
@@ -230,6 +242,13 @@ export default function OrderDetailPage() {
   const [editingLines, setEditingLines] = useState(false);
   const [editedLines, setEditedLines] = useState<OrderLine[]>([]);
   const [sendConfirmOpen, setSendConfirmOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const currentUser = useCurrentUser();
+  const isApprover =
+    currentUser?.role === 'ADMIN' ||
+    currentUser?.role === 'PURCHASING_MANAGER';
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -299,6 +318,40 @@ export default function OrderDetailPage() {
 
   const downloadPdf = () => {
     window.open(`/api/procurement/orders/${orderId}/pdf`, '_blank');
+  };
+
+  const submitWithComment = async (
+    endpoint: 'reject' | 'revoke',
+    onSuccess: () => void,
+  ) => {
+    if (!commentText.trim()) {
+      alert('A comment is required.');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch(
+        `/api/procurement/orders/${orderId}/${endpoint}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment: commentText.trim() }),
+        },
+      );
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.error ?? 'Action failed');
+        return;
+      }
+      setCommentText('');
+      onSuccess();
+      fetchOrder();
+      fetchAuditLog();
+    } catch {
+      alert('An unexpected error occurred');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const sendToVendor = async () => {
@@ -434,7 +487,7 @@ export default function OrderDetailPage() {
                 </Button>
               </>
             )}
-            {isPending && (
+            {isPending && isApprover && (
               <>
                 <Button
                   onClick={() => performAction('approve')}
@@ -445,7 +498,10 @@ export default function OrderDetailPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => performAction('delete', 'DELETE')}
+                  onClick={() => {
+                    setCommentText('');
+                    setRejectDialogOpen(true);
+                  }}
                   disabled={actionLoading}
                 >
                   <X className="size-4" data-icon="inline-start" />
@@ -453,33 +509,17 @@ export default function OrderDetailPage() {
                 </Button>
               </>
             )}
-            {isApproved && (
+            {isApproved && isApprover && (
               <Button
-                onClick={async () => {
-                  setActionLoading(true);
-                  try {
-                    const res = await fetch(
-                      `/api/procurement/orders/${orderId}`,
-                      {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          status: 'SUBMITTED',
-                          orderedAt: new Date().toISOString(),
-                        }),
-                      }
-                    );
-                    const json = await res.json();
-                    if (json.success) fetchOrder();
-                    else alert(json.error ?? 'Failed');
-                  } finally {
-                    setActionLoading(false);
-                  }
+                variant="outline"
+                onClick={() => {
+                  setCommentText('');
+                  setRevokeDialogOpen(true);
                 }}
                 disabled={actionLoading}
               >
-                <Send className="size-4" data-icon="inline-start" />
-                Submit to Vendor
+                <Undo2 className="size-4" data-icon="inline-start" />
+                Revoke &amp; Amend
               </Button>
             )}
             {isSubmitted && (
@@ -730,6 +770,92 @@ export default function OrderDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Reject with Comment Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject purchase order {order.orderNumber}</DialogTitle>
+            <DialogDescription>
+              Sends the order back to DRAFT so the requester can revise it.
+              The reason you enter here is recorded in the audit log and sent
+              to the requester as a notification.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reject-comment">Reason for rejection (required)</Label>
+            <Textarea
+              id="reject-comment"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="e.g. Quote exceeds Q2 budget by $4,000. Please negotiate or split across two quarters."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={actionLoading || !commentText.trim()}
+              onClick={() =>
+                submitWithComment('reject', () => setRejectDialogOpen(false))
+              }
+            >
+              <X className="size-4" data-icon="inline-start" />
+              Reject and notify
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Approval & Amend Dialog */}
+      <Dialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revoke approval and amend {order.orderNumber}</DialogTitle>
+            <DialogDescription>
+              Moves the order from APPROVED back to DRAFT so it can be edited.
+              The order will need to go through approval again after the
+              changes are made. The audit trail and the requester both get a
+              notification with your comment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="revoke-comment">Reason for revoking (required)</Label>
+            <Textarea
+              id="revoke-comment"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="e.g. Add Dell WD22TB4 docking stations to this PO before it ships."
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRevokeDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={actionLoading || !commentText.trim()}
+              onClick={() =>
+                submitWithComment('revoke', () => setRevokeDialogOpen(false))
+              }
+            >
+              <Undo2 className="size-4" data-icon="inline-start" />
+              Revoke and amend
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Activity Log from AuditLog */}
       <Card className="mt-6" size="sm">

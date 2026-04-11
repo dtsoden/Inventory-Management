@@ -28,12 +28,14 @@ interface ProfileData {
 const roleLabelMap: Record<string, string> = {
   ADMIN: 'Admin',
   MANAGER: 'Manager',
+  PURCHASING_MANAGER: 'Purchasing Manager',
   WAREHOUSE_STAFF: 'Warehouse Staff',
 };
 
 const roleVariantMap: Record<string, 'default' | 'secondary' | 'outline'> = {
   ADMIN: 'default',
   MANAGER: 'secondary',
+  PURCHASING_MANAGER: 'secondary',
   WAREHOUSE_STAFF: 'outline',
 };
 

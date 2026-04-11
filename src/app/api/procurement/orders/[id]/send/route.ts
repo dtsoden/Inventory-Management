@@ -39,9 +39,10 @@ class SendToVendorHandler extends BaseApiHandler {
       );
     }
 
-    // Try to find the vendor email by matching vendorName
+    // Try to find the vendor email and primary contact by matching vendorName
     let vendorEmail: string | null = null;
     let vendorName = order.vendorName ?? 'Vendor';
+    let contactName: string | null = null;
 
     if (order.vendorName) {
       const vendor = await (prisma as any).vendor.findFirst({
@@ -49,12 +50,13 @@ class SendToVendorHandler extends BaseApiHandler {
           tenantId: ctx.tenantId,
           name: order.vendorName,
         },
-        select: { email: true, name: true },
+        select: { email: true, name: true, contactName: true },
       });
 
       if (vendor?.email) {
         vendorEmail = vendor.email;
         vendorName = vendor.name;
+        contactName = vendor.contactName ?? null;
       }
     }
 
@@ -103,6 +105,7 @@ class SendToVendorHandler extends BaseApiHandler {
       await emailService.sendPurchaseOrder({
         to: vendorEmail,
         vendorName,
+        contactName,
         orderNumber: order.orderNumber,
         pdfBuffer,
       });

@@ -57,7 +57,26 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
   {
     value: UserRole.MANAGER,
     label: 'Manager',
-    description: 'Can manage vendors, create and approve orders, view reports',
+    description: 'Can manage vendors, create orders, and view reports. Cannot approve POs.',
+    permissions: {
+      'dashboard': true,
+      'vendors.view': true,
+      'vendors.manage': true,
+      'procurement.view': true,
+      'procurement.create': true,
+      'procurement.approve': false,
+      'receiving': true,
+      'inventory': true,
+      'assistant': true,
+      'settings': false,
+      'audit_log': false,
+      'user_management': false,
+    },
+  },
+  {
+    value: UserRole.PURCHASING_MANAGER,
+    label: 'Purchasing Manager',
+    description: 'Approves purchase orders and receives approval-request notifications. Can also do everything a Manager can.',
     permissions: {
       'dashboard': true,
       'vendors.view': true,
@@ -109,7 +128,7 @@ export function getDefaultRoles(): RoleDefinition[] {
 /**
  * Default role keys that cannot be deleted.
  */
-export const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'WAREHOUSE_STAFF'];
+export const DEFAULT_ROLE_KEYS = ['ADMIN', 'MANAGER', 'PURCHASING_MANAGER', 'WAREHOUSE_STAFF'];
 
 /**
  * Get a role definition by its value.
