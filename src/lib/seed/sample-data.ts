@@ -5,6 +5,7 @@ const SAMPLE_DATA_CONFIG_KEY = 'sample_data_ids';
 
 interface SampleDataIds {
   vendors: string[];
+  manufacturers: string[];
   categories: string[];
   items: string[];
   purchaseOrders: string[];
@@ -14,6 +15,7 @@ interface SampleDataIds {
 
 interface SampleDataCounts {
   vendors: number;
+  manufacturers: number;
   items: number;
   categories: number;
   orders: number;
@@ -49,6 +51,7 @@ export async function insertSampleData(
 
   const ids: SampleDataIds = {
     vendors: [],
+    manufacturers: [],
     categories: [],
     items: [],
     purchaseOrders: [],
@@ -76,6 +79,26 @@ export async function insertSampleData(
     vendors.push(vendor);
   }
 
+  // --- Manufacturers ---
+  const manufacturerData = [
+    { name: 'Dell', website: 'https://www.dell.com', supportUrl: 'https://www.dell.com/support', supportPhone: '1-800-624-9897', supportEmail: 'support@dell.com' },
+    { name: 'HP', website: 'https://www.hp.com', supportUrl: 'https://support.hp.com', supportPhone: '1-800-474-6836', supportEmail: 'support@hp.com' },
+    { name: 'Cisco', website: 'https://www.cisco.com', supportUrl: 'https://www.cisco.com/c/en/us/support/', supportPhone: '1-800-553-2447', supportEmail: 'tac@cisco.com' },
+    { name: 'Apple', website: 'https://www.apple.com', supportUrl: 'https://support.apple.com', supportPhone: '1-800-275-2273', supportEmail: 'enterprise@apple.com' },
+    { name: 'Lenovo', website: 'https://www.lenovo.com', supportUrl: 'https://support.lenovo.com', supportPhone: '1-855-253-6686', supportEmail: 'support@lenovo.com' },
+    { name: 'Logitech', website: 'https://www.logitech.com', supportUrl: 'https://support.logitech.com', supportPhone: '1-646-454-3200', supportEmail: 'support@logitech.com' },
+  ];
+
+  const manufacturers = [];
+  for (const m of manufacturerData) {
+    const id = uuidv4();
+    ids.manufacturers.push(id);
+    const created = await prisma.manufacturer.create({
+      data: { id, tenantId, ...m },
+    });
+    manufacturers.push(created);
+  }
+
   // --- Item Categories ---
   const categoryData = [
     { name: 'Laptops', description: 'Portable computing devices' },
@@ -96,46 +119,47 @@ export async function insertSampleData(
   }
 
   // --- Catalog Items (30 items) ---
+  // Manufacturer indices: Dell=0, HP=1, Cisco=2, Apple=3, Lenovo=4, Logitech=5
   const itemsData = [
-    // Laptops (Dell=0, Lenovo=3, Apple=4, HP=2)
-    { name: 'Dell Latitude 5540', sku: 'SAMPLE-DEL-LAT-5540', vendorIdx: 0, catIdx: 0, unitCost: 1249.99, reorderPoint: 5, reorderQuantity: 10 },
-    { name: 'Dell Latitude 7440', sku: 'SAMPLE-DEL-LAT-7440', vendorIdx: 0, catIdx: 0, unitCost: 1649.99, reorderPoint: 3, reorderQuantity: 5 },
-    { name: 'Dell Precision 5680', sku: 'SAMPLE-DEL-PRE-5680', vendorIdx: 0, catIdx: 0, unitCost: 2399.99, reorderPoint: 2, reorderQuantity: 3 },
-    { name: 'Lenovo ThinkPad T14s Gen 5', sku: 'SAMPLE-LEN-TP-T14S', vendorIdx: 3, catIdx: 0, unitCost: 1399.99, reorderPoint: 4, reorderQuantity: 8 },
-    { name: 'Lenovo ThinkPad X1 Carbon Gen 12', sku: 'SAMPLE-LEN-TP-X1C12', vendorIdx: 3, catIdx: 0, unitCost: 1899.99, reorderPoint: 3, reorderQuantity: 5 },
-    { name: 'Apple MacBook Pro 14" M4', sku: 'SAMPLE-APL-MBP-14M4', vendorIdx: 4, catIdx: 0, unitCost: 1999.99, reorderPoint: 3, reorderQuantity: 5 },
-    { name: 'Apple MacBook Air 15" M3', sku: 'SAMPLE-APL-MBA-15M3', vendorIdx: 4, catIdx: 0, unitCost: 1299.99, reorderPoint: 4, reorderQuantity: 6 },
-    { name: 'HP EliteBook 860 G11', sku: 'SAMPLE-HP-EB-860G11', vendorIdx: 2, catIdx: 0, unitCost: 1549.99, reorderPoint: 3, reorderQuantity: 5 },
+    // Laptops
+    { name: 'Dell Latitude 5540', sku: 'SAMPLE-DEL-LAT-5540', vendorIdx: 0, mfgIdx: 0, mfgPN: 'LAT-5540-I7', catIdx: 0, unitCost: 1249.99, reorderPoint: 5, reorderQuantity: 10 },
+    { name: 'Dell Latitude 7440', sku: 'SAMPLE-DEL-LAT-7440', vendorIdx: 0, mfgIdx: 0, mfgPN: 'LAT-7440-I7', catIdx: 0, unitCost: 1649.99, reorderPoint: 3, reorderQuantity: 5 },
+    { name: 'Dell Precision 5680', sku: 'SAMPLE-DEL-PRE-5680', vendorIdx: 0, mfgIdx: 0, mfgPN: 'PRE-5680-XE', catIdx: 0, unitCost: 2399.99, reorderPoint: 2, reorderQuantity: 3 },
+    { name: 'Lenovo ThinkPad T14s Gen 5', sku: 'SAMPLE-LEN-TP-T14S', vendorIdx: 3, mfgIdx: 4, mfgPN: '21LS0000US', catIdx: 0, unitCost: 1399.99, reorderPoint: 4, reorderQuantity: 8 },
+    { name: 'Lenovo ThinkPad X1 Carbon Gen 12', sku: 'SAMPLE-LEN-TP-X1C12', vendorIdx: 3, mfgIdx: 4, mfgPN: '21KC0000US', catIdx: 0, unitCost: 1899.99, reorderPoint: 3, reorderQuantity: 5 },
+    { name: 'Apple MacBook Pro 14" M4', sku: 'SAMPLE-APL-MBP-14M4', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MX2E3LL/A', catIdx: 0, unitCost: 1999.99, reorderPoint: 3, reorderQuantity: 5 },
+    { name: 'Apple MacBook Air 15" M3', sku: 'SAMPLE-APL-MBA-15M3', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MRYM3LL/A', catIdx: 0, unitCost: 1299.99, reorderPoint: 4, reorderQuantity: 6 },
+    { name: 'HP EliteBook 860 G11', sku: 'SAMPLE-HP-EB-860G11', vendorIdx: 2, mfgIdx: 1, mfgPN: 'A26S5UT#ABA', catIdx: 0, unitCost: 1549.99, reorderPoint: 3, reorderQuantity: 5 },
 
-    // Networking (Cisco=1)
-    { name: 'Cisco Catalyst 9200L-24P Switch', sku: 'SAMPLE-CIS-C9200L-24P', vendorIdx: 1, catIdx: 1, unitCost: 3299.99, reorderPoint: 2, reorderQuantity: 3 },
-    { name: 'Cisco Catalyst 9300-48T Switch', sku: 'SAMPLE-CIS-C9300-48T', vendorIdx: 1, catIdx: 1, unitCost: 5899.99, reorderPoint: 1, reorderQuantity: 2 },
-    { name: 'Cisco Meraki MR46 Access Point', sku: 'SAMPLE-CIS-MR46', vendorIdx: 1, catIdx: 1, unitCost: 899.99, reorderPoint: 5, reorderQuantity: 10 },
-    { name: 'Cisco ISR 4331 Router', sku: 'SAMPLE-CIS-ISR4331', vendorIdx: 1, catIdx: 1, unitCost: 2999.99, reorderPoint: 1, reorderQuantity: 2 },
-    { name: 'Cisco SFP-10G-SR Transceiver', sku: 'SAMPLE-CIS-SFP10GSR', vendorIdx: 1, catIdx: 1, unitCost: 149.99, reorderPoint: 10, reorderQuantity: 20 },
+    // Networking
+    { name: 'Cisco Catalyst 9200L-24P Switch', sku: 'SAMPLE-CIS-C9200L-24P', vendorIdx: 1, mfgIdx: 2, mfgPN: 'C9200L-24P-4G-E', catIdx: 1, unitCost: 3299.99, reorderPoint: 2, reorderQuantity: 3 },
+    { name: 'Cisco Catalyst 9300-48T Switch', sku: 'SAMPLE-CIS-C9300-48T', vendorIdx: 1, mfgIdx: 2, mfgPN: 'C9300-48T-E', catIdx: 1, unitCost: 5899.99, reorderPoint: 1, reorderQuantity: 2 },
+    { name: 'Cisco Meraki MR46 Access Point', sku: 'SAMPLE-CIS-MR46', vendorIdx: 1, mfgIdx: 2, mfgPN: 'MR46-HW', catIdx: 1, unitCost: 899.99, reorderPoint: 5, reorderQuantity: 10 },
+    { name: 'Cisco ISR 4331 Router', sku: 'SAMPLE-CIS-ISR4331', vendorIdx: 1, mfgIdx: 2, mfgPN: 'ISR4331/K9', catIdx: 1, unitCost: 2999.99, reorderPoint: 1, reorderQuantity: 2 },
+    { name: 'Cisco SFP-10G-SR Transceiver', sku: 'SAMPLE-CIS-SFP10GSR', vendorIdx: 1, mfgIdx: 2, mfgPN: 'SFP-10G-SR', catIdx: 1, unitCost: 149.99, reorderPoint: 10, reorderQuantity: 20 },
 
-    // Peripherals (Logitech=5, Dell=0, HP=2)
-    { name: 'Logitech MX Master 3S Mouse', sku: 'SAMPLE-LOG-MXM3S', vendorIdx: 5, catIdx: 2, unitCost: 99.99, reorderPoint: 10, reorderQuantity: 20 },
-    { name: 'Logitech MX Keys S Keyboard', sku: 'SAMPLE-LOG-MXKS', vendorIdx: 5, catIdx: 2, unitCost: 109.99, reorderPoint: 10, reorderQuantity: 20 },
-    { name: 'Logitech Brio 4K Webcam', sku: 'SAMPLE-LOG-BRIO4K', vendorIdx: 5, catIdx: 2, unitCost: 199.99, reorderPoint: 5, reorderQuantity: 10 },
-    { name: 'Dell UltraSharp U2723QE 27" 4K Monitor', sku: 'SAMPLE-DEL-U2723QE', vendorIdx: 0, catIdx: 2, unitCost: 519.99, reorderPoint: 5, reorderQuantity: 8 },
-    { name: 'Dell WD22TB4 Thunderbolt Dock', sku: 'SAMPLE-DEL-WD22TB4', vendorIdx: 0, catIdx: 2, unitCost: 319.99, reorderPoint: 5, reorderQuantity: 10 },
-    { name: 'HP E27m G4 QHD USB-C Monitor', sku: 'SAMPLE-HP-E27M-G4', vendorIdx: 2, catIdx: 2, unitCost: 449.99, reorderPoint: 4, reorderQuantity: 6 },
-    { name: 'Logitech Zone Wireless 2 Headset', sku: 'SAMPLE-LOG-ZW2', vendorIdx: 5, catIdx: 2, unitCost: 249.99, reorderPoint: 6, reorderQuantity: 12 },
-    { name: 'Logitech C920s HD Pro Webcam', sku: 'SAMPLE-LOG-C920S', vendorIdx: 5, catIdx: 2, unitCost: 69.99, reorderPoint: 8, reorderQuantity: 15 },
-    { name: 'Dell P2422H 24" FHD Monitor', sku: 'SAMPLE-DEL-P2422H', vendorIdx: 0, catIdx: 2, unitCost: 239.99, reorderPoint: 8, reorderQuantity: 15 },
+    // Peripherals
+    { name: 'Logitech MX Master 3S Mouse', sku: 'SAMPLE-LOG-MXM3S', vendorIdx: 5, mfgIdx: 5, mfgPN: '910-006556', catIdx: 2, unitCost: 99.99, reorderPoint: 10, reorderQuantity: 20 },
+    { name: 'Logitech MX Keys S Keyboard', sku: 'SAMPLE-LOG-MXKS', vendorIdx: 5, mfgIdx: 5, mfgPN: '920-011406', catIdx: 2, unitCost: 109.99, reorderPoint: 10, reorderQuantity: 20 },
+    { name: 'Logitech Brio 4K Webcam', sku: 'SAMPLE-LOG-BRIO4K', vendorIdx: 5, mfgIdx: 5, mfgPN: '960-001105', catIdx: 2, unitCost: 199.99, reorderPoint: 5, reorderQuantity: 10 },
+    { name: 'Dell UltraSharp U2723QE 27" 4K Monitor', sku: 'SAMPLE-DEL-U2723QE', vendorIdx: 0, mfgIdx: 0, mfgPN: 'U2723QE', catIdx: 2, unitCost: 519.99, reorderPoint: 5, reorderQuantity: 8 },
+    { name: 'Dell WD22TB4 Thunderbolt Dock', sku: 'SAMPLE-DEL-WD22TB4', vendorIdx: 0, mfgIdx: 0, mfgPN: 'WD22TB4', catIdx: 2, unitCost: 319.99, reorderPoint: 5, reorderQuantity: 10 },
+    { name: 'HP E27m G4 QHD USB-C Monitor', sku: 'SAMPLE-HP-E27M-G4', vendorIdx: 2, mfgIdx: 1, mfgPN: '40Z29AA#ABA', catIdx: 2, unitCost: 449.99, reorderPoint: 4, reorderQuantity: 6 },
+    { name: 'Logitech Zone Wireless 2 Headset', sku: 'SAMPLE-LOG-ZW2', vendorIdx: 5, mfgIdx: 5, mfgPN: '981-001158', catIdx: 2, unitCost: 249.99, reorderPoint: 6, reorderQuantity: 12 },
+    { name: 'Logitech C920s HD Pro Webcam', sku: 'SAMPLE-LOG-C920S', vendorIdx: 5, mfgIdx: 5, mfgPN: '960-001257', catIdx: 2, unitCost: 69.99, reorderPoint: 8, reorderQuantity: 15 },
+    { name: 'Dell P2422H 24" FHD Monitor', sku: 'SAMPLE-DEL-P2422H', vendorIdx: 0, mfgIdx: 0, mfgPN: 'P2422H', catIdx: 2, unitCost: 239.99, reorderPoint: 8, reorderQuantity: 15 },
 
-    // Mobile Devices (Apple=4)
-    { name: 'Apple iPad Pro 11" M4', sku: 'SAMPLE-APL-IPDP-11M4', vendorIdx: 4, catIdx: 3, unitCost: 999.99, reorderPoint: 4, reorderQuantity: 6 },
-    { name: 'Apple iPad Air 13" M2', sku: 'SAMPLE-APL-IPDA-13M2', vendorIdx: 4, catIdx: 3, unitCost: 799.99, reorderPoint: 4, reorderQuantity: 6 },
-    { name: 'Apple iPhone 16 Pro', sku: 'SAMPLE-APL-IP16P', vendorIdx: 4, catIdx: 3, unitCost: 999.99, reorderPoint: 3, reorderQuantity: 5 },
-    { name: 'Apple Pencil Pro', sku: 'SAMPLE-APL-PENCILP', vendorIdx: 4, catIdx: 3, unitCost: 129.99, reorderPoint: 5, reorderQuantity: 10 },
+    // Mobile Devices
+    { name: 'Apple iPad Pro 11" M4', sku: 'SAMPLE-APL-IPDP-11M4', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MVV83LL/A', catIdx: 3, unitCost: 999.99, reorderPoint: 4, reorderQuantity: 6 },
+    { name: 'Apple iPad Air 13" M2', sku: 'SAMPLE-APL-IPDA-13M2', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MV2D3LL/A', catIdx: 3, unitCost: 799.99, reorderPoint: 4, reorderQuantity: 6 },
+    { name: 'Apple iPhone 16 Pro', sku: 'SAMPLE-APL-IP16P', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MYMN3LL/A', catIdx: 3, unitCost: 999.99, reorderPoint: 3, reorderQuantity: 5 },
+    { name: 'Apple Pencil Pro', sku: 'SAMPLE-APL-PENCILP', vendorIdx: 4, mfgIdx: 3, mfgPN: 'MX2D3AM/A', catIdx: 3, unitCost: 129.99, reorderPoint: 5, reorderQuantity: 10 },
 
-    // Printers (HP=2)
-    { name: 'HP LaserJet Enterprise M611dn', sku: 'SAMPLE-HP-LJE-M611', vendorIdx: 2, catIdx: 4, unitCost: 649.99, reorderPoint: 2, reorderQuantity: 3 },
-    { name: 'HP Color LaserJet Pro MFP M479fdw', sku: 'SAMPLE-HP-CLJ-M479', vendorIdx: 2, catIdx: 4, unitCost: 549.99, reorderPoint: 2, reorderQuantity: 3 },
-    { name: 'HP OfficeJet Pro 9130e', sku: 'SAMPLE-HP-OJP-9130', vendorIdx: 2, catIdx: 4, unitCost: 329.99, reorderPoint: 3, reorderQuantity: 5 },
-    { name: 'HP ScanJet Enterprise Flow 7500', sku: 'SAMPLE-HP-SJ-7500', vendorIdx: 2, catIdx: 4, unitCost: 1199.99, reorderPoint: 1, reorderQuantity: 2 },
+    // Printers
+    { name: 'HP LaserJet Enterprise M611dn', sku: 'SAMPLE-HP-LJE-M611', vendorIdx: 2, mfgIdx: 1, mfgPN: '7PS84A', catIdx: 4, unitCost: 649.99, reorderPoint: 2, reorderQuantity: 3 },
+    { name: 'HP Color LaserJet Pro MFP M479fdw', sku: 'SAMPLE-HP-CLJ-M479', vendorIdx: 2, mfgIdx: 1, mfgPN: 'W1A80A', catIdx: 4, unitCost: 549.99, reorderPoint: 2, reorderQuantity: 3 },
+    { name: 'HP OfficeJet Pro 9130e', sku: 'SAMPLE-HP-OJP-9130', vendorIdx: 2, mfgIdx: 1, mfgPN: '4W2K0A', catIdx: 4, unitCost: 329.99, reorderPoint: 3, reorderQuantity: 5 },
+    { name: 'HP ScanJet Enterprise Flow 7500', sku: 'SAMPLE-HP-SJ-7500', vendorIdx: 2, mfgIdx: 1, mfgPN: 'L2725B', catIdx: 4, unitCost: 1199.99, reorderPoint: 1, reorderQuantity: 2 },
   ];
 
   const items = [];
@@ -149,6 +173,8 @@ export async function insertSampleData(
         name: item.name,
         sku: item.sku,
         vendorId: vendors[item.vendorIdx].id,
+        manufacturerId: manufacturers[item.mfgIdx].id,
+        manufacturerPartNumber: item.mfgPN,
         categoryId: categories[item.catIdx].id,
         unitCost: item.unitCost,
         reorderPoint: item.reorderPoint,
@@ -225,6 +251,17 @@ export async function insertSampleData(
     }
   }
 
+  // Build map from itemId to all PO line IDs for traceability linking
+  const poLinesByItem: Record<string, string[]> = {};
+  const allPOLines = await prisma.purchaseOrderLine.findMany({
+    where: { id: { in: ids.purchaseOrderLines } },
+    select: { id: true, itemId: true },
+  });
+  for (const line of allPOLines) {
+    if (!poLinesByItem[line.itemId]) poLinesByItem[line.itemId] = [];
+    poLinesByItem[line.itemId].push(line.id);
+  }
+
   // --- Assets (40 with mixed statuses) ---
   const assetStatuses = ['AVAILABLE', 'ASSIGNED', 'IN_MAINTENANCE', 'RETIRED', 'LOST'];
   const locations = [
@@ -253,11 +290,18 @@ export async function insertSampleData(
     const assetId = uuidv4();
     ids.assets.push(assetId);
 
+    // Link asset to a PO line for this item (provenance chain)
+    const candidateLines = poLinesByItem[item.id];
+    const poLineId = candidateLines && candidateLines.length > 0
+      ? candidateLines[i % candidateLines.length]
+      : null;
+
     await prisma.asset.create({
       data: {
         id: assetId,
         tenantId,
         itemId: item.id,
+        purchaseOrderLineId: poLineId,
         assetTag: `SAMPLE-${String(10000 + i)}`,
         serialNumber: `SAMPLE-SN${uuidv4().slice(0, 8).toUpperCase()}`,
         status,
@@ -323,7 +367,7 @@ export async function removeSampleData(
     });
   }
 
-  // 4. Items (references vendors and categories)
+  // 4. Items (references vendors, manufacturers, and categories)
   if (ids.items.length > 0) {
     await prisma.item.deleteMany({
       where: { id: { in: ids.items } },
@@ -337,14 +381,21 @@ export async function removeSampleData(
     });
   }
 
-  // 6. Vendors
+  // 6. Manufacturers
+  if (ids.manufacturers && ids.manufacturers.length > 0) {
+    await prisma.manufacturer.deleteMany({
+      where: { id: { in: ids.manufacturers } },
+    });
+  }
+
+  // 7. Vendors
   if (ids.vendors.length > 0) {
     await prisma.vendor.deleteMany({
       where: { id: { in: ids.vendors } },
     });
   }
 
-  // 7. Remove the config entry
+  // 8. Remove the config entry
   await prisma.systemConfig.delete({
     where: { key: configKey },
   });
@@ -362,7 +413,7 @@ export async function getSampleDataStatus(
   if (!config) {
     return {
       isLoaded: false,
-      counts: { vendors: 0, items: 0, categories: 0, orders: 0, assets: 0 },
+      counts: { vendors: 0, manufacturers: 0, items: 0, categories: 0, orders: 0, assets: 0 },
     };
   }
 
@@ -372,6 +423,7 @@ export async function getSampleDataStatus(
     isLoaded: true,
     counts: {
       vendors: ids.vendors.length,
+      manufacturers: ids.manufacturers?.length ?? 0,
       items: ids.items.length,
       categories: ids.categories.length,
       orders: ids.purchaseOrders.length,

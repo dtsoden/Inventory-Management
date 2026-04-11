@@ -52,6 +52,7 @@ model Tenant {
 
   users              User[]
   vendors            Vendor[]
+  manufacturers      Manufacturer[]
   itemCategories     ItemCategory[]
   items              Item[]
   purchaseOrders     PurchaseOrder[]
@@ -115,6 +116,25 @@ model Vendor {
   @@index([tenantId])
 }
 
+model Manufacturer {
+  id           String   @id @default(uuid())
+  tenantId     String
+  name         String
+  website      String?
+  supportUrl   String?
+  supportPhone String?
+  supportEmail String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items  Item[]
+
+  @@index([tenantId])
+}
+
 model ItemCategory {
   id          String   @id @default(uuid())
   tenantId    String
@@ -138,29 +158,33 @@ model ItemCategory {
 // ---------------------------------------------------------------------------
 
 model Item {
-  id              String   @id @default(uuid())
-  tenantId        String
-  name            String
-  description     String?
-  sku             String?
-  vendorId        String?
-  categoryId      String?
-  unitCost        Float?
-  reorderPoint    Int      @default(0)
-  reorderQuantity Int      @default(0)
-  imageUrl        String?
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  tenantId               String
+  name                   String
+  description            String?
+  sku                    String?
+  vendorId               String?
+  manufacturerId         String?
+  manufacturerPartNumber String?
+  categoryId             String?
+  unitCost               Float?
+  reorderPoint           Int      @default(0)
+  reorderQuantity        Int      @default(0)
+  imageUrl               String?
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   vendor             Vendor?             @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  manufacturer       Manufacturer?       @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
   category           ItemCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   purchaseOrderLines PurchaseOrderLine[]
   assets             Asset[]
 
   @@index([tenantId])
   @@index([vendorId])
+  @@index([manufacturerId])
   @@index([categoryId])
   @@index([sku])
 }
@@ -205,6 +229,7 @@ model PurchaseOrderLine {
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   item          Item          @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  assets        Asset[]
 
   @@index([purchaseOrderId])
   @@index([itemId])
@@ -216,26 +241,29 @@ model PurchaseOrderLine {
 
 // Status lifecycle: AVAILABLE -> CHECKED_OUT -> IN_REPAIR -> RETIRED -> DISPOSED
 model Asset {
-  id            String   @id @default(uuid())
-  tenantId      String
-  itemId        String
-  assetTag      String?
-  serialNumber  String?
-  status        String   @default("AVAILABLE")
-  condition     String?
-  location      String?
-  assignedTo    String?
-  notes         String?
-  purchasedAt   DateTime?
-  warrantyUntil DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  tenantId            String
+  itemId              String
+  purchaseOrderLineId String?
+  assetTag            String?
+  serialNumber        String?
+  status              String   @default("AVAILABLE")
+  condition           String?
+  location            String?
+  assignedTo          String?
+  notes               String?
+  purchasedAt         DateTime?
+  warrantyUntil       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  item   Item   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  item              Item               @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  purchaseOrderLine PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([itemId])
+  @@index([purchaseOrderLineId])
   @@index([status])
   @@index([assetTag])
 }

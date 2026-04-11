@@ -33,17 +33,18 @@ export async function GET() {
       // Active vendors
       prisma.vendor.count({ where: { tenantId, isActive: true } }),
 
-      // Low stock alerts: items where the asset count is at or below reorder point
+      // Low stock alerts: items where the count of AVAILABLE assets is strictly
+      // below the item's reorder point. Must count by status since the total
+      // asset count includes assigned/retired/etc.
       prisma.item.findMany({
         where: { tenantId, isActive: true, reorderPoint: { gt: 0 } },
         select: {
           id: true,
-          name: true,
           reorderPoint: true,
-          _count: { select: { assets: true } },
+          assets: { where: { status: 'AVAILABLE' }, select: { id: true } },
         },
       }).then((items) =>
-        items.filter((item) => item._count.assets <= item.reorderPoint).length
+        items.filter((item) => item.assets.length < item.reorderPoint).length
       ),
 
       // Recent activity (last 10 audit log entries)

@@ -113,11 +113,35 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
       throw new NotFoundError('Item', data.itemId);
     }
 
+    // Resolve the purchase order line for provenance. The session points to a
+    // PO, and we match the line by itemId. If multiple lines exist we pick the
+    // one with the fewest received assets first so receipts fan out across
+    // lines.
+    let purchaseOrderLineId: string | null = null;
+    if (session.purchaseOrderId) {
+      const poLines = await (this.prisma as any).purchaseOrderLine.findMany({
+        where: {
+          purchaseOrderId: session.purchaseOrderId,
+          itemId: data.itemId,
+        },
+        include: { _count: { select: { assets: true } } },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (poLines.length > 0) {
+        // Prefer a line that still has remaining capacity
+        const withCapacity = poLines.find(
+          (l: any) => l._count.assets < l.quantity
+        );
+        purchaseOrderLineId = (withCapacity ?? poLines[0]).id;
+      }
+    }
+
     // Create the asset record
     const asset = await (this.prisma as any).asset.create({
       data: {
         tenantId: ctx.tenantId,
         itemId: data.itemId,
+        purchaseOrderLineId,
         assetTag: data.assetTag,
         serialNumber: data.serialNumber ?? null,
         status: AssetStatus.AVAILABLE,

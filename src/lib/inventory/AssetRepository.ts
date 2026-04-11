@@ -6,6 +6,7 @@ export interface AssetRecord {
   id: string;
   tenantId: string;
   itemId: string;
+  purchaseOrderLineId: string | null;
   assetTag: string | null;
   serialNumber: string | null;
   status: string;
@@ -23,9 +24,23 @@ export interface AssetRecord {
     sku: string | null;
     categoryId: string | null;
     vendorId: string | null;
+    manufacturerId: string | null;
+    manufacturerPartNumber: string | null;
     category?: { id: string; name: string } | null;
     vendor?: { id: string; name: string } | null;
+    manufacturer?: { id: string; name: string } | null;
   };
+  purchaseOrderLine?: {
+    id: string;
+    quantity: number;
+    unitCost: number;
+    purchaseOrder: {
+      id: string;
+      orderNumber: string;
+      vendorName: string | null;
+      orderedAt: Date | null;
+    };
+  } | null;
 }
 
 export class AssetRepository extends BaseRepository<AssetRecord> {
@@ -47,6 +62,19 @@ export class AssetRepository extends BaseRepository<AssetRecord> {
         include: {
           category: { select: { id: true, name: true } },
           vendor: { select: { id: true, name: true } },
+          manufacturer: { select: { id: true, name: true } },
+        },
+      },
+      purchaseOrderLine: {
+        include: {
+          purchaseOrder: {
+            select: {
+              id: true,
+              orderNumber: true,
+              vendorName: true,
+              orderedAt: true,
+            },
+          },
         },
       },
     };

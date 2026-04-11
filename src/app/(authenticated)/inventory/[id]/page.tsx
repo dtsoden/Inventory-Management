@@ -62,14 +62,28 @@ interface AssetDetail {
   warrantyUntil: string | null;
   createdAt: string;
   updatedAt: string;
+  purchaseOrderLineId: string | null;
   item?: {
     id: string;
     name: string;
     sku: string | null;
+    manufacturerPartNumber: string | null;
     categoryId: string | null;
     category?: { id: string; name: string } | null;
     vendor?: { id: string; name: string } | null;
+    manufacturer?: { id: string; name: string } | null;
   };
+  purchaseOrderLine?: {
+    id: string;
+    quantity: number;
+    unitCost: number;
+    purchaseOrder: {
+      id: string;
+      orderNumber: string;
+      vendorName: string | null;
+      orderedAt: string | null;
+    };
+  } | null;
 }
 
 interface AuditEntry {
@@ -340,6 +354,32 @@ export default function AssetDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={asset.status} />
+          {asset.item && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/inventory/items/${asset.item!.id}`)}
+            >
+              <Package className="h-4 w-4 mr-1" />
+              View Catalog Item
+            </Button>
+          )}
+          {asset.item && (
+            <Button
+              size="sm"
+              className="bg-brand-green hover:bg-brand-green/90"
+              onClick={() => {
+                const vendorName = asset.purchaseOrderLine?.purchaseOrder.vendorName
+                  ?? asset.item?.vendor?.name
+                  ?? '';
+                const qs = new URLSearchParams({ itemId: asset.item!.id });
+                if (vendorName) qs.set('vendorName', vendorName);
+                router.push(`/procurement/new?${qs.toString()}`);
+              }}
+            >
+              Reorder
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleEdit}>
             <Pencil className="h-4 w-4 mr-1" />
             Edit
@@ -512,6 +552,52 @@ export default function AssetDetailPage() {
             </div>
           </div>
 
+          {/* Provenance chain */}
+          <div className="card-base rounded-xl p-6">
+            <h2 className="text-base font-semibold flex items-center gap-2 mb-4">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Provenance Chain
+            </h2>
+            <div className="space-y-3 text-sm">
+              <ProvenanceRow
+                label="Item"
+                value={asset.item?.name ?? '-'}
+                sub={asset.item?.sku ?? undefined}
+              />
+              <ProvenanceRow
+                label="Manufacturer"
+                value={asset.item?.manufacturer?.name ?? '-'}
+                sub={asset.item?.manufacturerPartNumber ?? undefined}
+              />
+              <ProvenanceRow
+                label="Vendor"
+                value={
+                  asset.purchaseOrderLine?.purchaseOrder.vendorName
+                    ?? asset.item?.vendor?.name
+                    ?? '-'
+                }
+              />
+              <ProvenanceRow
+                label="Purchase Order"
+                value={asset.purchaseOrderLine?.purchaseOrder.orderNumber ?? '-'}
+                sub={
+                  asset.purchaseOrderLine
+                    ? `${asset.purchaseOrderLine.quantity} @ ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(asset.purchaseOrderLine.unitCost)}`
+                    : undefined
+                }
+                onClick={
+                  asset.purchaseOrderLine
+                    ? () => router.push(`/procurement/${asset.purchaseOrderLine!.purchaseOrder.id}`)
+                    : undefined
+                }
+              />
+              <ProvenanceRow
+                label="Date Purchased"
+                value={formatDate(asset.purchasedAt)}
+              />
+            </div>
+          </div>
+
           {/* Audit History */}
           <div className="card-base rounded-xl p-6">
             <h2 className="text-base font-semibold flex items-center gap-2 mb-4">
@@ -680,6 +766,35 @@ export default function AssetDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function ProvenanceRow({
+  label,
+  value,
+  sub,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-start justify-between gap-4 py-2 border-b last:border-0 ${
+        onClick ? 'cursor-pointer hover:bg-muted/30 -mx-2 px-2 rounded' : ''
+      }`}
+      onClick={onClick}
+    >
+      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide min-w-[110px]">
+        {label}
+      </span>
+      <div className="text-right">
+        <p className="text-sm font-medium">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground font-mono">{sub}</p>}
+      </div>
     </div>
   );
 }
