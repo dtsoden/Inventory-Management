@@ -20,6 +20,8 @@ export interface PdfOrderData {
 
 export interface PdfTenantData {
   name: string;
+  logoBytes?: Buffer | null;
+  logoMime?: string | null;
 }
 
 /**
@@ -38,16 +40,31 @@ export function generatePurchaseOrderPdf(
   let y = margin;
 
   // ---------- Header ----------
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
-  doc.text(tenant.name, margin, y + 7);
+  let nameX = margin;
+  let headerBottom = y + 15;
+  if (tenant.logoBytes && tenant.logoMime) {
+    try {
+      const logoData = `data:image/${tenant.logoMime.toLowerCase()};base64,${tenant.logoBytes.toString('base64')}`;
+      // Logo box: max 30mm wide, 18mm tall, preserve aspect by letting jsPDF decide
+      doc.addImage(logoData, tenant.logoMime, margin, y, 30, 18, undefined, 'FAST');
+      nameX = margin + 34;
+      headerBottom = y + 20;
+    } catch {
+      // Embedding failed, fall back to text-only
+      nameX = margin;
+    }
+  }
 
-  doc.setFontSize(24);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(tenant.name, nameX, y + 9);
+
+  doc.setFontSize(22);
   doc.setTextColor(60, 60, 60);
-  doc.text('PURCHASE ORDER', pageWidth - margin, y + 7, { align: 'right' });
+  doc.text('PURCHASE ORDER', pageWidth - margin, y + 9, { align: 'right' });
   doc.setTextColor(0, 0, 0);
 
-  y += 15;
+  y = headerBottom;
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
   doc.line(margin, y, pageWidth - margin, y);
@@ -101,42 +118,53 @@ export function generatePurchaseOrderPdf(
     lineTotal: margin + 160,
   };
 
-  // Table header
+  // Table header (rect drawn first, then text inside it, then advance past it)
+  const headerRowHeight = 8;
   doc.setFillColor(240, 240, 240);
-  doc.rect(margin, y - 4, contentWidth, 8, 'F');
+  doc.rect(margin, y, contentWidth, headerRowHeight, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text('Item', colX.item + 2, y);
-  doc.text('SKU', colX.sku, y);
-  doc.text('Qty', colX.qty, y, { align: 'right' });
-  doc.text('Unit Price', colX.unitPrice, y, { align: 'right' });
-  doc.text('Line Total', colX.lineTotal, y, { align: 'right' });
-  y += 6;
+  const headerTextY = y + 5.5;
+  doc.text('Item', colX.item + 2, headerTextY);
+  doc.text('SKU', colX.sku, headerTextY);
+  doc.text('Qty', colX.qty, headerTextY, { align: 'right' });
+  doc.text('Unit Price', colX.unitPrice, headerTextY, { align: 'right' });
+  doc.text('Line Total', colX.lineTotal, headerTextY, { align: 'right' });
+  y += headerRowHeight + 4; // gap between header and first row
 
   // Table rows
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
+
+  // Item column has 70mm available before SKU column. At 9pt helvetica
+  // that fits roughly 35 chars per line. Wrap instead of truncate so
+  // long product names like 'Dell UltraSharp...' stay readable.
+  const itemColWidth = colX.sku - colX.item - 4;
 
   let subtotal = 0;
   for (const line of lines) {
     const lineTotal = line.quantity * line.unitCost;
     subtotal += lineTotal;
 
+    const wrappedItem = doc.splitTextToSize(line.itemName, itemColWidth);
+    const rowHeight = Math.max(5, wrappedItem.length * 4.2);
+
     // Check if we need a new page
-    if (y > 260) {
+    if (y + rowHeight > 260) {
       doc.addPage();
       y = margin;
     }
 
-    doc.text(truncate(line.itemName, 40), colX.item + 2, y);
+    doc.text(wrappedItem, colX.item + 2, y);
     doc.text(line.sku ?? 'N/A', colX.sku, y);
     doc.text(String(line.quantity), colX.qty, y, { align: 'right' });
     doc.text(formatCurrency(line.unitCost), colX.unitPrice, y, { align: 'right' });
     doc.text(formatCurrency(lineTotal), colX.lineTotal, y, { align: 'right' });
 
-    y += 5;
+    y += rowHeight + 1.5;
     doc.setDrawColor(230, 230, 230);
-    doc.line(margin, y - 1.5, pageWidth - margin, y - 1.5);
+    doc.line(margin, y - 0.75, pageWidth - margin, y - 0.75);
+    y += 1.5;
   }
 
   if (lines.length === 0) {

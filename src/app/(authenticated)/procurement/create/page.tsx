@@ -17,6 +17,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Vendor {
   id: string;
@@ -396,24 +403,27 @@ export default function CreateOrderPage() {
                       {lines.map((line) => (
                         <tr key={line.key} className="border-b">
                           <td className="px-3 py-2">
-                            <select
-                              className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                            <Select
                               value={line.itemId}
-                              onChange={(e) =>
-                                updateLine(line.key, 'itemId', e.target.value)
+                              onValueChange={(value) =>
+                                updateLine(line.key, 'itemId', value ?? '')
                               }
                             >
-                              <option value="">Select item...</option>
-                              {(filteredItems.length > 0
-                                ? filteredItems
-                                : catalogItems
-                              ).map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.name}
-                                  {item.sku ? ` (${item.sku})` : ''}
-                                </option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="h-8 w-full min-w-0 text-sm">
+                                <SelectValue placeholder="Select item..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {(filteredItems.length > 0
+                                  ? filteredItems
+                                  : catalogItems
+                                ).map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                    {item.sku ? ` (${item.sku})` : ''}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </td>
                           <td className="px-3 py-2">
                             <Input

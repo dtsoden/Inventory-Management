@@ -1090,22 +1090,25 @@ export default function IntegrationsSettingsPage() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">
-                                  <div className="relative">
-                                    <select
-                                      value={selectedSource}
-                                      onChange={(e) =>
-                                        updateMapping(
-                                          target.name,
-                                          e.target.value
-                                        )
-                                      }
-                                      className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                    >
-                                      <option value="">
+                                  <Select
+                                    value={selectedSource || '__none__'}
+                                    onValueChange={(value) => {
+                                      const v = value ?? '';
+                                      updateMapping(
+                                        target.name,
+                                        v === '__none__' ? '' : v,
+                                      );
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-full text-sm">
+                                      <SelectValue placeholder="-- Not Mapped --" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="__none__">
                                         -- Not Mapped --
-                                      </option>
+                                      </SelectItem>
                                       {sourceSchema.map((field) => (
-                                        <option
+                                        <SelectItem
                                           key={field.name}
                                           value={field.name}
                                         >
@@ -1115,11 +1118,10 @@ export default function IntegrationsSettingsPage() {
                                             ? `, e.g. ${formatSampleValue(field.sampleValue)}`
                                             : ''}
                                           )
-                                        </option>
+                                        </SelectItem>
                                       ))}
-                                    </select>
-                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                                  </div>
+                                    </SelectContent>
+                                  </Select>
                                 </td>
                                 <td className="px-4 py-3">
                                   {mapping ? (
@@ -1141,28 +1143,26 @@ export default function IntegrationsSettingsPage() {
                                 </td>
                                 <td className="px-4 py-3">
                                   {mapping ? (
-                                    <div className="relative">
-                                      <select
-                                        value={mapping.conversion}
-                                        onChange={(e) =>
-                                          updateConversion(
-                                            target.name,
-                                            e.target.value
-                                          )
-                                        }
-                                        className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-xs ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                                      >
+                                    <Select
+                                      value={mapping.conversion}
+                                      onValueChange={(value) =>
+                                        updateConversion(target.name, value ?? '')
+                                      }
+                                    >
+                                      <SelectTrigger className="w-full text-xs">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
                                         {CONVERSION_OPTIONS.map((opt) => (
-                                          <option
+                                          <SelectItem
                                             key={opt.value}
                                             value={opt.value}
                                           >
                                             {opt.label}
-                                          </option>
+                                          </SelectItem>
                                         ))}
-                                      </select>
-                                      <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
-                                    </div>
+                                      </SelectContent>
+                                    </Select>
                                   ) : (
                                     <span className="text-xs text-muted-foreground">
                                       -

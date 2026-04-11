@@ -293,4 +293,18 @@
     color: var(--brand-green);
     text-decoration: underline;
   }
+
+  /* Safety net for any stray native <select> elements: force theme-aware
+   * background and text on the element itself AND on its <option> children
+   * so dark mode never renders white-on-white. The OS still draws the
+   * native option list, but the foreground/background hints make it
+   * legible on Chrome / Edge / Firefox in dark mode. */
+  select {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  select option {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }

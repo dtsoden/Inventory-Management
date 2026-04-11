@@ -72,7 +72,7 @@ export abstract class BaseService<T = unknown> {
           tenantId: ctx.tenantId,
           userId: ctx.userId,
           action,
-          entityType: this.entityName,
+          entity: this.entityName,
           entityId,
           details: details ? JSON.stringify(details) : undefined,
         },
