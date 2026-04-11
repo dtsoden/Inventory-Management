@@ -64,6 +64,7 @@ interface Category {
   id: string;
   name: string;
   description: string | null;
+  itemCount?: number;
 }
 
 export default function ManageListsPage() {
@@ -271,7 +272,7 @@ export default function ManageListsPage() {
                   key={cat.id}
                   className="flex items-center justify-between px-4 py-2.5"
                 >
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium">{cat.name}</span>
                     {cat.description && (
                       <span className="ml-2 text-xs text-muted-foreground">
@@ -279,6 +280,11 @@ export default function ManageListsPage() {
                       </span>
                     )}
                   </div>
+                  {cat.itemCount !== undefined && (
+                    <Badge variant="secondary" className="text-xs shrink-0">
+                      {cat.itemCount} {cat.itemCount === 1 ? 'item' : 'items'}
+                    </Badge>
+                  )}
                 </div>
               ))}
             </div>
