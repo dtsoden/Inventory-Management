@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "Vendor" ADD COLUMN "address" TEXT;
+ALTER TABLE "Vendor" ADD COLUMN "city" TEXT;
+ALTER TABLE "Vendor" ADD COLUMN "state" TEXT;
+ALTER TABLE "Vendor" ADD COLUMN "zip" TEXT;
+ALTER TABLE "Vendor" ADD COLUMN "country" TEXT;
+ALTER TABLE "Vendor" ADD COLUMN "rating" INTEGER;

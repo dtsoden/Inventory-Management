@@ -105,8 +105,14 @@ model Vendor {
   contactName String?
   email       String?
   phone       String?
+  address     String?
+  city        String?
+  state       String?
+  zip         String?
+  country     String?
   website     String?
   notes       String?
+  rating      Int?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
