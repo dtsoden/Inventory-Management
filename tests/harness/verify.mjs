@@ -310,6 +310,14 @@ async function suiteSmoke() {
     ['GET', '/api/profile'],
     ['GET', '/api/branding/public'],
     ['GET', '/api/insights/snapshot?period=30'],
+    ['GET', '/api/settings/integrations?category=integrations'],
+    ['GET', '/api/settings/integrations?category=org'],
+    ['GET', '/api/settings/integrations?category=security'],
+    ['GET', '/api/settings/integrations?category=smtp'],
+    ['GET', '/api/settings/integrations?category=password_policy'],
+    ['GET', '/api/settings/lists'],
+    ['GET', '/api/settings/notifications'],
+    ['GET', '/api/settings/roles'],
   ];
   for (const [m, p] of checks) {
     const r = await api(m, p);
