@@ -8,6 +8,7 @@ import { EncryptionService } from '@/lib/encryption/EncryptionService';
 import { ConfigService } from '@/lib/config/ConfigService';
 import { mergeBrandingIntoSettings, DEFAULT_BRANDING } from '@/lib/branding';
 import { insertSampleData } from '@/lib/seed/sample-data';
+import { getDefaultRoles } from '@/lib/roles';
 
 const BRANDING_UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads', 'branding');
 
@@ -328,6 +329,31 @@ export async function POST(request: NextRequest) {
       } catch (seedError) {
         console.error('Sample data seeding failed (non-fatal):', seedError);
       }
+    }
+
+    // 7c. Seed the canonical role definitions into SystemConfig so the
+    // Roles tab in /settings/users has a non-empty list from minute zero,
+    // including PURCHASING_MANAGER and any future default roles. The
+    // /api/settings/roles loader has self-healing reconciliation as a
+    // safety net, but seeding here means a fresh tenant never has to
+    // wait for someone to visit the Roles tab to materialize defaults.
+    try {
+      const existingRolesConfig = await prisma.systemConfig.findUnique({
+        where: { key: 'custom_roles' },
+      });
+      if (!existingRolesConfig) {
+        await prisma.systemConfig.create({
+          data: {
+            key: 'custom_roles',
+            value: JSON.stringify(getDefaultRoles()),
+            category: 'roles',
+            description: 'Role definitions and per-role permissions',
+          },
+        });
+        console.log('Default roles seeded into SystemConfig.');
+      }
+    } catch (roleSeedError) {
+      console.error('Default role seeding failed (non-fatal):', roleSeedError);
     }
 
     // 8. Generate NEXTAUTH_SECRET if not set in environment
