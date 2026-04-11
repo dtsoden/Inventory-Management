@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { requireTenantContext } from '@/lib/auth';
 import { isAppError, ForbiddenError } from '@/lib/errors';
 import { UserRole } from '@/lib/types';
@@ -12,17 +11,13 @@ export async function GET() {
       throw new ForbiddenError('Only admins can view AI settings');
     }
 
-    // Get the stored API key
-    const apiKeyConfig = await prisma.systemConfig.findUnique({
-      where: { key: 'openai_api_key' },
-    });
-
-    const apiKey = apiKeyConfig?.value || process.env.OPENAI_API_KEY;
+    // Use the env var directly (same pattern as AssistantService and data-source analyze route)
+    const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json({
         success: false,
-        error: 'OpenAI API key is not configured. Add it in the AI tab first.',
+        error: 'OpenAI API key is not configured. Set OPENAI_API_KEY in the environment.',
       }, { status: 400 });
     }
 

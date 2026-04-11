@@ -413,6 +413,9 @@ export default function UsersSettingsPage() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('WAREHOUSE_STAFF');
   const [formData, setFormData] = useState({
     name: '',
@@ -468,27 +471,71 @@ export default function UsersSettingsPage() {
     }
   }
 
-  async function handleEditRole() {
+  function openEditDialog(user: UserRecord) {
+    const parts = (user.name || '').trim().split(/\s+/);
+    const first = parts.length > 0 ? parts[0] : '';
+    const last = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    setEditingUser(user);
+    setEditFirstName(first);
+    setEditLastName(last);
+    setEditEmail(user.email);
+    setEditRole(user.role);
+    setEditDialogOpen(true);
+  }
+
+  async function handleEditUser() {
     if (!editingUser) return;
+    const firstName = editFirstName.trim();
+    const lastName = editLastName.trim();
+    const email = editEmail.trim();
+    if (!firstName || !email) {
+      toast.error('First name and email are required');
+      return;
+    }
+    const combinedName = lastName ? `${firstName} ${lastName}` : firstName;
     setSubmitting(true);
     try {
       const res = await fetch(`/api/settings/users/${editingUser.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: editRole }),
+        body: JSON.stringify({
+          name: combinedName,
+          email,
+          role: editRole,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        toast.success('User role updated');
+        toast.success('User updated');
         setEditDialogOpen(false);
         fetchUsers();
       } else {
-        toast.error(data.error || 'Failed to update role');
+        toast.error(data.error || 'Failed to update user');
       }
     } catch {
-      toast.error('Failed to update role');
+      toast.error('Failed to update user');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDeleteUser(user: UserRecord) {
+    if (!confirm(`Delete user ${user.name}? This will deactivate the account.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/settings/users/${user.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('User deleted');
+        fetchUsers();
+      } else {
+        toast.error(data.error || 'Failed to delete user');
+      }
+    } catch {
+      toast.error('Failed to delete user');
     }
   }
 
@@ -699,16 +746,11 @@ export default function UsersSettingsPage() {
                         />
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onSelect={() => {
-                              setEditingUser(user);
-                              setEditRole(user.role);
-                              setEditDialogOpen(true);
-                            }}
+                            onSelect={() => openEditDialog(user)}
                           >
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit Role
+                            Edit User
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onSelect={() => handleToggleActive(user)}
                           >
@@ -724,6 +766,14 @@ export default function UsersSettingsPage() {
                               </>
                             )}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={() => handleDeleteUser(user)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </td>
@@ -734,31 +784,66 @@ export default function UsersSettingsPage() {
           )}
         </div>
 
-      {/* Edit Role Dialog */}
+      {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Change the role for {editingUser?.name}.
+              Update details for {editingUser?.name}.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <Label>Role</Label>
-            <Select value={editRole} onValueChange={(v) => setEditRole(v ?? 'WAREHOUSE_STAFF')}>
-              <SelectTrigger className="mt-1.5 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="MANAGER">Manager</SelectItem>
-                <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="edit-first-name">First Name</Label>
+                <Input
+                  id="edit-first-name"
+                  className="mt-1.5"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  placeholder="Jane"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-last-name">Last Name</Label>
+                <Input
+                  id="edit-last-name"
+                  className="mt-1.5"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  placeholder="Doe"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                className="mt-1.5"
+                value={editEmail}
+                onChange={(e) => setEditEmail(e.target.value)}
+                placeholder="jane@example.com"
+              />
+            </div>
+            <div>
+              <Label>Role</Label>
+              <Select value={editRole} onValueChange={(v) => setEditRole(v ?? 'WAREHOUSE_STAFF')}>
+                <SelectTrigger className="mt-1.5 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="WAREHOUSE_STAFF">Warehouse Staff</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleEditRole} disabled={submitting}>
-              {submitting ? 'Saving...' : 'Save Role'}
+            <Button onClick={handleEditUser} disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

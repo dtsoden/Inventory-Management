@@ -29,21 +29,85 @@ export async function PUT(
     const data = await req.json();
     const updateData: Record<string, unknown> = {};
 
+    // Helper: count active admins for this tenant
+    const countActiveAdmins = async () =>
+      prisma.user.count({
+        where: { tenantId: ctx.tenantId, role: 'ADMIN', isActive: true },
+      });
+
+    const isTargetActiveAdmin =
+      existingUser.role === 'ADMIN' && existingUser.isActive;
+
+    const LAST_ADMIN_ERROR =
+      'Cannot remove the last administrator. The system must always have at least one active admin.';
+
+    if (data.name !== undefined) {
+      if (typeof data.name !== 'string' || !data.name.trim()) {
+        return NextResponse.json(
+          { success: false, error: 'Name cannot be empty' },
+          { status: 400 }
+        );
+      }
+      updateData.name = data.name.trim();
+    }
+
+    if (data.email !== undefined) {
+      if (typeof data.email !== 'string' || !data.email.trim()) {
+        return NextResponse.json(
+          { success: false, error: 'Email cannot be empty' },
+          { status: 400 }
+        );
+      }
+      const newEmail = data.email.trim().toLowerCase();
+      if (newEmail !== existingUser.email) {
+        const emailTaken = await prisma.user.findUnique({
+          where: { email: newEmail },
+        });
+        if (emailTaken && emailTaken.id !== id) {
+          return NextResponse.json(
+            { success: false, error: 'A user with this email already exists' },
+            { status: 409 }
+          );
+        }
+      }
+      updateData.email = newEmail;
+    }
+
     if (data.role !== undefined) {
       // Only admins can assign ADMIN role
       if (data.role === 'ADMIN' && ctx.role !== UserRole.ADMIN) {
         throw new ForbiddenError('Cannot assign ADMIN role');
+      }
+      // Last admin protection: changing only admin away from ADMIN
+      if (isTargetActiveAdmin && data.role !== 'ADMIN') {
+        const adminCount = await countActiveAdmins();
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { success: false, error: LAST_ADMIN_ERROR },
+            { status: 400 }
+          );
+        }
       }
       updateData.role = data.role;
     }
 
     if (data.isActive !== undefined) {
       // Cannot deactivate yourself
-      if (id === ctx.userId) {
+      if (id === ctx.userId && data.isActive === false) {
         return NextResponse.json(
           { success: false, error: 'Cannot deactivate your own account' },
           { status: 400 }
         );
+      }
+      // Last admin protection: deactivating the only active admin
+      if (isTargetActiveAdmin && data.isActive === false) {
+        const adminCount = await countActiveAdmins();
+        if (adminCount <= 1) {
+          return NextResponse.json(
+            { success: false, error: LAST_ADMIN_ERROR },
+            { status: 400 }
+          );
+        }
       }
       updateData.isActive = data.isActive;
     }
@@ -120,6 +184,23 @@ export async function DELETE(
 
     if (!existingUser) {
       throw new NotFoundError('User', id);
+    }
+
+    // Last admin protection: cannot delete the only active admin
+    if (existingUser.role === 'ADMIN' && existingUser.isActive) {
+      const adminCount = await prisma.user.count({
+        where: { tenantId: ctx.tenantId, role: 'ADMIN', isActive: true },
+      });
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Cannot remove the last administrator. The system must always have at least one active admin.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Soft delete by deactivating
