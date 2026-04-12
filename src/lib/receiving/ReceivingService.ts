@@ -203,6 +203,46 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
     return asset;
   }
 
+  async cancelSession(
+    ctx: TenantContext,
+    sessionId: string,
+  ): Promise<ReceivingSessionRecord> {
+    const session = await this.getByIdOrThrow(ctx, sessionId);
+
+    if (session.status !== ReceivingStatus.IN_PROGRESS) {
+      throw new ValidationError('Only in-progress sessions can be cancelled');
+    }
+
+    // Delete all assets created during this session
+    await (this.prisma as any).asset.deleteMany({
+      where: {
+        tenantId: ctx.tenantId,
+        receivingSessionId: sessionId,
+      },
+    });
+
+    // Reset PO status back to SUBMITTED so it can be received again
+    if (session.purchaseOrderId) {
+      await (this.prisma as any).purchaseOrder.update({
+        where: { id: session.purchaseOrderId },
+        data: { status: OrderStatus.SUBMITTED },
+      });
+    }
+
+    // Mark session as cancelled
+    const cancelled = await this.receivingRepo.update(
+      ctx.tenantId,
+      sessionId,
+      { status: 'CANCELLED' },
+    );
+
+    await this.logAudit(ctx, 'UPDATE', sessionId, {
+      action: 'cancelReceivingSession',
+    });
+
+    return cancelled;
+  }
+
   async completeSession(
     ctx: TenantContext,
     sessionId: string

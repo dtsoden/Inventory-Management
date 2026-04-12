@@ -396,6 +396,32 @@ export default function ReceivingFlowPage() {
   };
 
   // ------------------------------------------------------------------
+  // Cancel session
+  // ------------------------------------------------------------------
+
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancel = async () => {
+    if (!confirm('Cancel this receiving session? All tagged assets will be deleted and the purchase order will be available for receiving again.')) return;
+    setCancelling(true);
+    try {
+      const res = await apiFetch(`/api/receiving/${sessionId}/cancel`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      if (json.success) {
+        router.push('/receiving');
+      } else {
+        alert(json.error ?? 'Failed to cancel session');
+      }
+    } catch {
+      alert('Failed to cancel session');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  // ------------------------------------------------------------------
   // Computed values
   // ------------------------------------------------------------------
 
@@ -448,12 +474,23 @@ export default function ReceivingFlowPage() {
         >
           <ChevronLeft className="size-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold">Receiving</h1>
           <p className="text-xs text-muted-foreground">
             Session {sessionId.substring(0, 8)}...
           </p>
         </div>
+        {!completed && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancel}
+            disabled={cancelling}
+            className="shrink-0 text-destructive hover:text-destructive"
+          >
+            {cancelling ? 'Cancelling...' : 'Cancel'}
+          </Button>
+        )}
       </div>
 
       {/* Progress Stepper */}
