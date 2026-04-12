@@ -9,10 +9,12 @@ import {
   Check,
   Clock,
   ChevronRight,
+  History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiFetch } from '@/lib/client/BaseApiClient';
 
 interface ReceivingSession {
@@ -113,14 +115,13 @@ export default function ReceivingPage() {
   const fetchAvailablePOs = useCallback(async () => {
     try {
       const res = await apiFetch(
-        '/api/procurement/orders?pageSize=100&status=SUBMITTED'
+        '/api/procurement/orders?pageSize=100&status=SUBMITTED',
       );
       const json = await res.json();
       if (json.success) {
         const submitted = json.data.data ?? [];
-        // Also fetch partially received
         const res2 = await apiFetch(
-          '/api/procurement/orders?pageSize=100&status=PARTIALLY_RECEIVED'
+          '/api/procurement/orders?pageSize=100&status=PARTIALLY_RECEIVED',
         );
         const json2 = await res2.json();
         const partial = json2.success ? json2.data.data ?? [] : [];
@@ -161,7 +162,6 @@ export default function ReceivingPage() {
     }
   };
 
-  // PO selection overlay
   if (showPOSelect) {
     return (
       <div className="mx-auto max-w-lg px-4 py-6">
@@ -216,70 +216,128 @@ export default function ReceivingPage() {
     );
   }
 
+  const inProgressSessions = sessions.filter((s) => s.status === 'IN_PROGRESS');
+  const completedSessions = sessions.filter((s) => s.status !== 'IN_PROGRESS');
+
   return (
-    <div className="mx-auto max-w-lg px-4 py-6">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <Truck className="size-6" />
-          Receiving
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Receive shipments and tag assets
-        </p>
+    <div className="space-y-6">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title flex items-center gap-2">
+            <Truck className="size-7" />
+            Receiving
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Receive shipments and tag assets
+          </p>
+        </div>
       </div>
 
-      {/* Start Receiving - large prominent button */}
-      <Button
-        size="lg"
-        onClick={handleStartReceiving}
-        className="mb-8 h-16 w-full text-lg font-semibold"
-      >
-        <Plus className="mr-2 size-6" />
-        Start Receiving
-      </Button>
+      <Tabs defaultValue="receive">
+        <TabsList className="mb-6 w-full justify-start rounded-none border-b bg-transparent p-0">
+          <TabsTrigger
+            value="receive"
+            className="min-w-[120px] gap-2 rounded-b-none rounded-t-lg border border-b-0 px-6 py-2.5 text-sm font-medium data-active:!bg-brand-green data-active:!text-white"
+          >
+            <Plus className="size-4" />
+            New Receiving
+          </TabsTrigger>
+          <TabsTrigger
+            value="history"
+            className="min-w-[120px] gap-2 rounded-b-none rounded-t-lg border border-b-0 px-6 py-2.5 text-sm font-medium data-active:!bg-brand-green data-active:!text-white"
+          >
+            <History className="size-4" />
+            History
+            {completedSessions.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-[10px]">
+                {completedSessions.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Recent Sessions */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold">Recent Sessions</h2>
+        {/* New Receiving Tab */}
+        <TabsContent value="receive">
+          <div className="mx-auto max-w-lg space-y-6">
+            <Button
+              size="lg"
+              onClick={handleStartReceiving}
+              className="h-16 w-full text-lg font-semibold"
+            >
+              <Plus className="mr-2 size-6" />
+              Start Receiving
+            </Button>
 
-        {loading ? (
-          <div className="space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 w-full rounded-xl" />
-            ))}
-          </div>
-        ) : sessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-12 text-center">
-            <Package className="size-10 text-muted-foreground/40" />
-            <p className="mt-3 text-muted-foreground">
-              No receiving sessions yet
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <button
-                key={session.id}
-                onClick={() => router.push(`/receiving/${session.id}`)}
-                className="flex w-full items-center justify-between rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50 active:bg-muted"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={session.status} />
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    PO: {session.purchaseOrderId?.substring(0, 8) ?? 'N/A'}...
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground/70">
-                    {formatDate(session.createdAt)}
-                  </p>
+            {/* In-progress sessions */}
+            {inProgressSessions.length > 0 && (
+              <div>
+                <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
+                  In Progress
+                </h3>
+                <div className="space-y-3">
+                  {inProgressSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => router.push(`/receiving/${session.id}`)}
+                      className="flex w-full items-center justify-between rounded-xl border border-blue-200 bg-blue-50/50 p-4 text-left transition-colors hover:bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 dark:hover:bg-blue-950/50"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={session.status} />
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Started {formatDate(session.createdAt)}
+                        </p>
+                      </div>
+                      <ChevronRight className="size-5 text-muted-foreground" />
+                    </button>
+                  ))}
                 </div>
-                <ChevronRight className="size-5 text-muted-foreground" />
-              </button>
-            ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </TabsContent>
+
+        {/* History Tab */}
+        <TabsContent value="history">
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : completedSessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+              <Package className="size-12 text-muted-foreground/40" />
+              <p className="mt-4 text-lg font-medium text-muted-foreground">
+                No completed sessions yet
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {completedSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => router.push(`/receiving/${session.id}`)}
+                  className="flex w-full items-center justify-between rounded-xl border bg-card p-4 text-left transition-colors hover:bg-muted/50"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={session.status} />
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {session.completedAt
+                        ? `Completed ${formatDate(session.completedAt)}`
+                        : `Started ${formatDate(session.createdAt)}`}
+                    </p>
+                  </div>
+                  <ChevronRight className="size-5 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
