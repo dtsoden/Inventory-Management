@@ -149,7 +149,7 @@ export default function DashboardPage() {
         <div className="page-header">
           <h1 className="page-title">Dashboard</h1>
         </div>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="card-base rounded-xl p-6">
               <Skeleton className="h-4 w-24" />
@@ -158,7 +158,7 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 card-base rounded-xl p-6">
             <Skeleton className="h-5 w-32" />
             {[1, 2, 3, 4, 5].map((i) => (
@@ -201,9 +201,9 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiConfig.map((card) => (
-          <Link key={card.key} href={card.href}>
+          <Link key={card.key} href={card.href} className="block min-w-0">
             <div className="card-base group relative cursor-pointer overflow-hidden rounded-xl p-6 transition-all hover:scale-[1.02]">
               <div className={`absolute inset-0 bg-gradient-to-br ${card.accent} opacity-0 transition-opacity group-hover:opacity-100`} />
               <div className="relative">
@@ -244,9 +244,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main content grid */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent Activity */}
-        <div className="lg:col-span-2 card-base rounded-xl p-6">
+        <div className="lg:col-span-2 card-base min-w-0 rounded-xl p-4 md:p-6">
           <div className="flex items-center justify-between">
             <h2 className="section-title">Recent Activity</h2>
             <Link href="/audit-log">
@@ -262,15 +262,15 @@ export default function DashboardPage() {
               {data.recentActivity.map((entry) => (
                 <div
                   key={entry.id}
-                  className="flex items-start gap-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
+                  className="flex min-w-0 items-start gap-3 rounded-lg p-2 transition-colors hover:bg-muted/50"
                 >
-                  <Avatar className="mt-0.5 h-8 w-8">
+                  <Avatar className="mt-0.5 h-8 w-8 shrink-0">
                     <AvatarFallback className="text-xs">
                       {getInitials(entry.user)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm">
                       <span className="font-medium">{entry.user}</span>{' '}
                       <span className="text-muted-foreground">
                         {entry.action.toLowerCase().replace(/_/g, ' ')}
@@ -288,7 +288,7 @@ export default function DashboardPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap text-xs text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     {timeAgo(entry.createdAt)}
                   </div>
@@ -303,8 +303,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Actions */}
-        <div className="space-y-6">
-          <div className="card-base rounded-xl p-6">
+        <div className="min-w-0 space-y-6">
+          <div className="card-base min-w-0 rounded-xl p-4 md:p-6">
             <h2 className="section-title">Quick Actions</h2>
             <div className="mt-4 space-y-2">
               <Link href="/procurement?action=create" className="block">
@@ -338,7 +338,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Assets by Status */}
-          <div className="card-base rounded-xl p-6">
+          <div className="card-base min-w-0 rounded-xl p-4 md:p-6">
             <h2 className="section-title">Assets by Status</h2>
             {data?.assetsByStatus && data.assetsByStatus.length > 0 ? (
               <div className="mt-4 space-y-3">
@@ -382,7 +382,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Orders by Month */}
-      <div className="mt-6 card-base rounded-xl p-6">
+      <div className="card-base mt-6 min-w-0 rounded-xl p-4 md:p-6">
         <h2 className="section-title">Orders by Month</h2>
         {data?.ordersByMonth && data.ordersByMonth.length > 0 ? (
           <div className="mt-4 overflow-x-auto">
