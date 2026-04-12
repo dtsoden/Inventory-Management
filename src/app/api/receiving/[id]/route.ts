@@ -11,12 +11,37 @@ class ReceivingDetailHandler extends BaseApiHandler {
     const id = req.nextUrl.pathname.split('/').pop()!;
     const session = await receivingService.getByIdOrThrow(ctx, id);
 
-    // Parse aiExtractionData if present
+    let taggedAssets: { itemName: string; assetTag: string; serialNumber?: string }[] = [];
+
+    if ((session as any).purchaseOrderId) {
+      const { prisma } = await import('@/lib/db');
+      const assets = await prisma.asset.findMany({
+        where: {
+          tenantId: ctx.tenantId,
+          purchaseOrderLine: {
+            purchaseOrderId: (session as any).purchaseOrderId,
+          },
+          createdAt: { gte: (session as any).createdAt },
+        },
+        select: {
+          assetTag: true,
+          serialNumber: true,
+          item: { select: { name: true } },
+        },
+      });
+      taggedAssets = assets.map((a: any) => ({
+        itemName: a.item?.name ?? 'Unknown',
+        assetTag: a.assetTag ?? '',
+        serialNumber: a.serialNumber ?? undefined,
+      }));
+    }
+
     const response = {
       ...session,
-      aiExtractionData: session.aiExtractionData
-        ? JSON.parse(session.aiExtractionData)
+      aiExtractionData: (session as any).aiExtractionData
+        ? JSON.parse((session as any).aiExtractionData)
         : null,
+      taggedAssets,
     };
 
     return this.success(response);

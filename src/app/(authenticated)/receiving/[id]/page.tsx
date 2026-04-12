@@ -144,6 +144,9 @@ export default function ReceivingFlowPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [scanWarning, setScanWarning] = useState<string | null>(null);
+  const lastScannedRef = useRef<string>('');
+  const lastScannedTimeRef = useRef<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -173,10 +176,18 @@ export default function ReceivingFlowPage() {
       const json = await res.json();
       if (json.success) {
         setSession(json.data);
-        // If session already has extraction data, skip to tagging
         if (json.data.aiExtractionData) {
-          setExtraction(json.data.aiExtractionData);
+          const ext = json.data.aiExtractionData as PackingSlipExtraction;
+          setExtraction(ext);
           setCurrentStep(2);
+          if (Array.isArray(json.data.taggedAssets) && json.data.taggedAssets.length > 0) {
+            setTaggedAssets(json.data.taggedAssets);
+          }
+          const restored: TaggedAsset[] = json.data.taggedAssets ?? [];
+          const firstUntagged = ext.lineItems.findIndex(
+            (li) => restored.filter((a: TaggedAsset) => a.itemName === li.name).length < li.quantity,
+          );
+          if (firstUntagged >= 0) setActiveTagItem(firstUntagged);
         }
         if (json.data.status === 'COMPLETED') {
           setCompleted(true);
@@ -299,9 +310,12 @@ export default function ReceivingFlowPage() {
     const trimmed = assetTagInput.trim();
     if (!trimmed || !extraction) return;
     if (taggedAssets.some((a) => a.assetTag === trimmed)) {
-      alert(`Duplicate: ${trimmed} has already been scanned.`);
+      setScanWarning(`Duplicate: ${trimmed} already scanned`);
+      setTimeout(() => setScanWarning(null), 2500);
+      setAssetTagInput('');
       return;
     }
+    setScanWarning(null);
 
     const item = extraction.lineItems[itemIndex];
     setTagging(true);
@@ -822,14 +836,25 @@ export default function ReceivingFlowPage() {
                 </div>
 
                 {/* Camera always open */}
+                {scanWarning && (
+                  <div className="rounded-lg bg-amber-100 px-3 py-2 text-center text-sm font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                    {scanWarning}
+                  </div>
+                )}
                 <BarcodeScanner
                   onScan={async (value) => {
                     const trimmed = value.trim();
                     if (!trimmed || tagging) return;
+                    const now = Date.now();
+                    if (trimmed === lastScannedRef.current && now - lastScannedTimeRef.current < 3000) return;
+                    lastScannedRef.current = trimmed;
+                    lastScannedTimeRef.current = now;
                     if (taggedAssets.some((a) => a.assetTag === trimmed)) {
-                      alert(`Duplicate: ${trimmed} has already been scanned.`);
+                      setScanWarning(`Duplicate: ${trimmed} already scanned`);
+                      setTimeout(() => setScanWarning(null), 2500);
                       return;
                     }
+                    setScanWarning(null);
                     setTagging(true);
                     try {
                       const res = await apiFetch(`/api/receiving/${sessionId}/tag`, {
@@ -951,6 +976,11 @@ export default function ReceivingFlowPage() {
                   {/* Tag input form - desktop only */}
                   {isActive && !isComplete && (
                     <div className="mt-4 space-y-3 border-t pt-4">
+                      {scanWarning && (
+                        <div className="rounded-lg bg-amber-100 px-3 py-2 text-center text-sm font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                          {scanWarning}
+                        </div>
+                      )}
                       <div>
                         <label className="mb-1 block text-sm font-medium">
                           Asset Tag *
