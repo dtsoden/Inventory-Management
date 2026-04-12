@@ -22,7 +22,7 @@ interface LoginBranding {
   themeMode: string;
 }
 
-export default function LoginForm({ branding }: { branding?: LoginBranding }) {
+export default function LoginForm({ branding, smtpConfigured = false }: { branding?: LoginBranding; smtpConfigured?: boolean }) {
   const primaryColor = branding?.primaryColor || 'var(--brand-green)';
   const logoUrlLight = branding?.logoUrlLight || null;
   const logoUrlDark = branding?.logoUrlDark || null;
@@ -32,6 +32,10 @@ export default function LoginForm({ branding }: { branding?: LoginBranding }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -57,6 +61,24 @@ export default function LoginForm({ branding }: { branding?: LoginBranding }) {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotEmail.includes('@')) return;
+    setForgotLoading(true);
+    try {
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true);
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -160,6 +182,16 @@ export default function LoginForm({ branding }: { branding?: LoginBranding }) {
               </div>
             </div>
 
+            {smtpConfigured && (
+              <button
+                type="button"
+                onClick={() => { setForgotMode(true); setForgotEmail(email); setError(''); }}
+                className="self-end text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Forgot password?
+              </button>
+            )}
+
             <Button
               type="submit"
               className="btn-pill mt-2 w-full text-white hover:opacity-90"
@@ -176,6 +208,62 @@ export default function LoginForm({ branding }: { branding?: LoginBranding }) {
               )}
             </Button>
           </form>
+
+          {/* Forgot Password Form */}
+          {forgotMode && (
+            <div className="mt-4 border-t pt-4">
+              {forgotSent ? (
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    If an account with that email exists, a reset link has been sent. Check your inbox.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotMode(false); setForgotSent(false); }}
+                    className="mt-2 text-xs text-primary hover:underline"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="flex flex-col gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Enter your email address and we will send you a link to reset your password.
+                  </p>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    disabled={forgotLoading}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setForgotMode(false)}
+                      className="flex-1"
+                      disabled={forgotLoading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                      style={{ backgroundColor: primaryColor, color: '#fff' }}
+                      disabled={forgotLoading}
+                    >
+                      {forgotLoading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Send Reset Link
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

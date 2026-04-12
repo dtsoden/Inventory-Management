@@ -18,6 +18,7 @@ import {
   Trash2,
   Save,
   Loader2,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -427,6 +428,8 @@ export default function UsersSettingsPage() {
     role: 'WAREHOUSE_STAFF',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -444,7 +447,27 @@ export default function UsersSettingsPage() {
 
   useEffect(() => {
     fetchUsers();
+    apiFetch('/api/auth/smtp-status').then(r => r.json()).then(j => {
+      if (j.success) setSmtpConfigured(j.data.configured);
+    }).catch(() => {});
   }, [fetchUsers]);
+
+  async function handleResetPassword(userId: string) {
+    setResettingPassword(userId);
+    try {
+      const res = await apiFetch(`/api/settings/users/${userId}/reset-password`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Password reset email sent');
+      } else {
+        toast.error(data.error || 'Failed to send reset email');
+      }
+    } catch {
+      toast.error('Failed to send reset email');
+    } finally {
+      setResettingPassword(null);
+    }
+  }
 
   async function handleAddUser() {
     if (!formData.name || !formData.email || !formData.password) {
@@ -781,6 +804,16 @@ export default function UsersSettingsPage() {
                                   <UserCheck className="mr-2 h-4 w-4" />
                                   Reactivate
                                 </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={!smtpConfigured || resettingPassword === user.id}
+                              onClick={() => handleResetPassword(user.id)}
+                            >
+                              <KeyRound className="mr-2 h-4 w-4" />
+                              {resettingPassword === user.id ? 'Sending...' : 'Reset Password'}
+                              {!smtpConfigured && (
+                                <span className="ml-auto text-[10px] text-muted-foreground">No SMTP</span>
                               )}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
