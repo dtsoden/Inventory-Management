@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  ClipboardCheck,
   Building2,
   ShoppingCart,
   PackageCheck,
@@ -20,6 +21,7 @@ export interface NavItem {
 
 export const navItems: NavItem[] = [
   { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { label: 'My Tasks', href: '/tasks', icon: ClipboardCheck },
   { label: 'Vendors', href: '/vendors', icon: Building2 },
   { label: 'Purchase Orders', href: '/procurement', icon: ShoppingCart },
   { label: 'Receiving', href: '/receiving', icon: PackageCheck },

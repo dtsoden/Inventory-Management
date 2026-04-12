@@ -772,10 +772,41 @@ export default function ReceivingFlowPage() {
                       <div className="md:hidden">
                         {scannerOpen ? (
                           <BarcodeScanner
-                            onScan={(value) => {
+                            onScan={async (value) => {
                               setAssetTagInput(value);
-                              if (!autoScan) {
-                                setScannerOpen(false);
+                              if (!autoScan) setScannerOpen(false);
+                              // Auto-submit on mobile camera scan
+                              if (value.trim()) {
+                                setTagging(true);
+                                try {
+                                  const item = extraction!.lineItems[index];
+                                  const res = await apiFetch(`/api/receiving/${sessionId}/tag`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      itemName: item.name,
+                                      assetTag: value.trim(),
+                                      serialNumber: serialInput.trim() || undefined,
+                                    }),
+                                  });
+                                  const json = await res.json();
+                                  if (json.success) {
+                                    const newTag = { itemName: item.name, assetTag: value.trim(), serialNumber: serialInput.trim() || undefined };
+                                    const updatedTags = [...taggedAssets, newTag];
+                                    setTaggedAssets(updatedTags);
+                                    setAssetTagInput('');
+                                    setSerialInput('');
+                                    const newCount = updatedTags.filter((a) => a.itemName === item.name).length;
+                                    if (newCount >= item.quantity && extraction) {
+                                      const nextUntagged = extraction.lineItems.findIndex((li, idx) => {
+                                        if (idx === index) return false;
+                                        return updatedTags.filter((a) => a.itemName === li.name).length < li.quantity;
+                                      });
+                                      setActiveTagItem(nextUntagged >= 0 ? nextUntagged : null);
+                                    }
+                                  }
+                                } catch { /* ignore */ }
+                                finally { setTagging(false); }
                               }
                             }}
                             onClose={() => setScannerOpen(false)}
