@@ -37,36 +37,90 @@ docker compose up -d --build
 
 The app is now serving at **http://localhost:5600**. Open it in your browser. The setup wizard will walk you through creating an admin account, naming your organization, uploading branding, entering your OpenAI API key, and configuring integrations. Everything the wizard collects is encrypted and stored in the database.
 
-## How it works
+---
 
-### Data directory
+## CRITICAL: Persistent storage (read this before deploying)
 
-The container mounts `./data` from your host to `/app/data` inside the container:
+The application stores **everything** in `/app/data` inside the container: the database, uploaded logos, avatars, and encrypted secrets. By default, Docker containers use **ephemeral storage**. If the container is destroyed, recreated, or upgraded without a volume mount, **all data is permanently lost**.
+
+You **must** map `/app/data` to persistent storage on the host machine. The `docker-compose.yml` included in this repo already does this:
+
+```yaml
+volumes:
+  - ./data:/app/data    # Maps host ./data to container /app/data
+```
+
+This means the `./data` directory next to your `docker-compose.yml` on the host is where everything persists. The container can be destroyed and recreated freely; the data survives because it lives on the host filesystem.
+
+**The container will refuse to start if `/app/data` is not a bind mount.** This is a safety check to prevent accidental data loss.
+
+### If you are running with `docker run` instead of `docker compose`
+
+You must explicitly pass the volume flag:
+
+```bash
+docker run -d \
+  -p 5600:3000 \
+  -v /path/on/host/data:/app/data \
+  --env-file .env \
+  shane-inventory-inventory
+```
+
+Replace `/path/on/host/data` with an absolute path to a directory on your host machine, VPS, or mounted external disk.
+
+### Cloud / VPS deployments
+
+On a cloud VPS (AWS EC2, DigitalOcean, Hetzner, etc.), map `/app/data` to a directory on persistent block storage:
+
+```yaml
+volumes:
+  - /mnt/data/shane-inventory:/app/data   # Persistent disk on the VPS
+```
+
+On managed container platforms (ECS, Cloud Run, Azure Container Apps), attach a persistent volume or use a mounted network filesystem. **Do not rely on the container's own filesystem.**
+
+### What gets lost without a volume mount
+
+If you skip the volume mount or accidentally remove it:
+
+- The SQLite database (all users, orders, inventory, audit logs)
+- All encrypted secrets (API keys, SMTP credentials)
+- Uploaded branding (logos, favicons)
+- User avatars
+- The NEXTAUTH_SECRET (all active sessions become invalid)
+
+There is no recovery. The container will detect the missing mount and refuse to start to prevent this.
+
+---
+
+## Data directory layout
 
 ```
 ./data/
-  inventory.db          # SQLite database (everything: users, data, encrypted secrets)
+  inventory.db          # SQLite database (users, business data, encrypted secrets)
   uploads/
     branding/           # Uploaded logos and favicons
     avatars/            # User profile images
 ```
 
-**Never delete this directory.** It is your entire application state.
+**Never delete this directory or any of its contents.**
 
-### What the container does on startup
-
-1. Initializes the database from a blank template if no database file exists
-2. Runs idempotent schema migrations (only adds missing columns, never deletes data)
-3. Reads `NEXTAUTH_SECRET` from the database (auto-generated during setup)
-4. Starts the Next.js server on port 3000 (mapped to host port 5600)
+## How it works
 
 ### Configuration
 
-All configuration is stored in the database. The setup wizard collects it once and encrypts sensitive values using your `VAULT_KEY`. There are no API keys, secrets, or URLs in `docker-compose.yml`.
+All configuration is stored in the database. The setup wizard collects it once and encrypts sensitive values using your `VAULT_KEY`. There are no API keys, secrets, or URLs in `docker-compose.yml` or any other file.
+
+### What the container does on startup
+
+1. Verifies `/app/data` is a bind mount (refuses to start if not)
+2. Initializes the database from a blank template if no database file exists
+3. Runs idempotent schema migrations (only adds missing columns, never deletes data)
+4. Starts the Next.js server on port 3000 (mapped to host port 5600)
 
 ### Port mapping
 
-The container runs Next.js on port 3000 internally. `docker-compose.yml` maps host port **5600** to container port 3000. To change the external port, modify the left side: `"8080:3000"`.
+The container runs Next.js on port 3000 internally. `docker-compose.yml` maps host port **5600** to container port 3000. To change the external port, modify the left side only: `"8080:3000"`.
 
 ## docker-compose.yml
 
@@ -99,6 +153,8 @@ This file is read by Docker Compose on every container start. It is listed in `.
 | **Where it lives** | `.env` file on the host, next to `docker-compose.yml` |
 | **If you lose it** | All encrypted data in the database is permanently unrecoverable |
 
+`VAULT_KEY` is the **only** environment variable the application uses. Everything else is in the database.
+
 ### Production with HTTPS
 
 If you serve the app behind a reverse proxy with HTTPS, add `NEXTAUTH_URL` to your `.env`:
@@ -112,9 +168,10 @@ This tells NextAuth to use HTTPS-only session cookies and generate correct callb
 
 ## Persistence and backups
 
-`./data/inventory.db` holds everything. **Never delete this file.** Back it up with whatever you already use (restic, borg, rsync, periodic file copy). SQLite in WAL mode supports online copies.
+Back up two things:
 
-The container performs idempotent runtime schema migrations on every startup. New columns are added with `ALTER TABLE` only when missing, so user data survives every upgrade.
+1. **`./data/`** directory (or at minimum `./data/inventory.db`). SQLite in WAL mode supports online file copies.
+2. **`.env`** file (or record the `VAULT_KEY` value somewhere safe). The database backup is useless without the key to decrypt the secrets inside it.
 
 ## Documentation
 
@@ -132,13 +189,15 @@ git pull
 docker compose up -d --build
 ```
 
+The runtime migration step in `start.sh` applies any new schema changes to your existing database without losing data.
+
 ## Architecture (high level)
 
 - **Next.js 15** (App Router, standalone build, TypeScript)
 - **Prisma 7** with `@prisma/adapter-libsql` against SQLite
 - **NextAuth** credentials provider, JWT sessions
 - **OOP service layer**: `BaseRepository`, `BaseService`, `BaseApiHandler`
-- **Encrypted vault**: AES-256-GCM, key from `VAULT_KEY` environment variable, all secrets stored encrypted in the database
+- **Encrypted vault**: AES-256-GCM, key from `VAULT_KEY`, all secrets stored encrypted in the database
 - **Server-side branding injection**: tenant logo, colors, theme mode in the initial HTML
 - **Docusaurus 3** docs site, role-gated by middleware
 
