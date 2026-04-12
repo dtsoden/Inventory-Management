@@ -29,6 +29,7 @@ import { useChatContext } from '@/components/providers/ChatProvider';
 import { ChatPanel } from '@/components/shared/ChatPanel';
 import { useBranding } from '@/components/providers/BrandingProvider';
 import { apiFetch } from '@/lib/client/BaseApiClient';
+import { MobileNav } from '@/components/shared/MobileNav';
 
 export function Header() {
   const { theme, setTheme } = useTheme();
@@ -135,24 +136,28 @@ export function Header() {
   }, [refreshAvatar]);
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-4">
-      {/* Search */}
-      <button
-        type="button"
-        onClick={() => setPaletteOpen(true)}
-        className="flex w-[35%] min-w-[200px] items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent"
-      >
-        <Search className="h-4 w-4 shrink-0" />
-        <span className="truncate flex-1 text-left">
-          Search inventory, vendors, orders...
-        </span>
-        <kbd className="hidden shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:inline-block">
-          Ctrl+K
-        </kbd>
-      </button>
+    <header className="flex h-16 items-center justify-between gap-2 border-b bg-card px-4">
+      {/* Mobile nav trigger + Search */}
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <MobileNav />
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent sm:max-w-md"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="hidden truncate flex-1 text-left sm:inline">
+            Search inventory, vendors, orders...
+          </span>
+          <span className="truncate flex-1 text-left sm:hidden">Search...</span>
+          <kbd className="hidden shrink-0 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium sm:inline-block">
+            Ctrl+K
+          </kbd>
+        </button>
+      </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {/* AI Assistant toggle */}
         <Button
           variant="outline"

@@ -3,23 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Building2,
-  ShoppingCart,
-  PackageCheck,
-  Boxes,
-  Bot,
-  Sparkles,
-  ClipboardList,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/hooks/useSession';
-import { UserRole } from '@/lib/types';
 import { Logo } from './Logo';
+import { navItems, filterNavItemsByRole } from './nav-items';
 import {
   Tooltip,
   TooltipContent,
@@ -27,55 +15,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  roles?: UserRole[];
-}
-
-const navItems: NavItem[] = [
-  { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { label: 'Vendors', href: '/vendors', icon: Building2 },
-  { label: 'Purchase Orders', href: '/procurement', icon: ShoppingCart },
-  { label: 'Receiving', href: '/receiving', icon: PackageCheck },
-  { label: 'Inventory', href: '/inventory', icon: Boxes },
-  { label: 'AI Assistant', href: '/assistant', icon: Bot },
-  {
-    label: 'AI Insights',
-    href: '/insights',
-    icon: Sparkles,
-    roles: [UserRole.ADMIN, UserRole.MANAGER, UserRole.PURCHASING_MANAGER],
-  },
-  {
-    label: 'Audit Log',
-    href: '/audit-log',
-    icon: ClipboardList,
-    roles: [UserRole.ADMIN],
-  },
-  {
-    label: 'Settings',
-    href: '/settings',
-    icon: Settings,
-    roles: [UserRole.ADMIN],
-  },
-];
-
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const user = useCurrentUser();
 
-  const visibleItems = navItems.filter((item) => {
-    if (!item.roles) return true;
-    return user && item.roles.includes(user.role);
-  });
+  const visibleItems = filterNavItemsByRole(navItems, user?.role);
 
   return (
     <TooltipProvider>
       <aside
         className={cn(
-          'flex h-screen flex-col border-r bg-card transition-all duration-200',
+          'hidden h-screen flex-col border-r bg-card transition-all duration-200 md:flex',
           collapsed ? 'w-16' : 'w-64'
         )}
       >

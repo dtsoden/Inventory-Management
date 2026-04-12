@@ -20,9 +20,9 @@ export function AppShell({ children, brandingCss, serverBranding }: AppShellProp
         )}
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <Header />
-            <main className="flex-1 overflow-y-auto bg-background p-6">
+            <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background p-4 md:p-6">
               {children}
             </main>
           </div>
