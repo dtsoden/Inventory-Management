@@ -180,6 +180,11 @@ export async function POST(request: NextRequest) {
     const configService = new ConfigService(prisma, encryption);
     configService.setVaultKey(derivedKey);
 
+    // Persist vault key so the app can auto-unlock on boot
+    const vaultKeyPath = path.join(process.cwd(), 'data', '.vault-key');
+    await mkdir(path.dirname(vaultKeyPath), { recursive: true });
+    await writeFile(vaultKeyPath, derivedKey.toString('hex'), { mode: 0o600 });
+
     await configService.set('platform_name', payload.platformName, {
       isSecret: false,
       category: 'platform',

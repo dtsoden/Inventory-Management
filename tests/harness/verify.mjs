@@ -27,16 +27,14 @@ const BASE = process.env.HARNESS_BASE_URL || 'http://localhost:5600';
 const TEST_EMAIL = `harness-${Date.now()}@local.test`;
 const TEST_PASSWORD = 'harness-test-1234';
 const TEST_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
-// Read NEXTAUTH_SECRET out of the running container so we sign tokens
-// with the same secret the production server validates against.
+// Read NEXTAUTH_SECRET from the persisted file inside the container.
 const NEXTAUTH_SECRET = execSync(
-  `docker exec shane-inventory-inventory-1 printenv NEXTAUTH_SECRET`,
+  `docker exec shane-inventory-inventory-1 cat /app/data/.nextauth-secret`,
   { encoding: 'utf8' },
 ).trim();
-// Production NEXTAUTH_URL is HTTPS, so NextAuth uses the secure
-// cookie name. Match that here even though we hit localhost over HTTP,
-// because the server-side validator looks for the secure name first.
-const SESSION_COOKIE_NAME = '__Secure-next-auth.session-token';
+// NEXTAUTH_URL now defaults to http://localhost:3000, so NextAuth uses
+// the non-secure cookie name (no __Secure- prefix on plain HTTP).
+const SESSION_COOKIE_NAME = 'next-auth.session-token';
 
 let testUserId = null;
 let cookie = null;

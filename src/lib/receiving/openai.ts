@@ -20,20 +20,14 @@ export interface PackingSlipExtraction {
 export async function extractPackingSlipData(
   imageBase64: string
 ): Promise<PackingSlipExtraction> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const { getOpenAIKey, getOpenAIModel } = await import('@/lib/config/vault');
+  const apiKey = await getOpenAIKey();
   if (!apiKey) {
-    throw new Error(
-      'OPENAI_API_KEY environment variable is not set. Configure it in your .env file or system settings.'
-    );
+    throw new Error('OpenAI API key not configured. Set it in Settings > Integrations.');
   }
 
   const openai = new OpenAI({ apiKey });
-
-  // Read configured model from SystemConfig, fall back to gpt-5.4-nano
-  const modelConfig = await prisma.systemConfig.findUnique({
-    where: { key: 'openai_model' },
-  });
-  const modelId = modelConfig?.value || 'gpt-5.4-nano';
+  const modelId = await getOpenAIModel();
 
   const response = await openai.chat.completions.create({
     model: modelId,

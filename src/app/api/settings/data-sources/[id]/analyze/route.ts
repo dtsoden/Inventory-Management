@@ -12,7 +12,8 @@ class AnalyzeSchemaHandler extends BaseApiHandler {
       throw new ValidationError('Schema data is required');
     }
 
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const { getOpenAIKey } = await import('@/lib/config/vault');
+    const openaiApiKey = await getOpenAIKey();
     if (!openaiApiKey) {
       throw new AppError(
         'OpenAI API key not configured. Set it in Settings > Integrations.',

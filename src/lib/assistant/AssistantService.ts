@@ -242,16 +242,12 @@ export class AssistantService {
       })),
     ];
 
-    // 3. Call OpenAI
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
-    // Read configured model from SystemConfig, fall back to gpt-5.4-nano
-    const modelConfig = await (this.db as any).systemConfig.findUnique({
-      where: { key: 'openai_model' },
-    });
-    const modelId = (modelConfig as { value?: string } | null)?.value || 'gpt-5.4-nano';
+    // 3. Call OpenAI (key + model from vault, env fallback)
+    const { getOpenAIKey, getOpenAIModel } = await import('@/lib/config/vault');
+    const apiKey = await getOpenAIKey();
+    if (!apiKey) throw new Error('OpenAI API key not configured. Set it in Settings > Integrations or via OPENAI_API_KEY env.');
+    const openai = new OpenAI({ apiKey });
+    const modelId = await getOpenAIModel();
 
     let response = await openai.chat.completions.create({
       model: modelId,

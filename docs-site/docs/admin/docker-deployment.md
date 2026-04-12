@@ -5,24 +5,27 @@ sidebar_label: Docker Deployment
 
 # Docker Deployment
 
-Shane Inventory ships as a single Docker image built from the `Dockerfile` at the repo root. A `docker-compose.yml` provides the canonical one service stack: a persistent volume, a port mapping, and the environment contract. This page documents how to build, run, upgrade, and back up the container on a host you control.
+Shane Inventory ships as a single Docker image built from the `Dockerfile` at the repo root. A `docker-compose.yml` provides the canonical one-service stack: a persistent volume, a port mapping, and one defaulted environment variable. Everything else is configured through the setup wizard and stored in the database.
 
 ## Prerequisites
 
 - Docker Engine 24 or newer
 - Docker Compose v2
-- A reverse proxy (Caddy, Nginx, Traefik) or a Cloudflared tunnel if you want HTTPS, which you should
-- An OpenAI API key for the AI features
+- An OpenAI API key for the AI features (entered during the setup wizard)
 
 ## Build and run
 
 From the repo root:
 
 ```bash
+git clone https://github.com/dtsoden/Shane-Inventory.git
+cd Shane-Inventory
 docker compose up -d --build
 ```
 
-That command uses `docker-compose.yml`:
+The app is now serving at **http://localhost:5600**. Open that URL in your browser to start the setup wizard.
+
+## docker-compose.yml
 
 ```yaml
 services:
@@ -34,89 +37,113 @@ services:
       - ./data:/app/data
     environment:
       - DATABASE_URL=file:/app/data/inventory.db
-      - NEXTAUTH_URL=https://shane-inventory.davidsoden.com
-      - NEXTAUTH_SECRET=change-me-in-production-generate-a-random-string
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     restart: unless-stopped
 ```
 
-The container listens on port 3000 internally and is published on host port **5600**. Change the host side of the port mapping if you already use 5600; do not change the container side.
+This is the entire file. No API keys, no secrets, no URLs to configure.
 
-The application serves at `http://<host>:5600` once the container is healthy. First load redirects to `/setup` if no database exists. See `admin/setup-wizard`.
+## Data directory
 
-## Volumes
+The `volumes:` line creates a bind mount from `./data` on your host to `/app/data` inside the container. This single directory is your entire application state:
 
-There is exactly one volume, and losing it loses all your data.
+```
+./data/
+  inventory.db          # SQLite database (users, business data, encrypted secrets)
+  .nextauth-secret      # Auto-generated JWT signing key
+  .vault-key            # Encryption key for the secrets vault (created during setup)
+  uploads/
+    branding/           # Uploaded logos and favicons
+    avatars/            # User profile images
+```
 
-- `./data:/app/data` is where `inventory.db` lives. It also holds uploaded logos, favicons, and any other user assets the app writes. The `DATA_DIR` environment variable is hard set to `/app/data` in the Dockerfile; do not override it.
+**Never delete this directory or its contents.** It contains the encryption salt, the admin password hash, every vault entry, and all tenant data. There is no recovery without a backup.
 
-**Never delete `data/inventory.db` during a deploy or upgrade.** The runtime migration script in `docker-init/start.sh` is specifically designed to upgrade an existing database in place. If you wipe the file, you wipe your tenant, users, items, purchase orders, assets, audit log, and every encrypted secret in the vault.
+## Port mapping
 
-Back the volume up with whatever you already use (restic, borg, rsync). An online SQLite copy is safe because we run in WAL mode; for belt and suspenders, stop the container first.
+The container runs Next.js on its default internal port 3000. The compose file maps host port **5600** to container port 3000:
+
+```yaml
+ports:
+  - "5600:3000"   # You access http://localhost:5600
+```
+
+To use a different port, change the left side only: `"8080:3000"` serves on port 8080. Do not change the container side.
+
+## What happens on startup
+
+The startup script (`docker-init/start.sh`) runs these steps on every container start:
+
+1. **Auto-generates a JWT secret** if one does not exist, persists to `./data/.nextauth-secret`
+2. **Defaults NEXTAUTH_URL** to `http://localhost:3000` if not overridden
+3. **Initializes the database** from a blank template if no database file exists
+4. **Runs idempotent schema migrations** (only adds missing columns, never deletes data)
+5. **Starts the Next.js server**
 
 ## Environment variables
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | yes | SQLite connection string. Always `file:/app/data/inventory.db`. |
-| `NEXTAUTH_URL` | yes | Public URL where users reach the app. Must match the origin the browser sees, or NextAuth will reject callbacks. |
-| `NEXTAUTH_SECRET` | yes | Random string used to sign JWT sessions. Generate with `openssl rand -base64 32`. Rotating this invalidates all active sessions. |
-| `OPENAI_API_KEY` | no at runtime | Only consumed during build as a placeholder. The real key is stored in the encrypted vault via the setup wizard. You can still set it in compose for operator convenience; it is not read by the running app after setup. |
-| `VAULT_KEY` | no | If set, the container unlocks the vault on startup without prompting an admin for the passphrase. Useful for unattended restarts. See `admin/settings-security` for how to generate and rotate this value. |
-| `PORT` | no | Defaults to 3000. Do not change. |
-| `HOSTNAME` | no | Defaults to `0.0.0.0`. Do not change. |
-| `NODE_ENV` | no | Forced to `production` in the runner stage. |
+| Variable | Purpose | Default | Required |
+|---|---|---|---|
+| `DATABASE_URL` | Prisma connection string for SQLite. Uses Prisma's `file:` format. | `file:/app/data/inventory.db` | Defaulted |
+| `NEXTAUTH_URL` | Public URL. Only needed for HTTPS reverse-proxy deployments. | Auto-detected | No |
+| `NEXTAUTH_SECRET` | JWT signing secret. | Auto-generated on first run | No |
+| `OPENAI_API_KEY` | Env-var fallback. The wizard stores this in the vault, so you normally do not need it. | Read from vault | No |
 
-Generate a strong `NEXTAUTH_SECRET` before going anywhere near production:
+For a standard deployment, you do not need to set any of these. The only one in `docker-compose.yml` is `DATABASE_URL` with its default value.
 
-```bash
-openssl rand -base64 32
+## Secrets and the vault
+
+During setup, the wizard stores sensitive values (OpenAI API key, SMTP credentials, etc.) in an encrypted vault inside the database using AES-256-GCM. The encryption key is derived from your passphrase and automatically persisted to `./data/.vault-key`.
+
+The app reads secrets from the vault at runtime. No API keys need to go in environment variables or `docker-compose.yml`.
+
+## HTTPS with a reverse proxy
+
+If you serve the app behind a reverse proxy (Nginx, Caddy, Traefik) or a Cloudflared tunnel, add `NEXTAUTH_URL` to your compose file:
+
+```yaml
+environment:
+  - DATABASE_URL=file:/app/data/inventory.db
+  - NEXTAUTH_URL=https://inventory.example.com
 ```
 
-## Cloudflared tunnel
+This tells NextAuth to use HTTPS-only session cookies and generate correct callback URLs.
 
-The canonical reference deployment fronts the container with a Cloudflared tunnel instead of opening port 5600 to the internet. A minimal `config.yml` for `cloudflared`:
+### Cloudflared tunnel example
 
 ```yaml
 tunnel: <your-tunnel-id>
 credentials-file: /etc/cloudflared/<your-tunnel-id>.json
 ingress:
-  - hostname: shane-inventory.example.com
+  - hostname: inventory.example.com
     service: http://localhost:5600
   - service: http_status:404
 ```
 
-Point `NEXTAUTH_URL` at `https://shane-inventory.example.com` in `docker-compose.yml` and restart. The tunnel handles TLS; the app never sees an untrusted request.
+## Single-tenant deployment
 
-## Single tenant deployment
-
-Shane Inventory is deliberately single tenant per container. The `Tenant` table exists to keep the data model clean and to enable future expansion, but there is no cross tenant switching in the UI and the setup wizard only creates one tenant row. If you need to host multiple organizations, run multiple containers on different ports with different volumes.
+Shane Inventory is single-tenant per container. The `Tenant` table exists to keep the data model clean, but the setup wizard only creates one tenant. To host multiple organizations, run multiple containers on different ports with different volumes.
 
 ## Upgrades
-
-Upgrading in place is the supported path and preserves all user data:
 
 ```bash
 git pull
 docker compose up -d --build
 ```
 
-On startup `docker-init/start.sh` runs any idempotent `ALTER TABLE` statements added since the last image. See `admin/runtime-migrations` for the full pattern.
+On startup, `docker-init/start.sh` runs idempotent `ALTER TABLE` statements for any new columns. User data is always preserved. If an upgrade fails, roll back to the previous image; no data is lost because the migration script only ever adds columns.
 
-If an upgrade fails mid way, the database is still intact. Roll back to the previous image tag and bring the stack up; no data is lost because the runtime migration script only ever adds columns.
+## Backups
+
+Back up `./data/inventory.db` with whatever you already use (restic, borg, rsync, periodic file copy). SQLite in WAL mode supports online copies. For extra safety, stop the container first.
 
 ## Health check
-
-Once the container is up, curl the root:
 
 ```bash
 curl -I http://localhost:5600/
 ```
 
-You should get `200` on `/setup` (fresh install) or `307` redirect to `/login` (already set up). If you get `502` or the container is restarting, check `docker compose logs -f inventory` for the error.
+Fresh install returns `200` on `/setup`. Already configured returns `307` redirect to `/login`. If you get `502` or the container keeps restarting, check `docker compose logs -f inventory`.
 
 ## Persistent data warning
 
-Repeating because it is the single most common way to destroy a deployment:
-
-**Never delete `data/inventory.db` or the `./data` directory.** Not during upgrades. Not to "reset" the app. Not because a deploy looks stuck. The file contains the encryption salt, the admin password hash, every vault entry, and all tenant data. There is no recovery without a backup. If you need a clean reset for testing, create a separate compose file with a different volume path.
+**Never delete `./data/inventory.db` or the `./data` directory.** Not during upgrades. Not to "reset" the app. Not because a deploy looks stuck. If you need a clean reset for testing, create a separate compose file with a different volume path.

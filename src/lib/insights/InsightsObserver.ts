@@ -96,16 +96,12 @@ export class InsightsObserver {
     snapshot: InsightsSnapshot,
     mode: InsightMode = 'strict',
   ): Promise<Observation[]> {
-    if (!process.env.OPENAI_API_KEY) {
-      return [];
-    }
+    const { getOpenAIKey, getOpenAIModel } = await import('@/lib/config/vault');
+    const apiKey = await getOpenAIKey();
+    if (!apiKey) return [];
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const modelConfig = await (this.prisma as any).systemConfig.findUnique({
-      where: { key: 'openai_model' },
-    });
-    const modelId =
-      (modelConfig as { value?: string } | null)?.value || 'gpt-5.4-nano';
+    const openai = new OpenAI({ apiKey });
+    const modelId = await getOpenAIModel();
 
     const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${MODE_INSTRUCTIONS[mode]}`;
     const userPrompt = `DATA:\n${JSON.stringify(snapshot, null, 2)}`;

@@ -37,7 +37,6 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ENV DATA_DIR=/app/data
 
 # Install sqlite for runtime migrations
 RUN apk add --no-cache sqlite

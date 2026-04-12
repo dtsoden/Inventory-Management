@@ -5,10 +5,11 @@ import { AppError } from '@/lib/errors';
 
 class AiModelsHandler extends BaseApiHandler {
   protected async onGet(_req: NextRequest, _ctx: TenantContext): Promise<NextResponse> {
-    const apiKey = process.env.OPENAI_API_KEY;
+    const { getOpenAIKey } = await import('@/lib/config/vault');
+    const apiKey = await getOpenAIKey();
     if (!apiKey) {
       throw new AppError(
-        'OpenAI API key is not configured. Set OPENAI_API_KEY in the environment.',
+        'OpenAI API key not configured. Set it in Settings > Integrations.',
         400,
         'OPENAI_NOT_CONFIGURED',
       );

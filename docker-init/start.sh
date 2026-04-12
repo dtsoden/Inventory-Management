@@ -1,15 +1,37 @@
 #!/bin/sh
-# Initialize database if it doesn't exist
-if [ ! -f /app/data/inventory.db ]; then
-  echo "No database found, initializing from template..."
-  cp /app/docker-init/inventory.db.template /app/data/inventory.db
-  echo "Database initialized."
-fi
+# ----------------------------------------------------------------
+# Container startup script
+# ----------------------------------------------------------------
 
-# Apply idempotent runtime migrations for existing databases.
-# Never delete user data, only ALTER TABLE additions.
 DB=/app/data/inventory.db
 
+# --- Auto-generate NEXTAUTH_SECRET if not provided -----------------
+# Persists to /app/data/.nextauth-secret so the same value survives
+# container restarts without the user ever setting an env var.
+if [ -z "$NEXTAUTH_SECRET" ]; then
+  SECRET_FILE=/app/data/.nextauth-secret
+  if [ ! -f "$SECRET_FILE" ]; then
+    head -c 48 /dev/urandom | base64 > "$SECRET_FILE"
+    echo "[init] Generated NEXTAUTH_SECRET"
+  fi
+  export NEXTAUTH_SECRET=$(cat "$SECRET_FILE")
+fi
+
+# --- Default NEXTAUTH_URL to localhost if not set ------------------
+if [ -z "$NEXTAUTH_URL" ]; then
+  export NEXTAUTH_URL="http://localhost:${PORT:-3000}"
+  echo "[init] NEXTAUTH_URL defaulting to $NEXTAUTH_URL"
+fi
+
+# --- Initialize database if it doesn't exist ----------------------
+if [ ! -f "$DB" ]; then
+  echo "[init] No database found, initializing from template..."
+  cp /app/docker-init/inventory.db.template "$DB"
+  echo "[init] Database initialized."
+fi
+
+# --- Idempotent runtime migrations --------------------------------
+# Never delete user data, only ALTER TABLE additions.
 add_column_if_missing() {
   table="$1"
   column="$2"
@@ -28,5 +50,5 @@ add_column_if_missing Vendor  zip       TEXT
 add_column_if_missing Vendor  country   TEXT
 add_column_if_missing Vendor  rating    INTEGER
 
-# Start the application
+# --- Start the application ----------------------------------------
 exec node server.js
