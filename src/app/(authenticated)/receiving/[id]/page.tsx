@@ -701,24 +701,59 @@ export default function ReceivingFlowPage() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </Button>
                   </div>
-                  {item.serialNumbers.length > 0 && (
-                    <div className="mt-2">
+                  <div className="mt-2">
+                    <div className="mb-1 flex items-center justify-between">
                       <p className="text-xs font-medium text-muted-foreground">
-                        Serial Numbers:
+                        Serial Numbers ({item.serialNumbers.length})
                       </p>
-                      <div className="mt-1 flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...extraction.lineItems];
+                          updated[index] = {
+                            ...updated[index],
+                            serialNumbers: [...updated[index].serialNumbers, ''],
+                          };
+                          setExtraction({ ...extraction, lineItems: updated });
+                        }}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        + Add
+                      </button>
+                    </div>
+                    {item.serialNumbers.length > 0 && (
+                      <div className="space-y-1">
                         {item.serialNumbers.map((sn, snIdx) => (
-                          <Badge
-                            key={snIdx}
-                            variant="outline"
-                            className="font-mono text-xs"
-                          >
-                            {sn}
-                          </Badge>
+                          <div key={snIdx} className="flex items-center gap-1">
+                            <Input
+                              value={sn}
+                              onChange={(e) => {
+                                const updated = [...extraction.lineItems];
+                                const sns = [...updated[index].serialNumbers];
+                                sns[snIdx] = e.target.value;
+                                updated[index] = { ...updated[index], serialNumbers: sns };
+                                setExtraction({ ...extraction, lineItems: updated });
+                              }}
+                              placeholder="Serial number..."
+                              className="h-7 font-mono text-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...extraction.lineItems];
+                                const sns = updated[index].serialNumbers.filter((_, i) => i !== snIdx);
+                                updated[index] = { ...updated[index], serialNumbers: sns };
+                                setExtraction({ ...extraction, lineItems: updated });
+                              }}
+                              className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
