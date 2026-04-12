@@ -383,6 +383,10 @@ export async function POST(request: NextRequest) {
       data: { isSetupComplete: true },
     });
 
+    // 10. Clear cached auth secret so the app picks up the real one
+    const { clearAuthSecretCache } = await import('@/lib/auth-secret');
+    clearAuthSecretCache();
+
     // Clean up the vault key from memory
     configService.lockVault();
 
