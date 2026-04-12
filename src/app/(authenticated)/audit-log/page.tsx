@@ -92,6 +92,9 @@ export default function AuditLogPage() {
   const [userFilter, setUserFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [search, setSearch] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -99,11 +102,14 @@ export default function AuditLogPage() {
       const params = new URLSearchParams();
       params.set('page', String(page));
       params.set('pageSize', '25');
+      params.set('sortField', sortField);
+      params.set('sortDirection', sortDirection);
       if (actionFilter) params.set('action', actionFilter);
       if (entityFilter) params.set('entity', entityFilter);
       if (userFilter) params.set('userId', userFilter);
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
+      if (search) params.set('search', search);
 
       const res = await apiFetch(`/api/audit-log?${params}`);
       const json = await res.json();
@@ -118,7 +124,7 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, actionFilter, entityFilter, userFilter, dateFrom, dateTo]);
+  }, [page, actionFilter, entityFilter, userFilter, dateFrom, dateTo, search, sortField, sortDirection]);
 
   useEffect(() => {
     fetchLogs();
@@ -130,10 +136,23 @@ export default function AuditLogPage() {
     setUserFilter('');
     setDateFrom('');
     setDateTo('');
+    setSearch('');
+    setSortField('createdAt');
+    setSortDirection('desc');
     setPage(1);
   }
 
-  const hasActiveFilters = actionFilter || entityFilter || userFilter || dateFrom || dateTo;
+  function toggleSort(field: string) {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+    setPage(1);
+  }
+
+  const hasActiveFilters = actionFilter || entityFilter || userFilter || dateFrom || dateTo || search;
 
   return (
     <div>
@@ -149,8 +168,16 @@ export default function AuditLogPage() {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Search + Filters */}
       <div className="mt-4 card-base rounded-xl p-4">
+        <div className="mb-3">
+          <Input
+            placeholder="Search audit log (user, action, entity, details)..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="h-10"
+          />
+        </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Filter className="h-4 w-4" />
           Filters
@@ -249,11 +276,28 @@ export default function AuditLogPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30 text-left">
-                    <th className="px-4 py-3 font-medium text-muted-foreground">Timestamp</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">User</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">Action</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">Entity</th>
-                    <th className="px-4 py-3 font-medium text-muted-foreground">Entity ID</th>
+                    {[
+                      { field: 'createdAt', label: 'Timestamp' },
+                      { field: 'userId', label: 'User' },
+                      { field: 'action', label: 'Action' },
+                      { field: 'entity', label: 'Entity' },
+                      { field: 'entityId', label: 'Entity ID' },
+                    ].map((col) => (
+                      <th
+                        key={col.field}
+                        onClick={() => toggleSort(col.field)}
+                        className="cursor-pointer select-none px-4 py-3 font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {col.label}
+                          {sortField === col.field && (
+                            sortDirection === 'asc'
+                              ? <ChevronUp className="size-3" />
+                              : <ChevronDown className="size-3" />
+                          )}
+                        </span>
+                      </th>
+                    ))}
                     <th className="px-4 py-3 font-medium text-muted-foreground w-10"></th>
                   </tr>
                 </thead>

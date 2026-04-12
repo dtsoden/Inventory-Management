@@ -40,13 +40,15 @@ export class AuditLogService extends BaseService<AuditLogRecord> {
     filters: AuditLogQueryFilters,
     page: number,
     pageSize: number,
+    sortField = 'createdAt',
+    sortDirection: 'asc' | 'desc' = 'desc',
   ): Promise<AuditLogPageWithFilters> {
     if (ctx.role !== UserRole.ADMIN) {
       throw new ForbiddenError('Only admins can view audit logs');
     }
 
     const [pageResult, actions, entities, users] = await Promise.all([
-      this.auditRepo.query(ctx.tenantId, filters, page, pageSize),
+      this.auditRepo.query(ctx.tenantId, filters, page, pageSize, sortField, sortDirection),
       this.auditRepo.distinctActions(ctx.tenantId),
       this.auditRepo.distinctEntities(ctx.tenantId),
       this.prisma.user.findMany({

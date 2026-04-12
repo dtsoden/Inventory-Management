@@ -19,6 +19,7 @@ export interface AuditLogQueryFilters {
   userId?: string;
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
 }
 
 export interface AuditLogPage {
@@ -44,12 +45,23 @@ export class AuditLogRepository extends BaseRepository<AuditLogRecord> {
     filters: AuditLogQueryFilters,
     page = 1,
     pageSize = 25,
+    sortField = 'createdAt',
+    sortDirection: 'asc' | 'desc' = 'desc',
   ): Promise<AuditLogPage> {
     const where: Record<string, unknown> = { tenantId };
     if (filters.action) where.action = filters.action;
     if (filters.entity) where.entity = filters.entity;
     if (filters.entityId) where.entityId = filters.entityId;
     if (filters.userId) where.userId = filters.userId;
+    if (filters.search) {
+      where.OR = [
+        { action: { contains: filters.search } },
+        { entity: { contains: filters.search } },
+        { entityId: { contains: filters.search } },
+        { details: { contains: filters.search } },
+        { user: { is: { name: { contains: filters.search } } } },
+      ];
+    }
     if (filters.dateFrom || filters.dateTo) {
       const createdAt: Record<string, Date> = {};
       if (filters.dateFrom) createdAt.gte = new Date(filters.dateFrom);
@@ -64,7 +76,7 @@ export class AuditLogRepository extends BaseRepository<AuditLogRecord> {
       this.model.count({ where }),
       this.model.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortField]: sortDirection },
         skip: (safePage - 1) * safePageSize,
         take: safePageSize,
         include: {

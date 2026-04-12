@@ -9,6 +9,9 @@ class AuditLogHandler extends BaseApiHandler {
     const page = parseInt(url.searchParams.get('page') ?? '1', 10);
     const pageSize = parseInt(url.searchParams.get('pageSize') ?? '25', 10);
 
+    const sortField = url.searchParams.get('sortField') || 'createdAt';
+    const sortDirection = url.searchParams.get('sortDirection') === 'asc' ? 'asc' : 'desc';
+
     const result = await auditLogService.query(
       ctx,
       {
@@ -18,9 +21,12 @@ class AuditLogHandler extends BaseApiHandler {
         userId: url.searchParams.get('userId') || undefined,
         dateFrom: url.searchParams.get('dateFrom') || undefined,
         dateTo: url.searchParams.get('dateTo') || undefined,
+        search: url.searchParams.get('search') || undefined,
       },
       page,
       pageSize,
+      sortField,
+      sortDirection,
     );
 
     // Reshape to match the existing client expectations: { data, total, ... }
