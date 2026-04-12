@@ -54,30 +54,43 @@ export function Logo({ collapsed = false }: LogoProps) {
     );
   }
 
-  // Logo area is exclusively for the logo image. No text here.
-  // The app name only appears in the browser tab title.
+  const faviconUrl = branding.faviconUrl;
+
   return (
     <div className="flex items-center justify-center" style={{ padding: '5px 0' }}>
-      {logoSrc ? (
+      {collapsed ? (
+        faviconUrl ? (
+          <img
+            src={faviconUrl}
+            alt={appName}
+            className="size-9 shrink-0 rounded object-contain"
+          />
+        ) : logoSrc ? (
+          <img
+            src={logoSrc}
+            alt={appName}
+            className="size-9 shrink-0 object-contain"
+          />
+        ) : (
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-green text-white">
+            <Package className="h-5 w-5" />
+          </div>
+        )
+      ) : logoSrc ? (
         <img
           src={logoSrc}
           alt={appName}
           className="shrink-0 object-contain"
-          style={{
-            maxHeight: collapsed ? '36px' : '46px',
-            maxWidth: collapsed ? '36px' : '200px',
-          }}
+          style={{ maxHeight: '46px', maxWidth: '200px' }}
         />
       ) : (
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-green text-white">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-green text-white">
             <Package className="h-5 w-5" />
           </div>
-          {!collapsed && (
-            <span className="text-lg font-bold tracking-tight truncate">
-              {appName}
-            </span>
-          )}
+          <span className="text-lg font-bold tracking-tight truncate">
+            {appName}
+          </span>
         </div>
       )}
     </div>
