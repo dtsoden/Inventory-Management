@@ -170,13 +170,22 @@ export default function AuditLogPage() {
 
       {/* Search + Filters */}
       <div className="mt-4 card-base rounded-xl p-4">
-        <div className="mb-3">
+        <div className="relative mb-3">
           <Input
             placeholder="Search audit log (user, action, entity, details)..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="h-10"
+            className="h-10 pr-8"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => { setSearch(''); setPage(1); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Filter className="h-4 w-4" />
