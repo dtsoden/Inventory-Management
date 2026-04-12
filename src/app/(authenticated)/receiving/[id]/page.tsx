@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Camera,
+  Upload,
   Scan,
   Check,
   Package,
@@ -140,8 +141,12 @@ export default function ReceivingFlowPage() {
 
   // Step 1: Capture state
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2: Extraction state
   const [extraction, setExtraction] = useState<PackingSlipExtraction | null>(
@@ -200,32 +205,72 @@ export default function ReceivingFlowPage() {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Extract base64 portion after the data URL prefix
       const base64 = result.split(',')[1];
       setCapturedImage(base64);
+      setUploadedFile(null);
     };
     reader.readAsDataURL(file);
   };
 
+  const handleFileUpload = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        setCapturedImage(base64);
+        setUploadedFile(null);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setUploadedFile(file);
+      setCapturedImage(null);
+    }
+  };
+
+  const handleDocInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileUpload(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileUpload(file);
+  };
+
   const handleProcess = async () => {
-    if (!capturedImage) return;
+    if (!capturedImage && !uploadedFile) return;
     setProcessing(true);
 
     try {
-      const res = await apiFetch(`/api/receiving/${sessionId}/extract`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: capturedImage }),
-      });
+      let res: Response;
+
+      if (uploadedFile) {
+        const formData = new FormData();
+        formData.append('file', uploadedFile);
+        res = await apiFetch(`/api/receiving/${sessionId}/extract`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        res = await apiFetch(`/api/receiving/${sessionId}/extract`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: capturedImage }),
+        });
+      }
+
       const json = await res.json();
       if (json.success) {
         setExtraction(json.data);
-        setCurrentStep(1); // Move to review
+        setCurrentStep(1);
       } else {
         alert(json.error ?? 'Failed to process packing slip');
       }
     } catch {
-      alert('Failed to process image. Please try again.');
+      alert('Failed to process packing slip. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -236,7 +281,14 @@ export default function ReceivingFlowPage() {
   // ------------------------------------------------------------------
 
   const handleConfirmExtraction = () => {
-    setCurrentStep(2); // Move to tagging
+    setCurrentStep(2);
+    // Auto-open the first untagged item
+    if (extraction) {
+      const firstUntagged = extraction.lineItems.findIndex(
+        (item) => getTagCountForItem(item.name) < item.quantity,
+      );
+      if (firstUntagged >= 0) setActiveTagItem(firstUntagged);
+    }
   };
 
   // ------------------------------------------------------------------
@@ -262,17 +314,26 @@ export default function ReceivingFlowPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setTaggedAssets((prev) => [
-          ...prev,
-          {
-            itemName: item.name,
-            assetTag: assetTagInput.trim(),
-            serialNumber: serialInput.trim() || undefined,
-          },
-        ]);
+        const newTag = {
+          itemName: item.name,
+          assetTag: assetTagInput.trim(),
+          serialNumber: serialInput.trim() || undefined,
+        };
+        const updatedTags = [...taggedAssets, newTag];
+        setTaggedAssets(updatedTags);
         setAssetTagInput('');
         setSerialInput('');
-        setActiveTagItem(null);
+
+        // Auto-advance: check if this item is now complete, find next untagged
+        const newCountForItem = updatedTags.filter((a) => a.itemName === item.name).length;
+        if (newCountForItem >= item.quantity && extraction) {
+          const nextUntagged = extraction.lineItems.findIndex((li, idx) => {
+            if (idx === itemIndex) return false;
+            const count = updatedTags.filter((a) => a.itemName === li.name).length;
+            return count < li.quantity;
+          });
+          setActiveTagItem(nextUntagged >= 0 ? nextUntagged : null);
+        }
       } else {
         alert(json.error ?? 'Failed to tag asset');
       }
@@ -282,6 +343,13 @@ export default function ReceivingFlowPage() {
       setTagging(false);
     }
   };
+
+  // Auto-focus the tag input when active item changes
+  useEffect(() => {
+    if (activeTagItem !== null) {
+      setTimeout(() => tagInputRef.current?.focus(), 50);
+    }
+  }, [activeTagItem]);
 
   // ------------------------------------------------------------------
   // Step 4: Complete
@@ -384,11 +452,11 @@ export default function ReceivingFlowPage() {
           <div className="text-center">
             <h2 className="text-lg font-semibold">Capture Packing Slip</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Take a photo of the packing slip from the shipment
+              Photograph the packing slip or upload a file (image, PDF, DOCX, CSV, Excel)
             </p>
           </div>
 
-          {/* Hidden file input */}
+          {/* Hidden file inputs */}
           <input
             ref={fileInputRef}
             type="file"
@@ -397,43 +465,94 @@ export default function ReceivingFlowPage() {
             onChange={handleCapture}
             className="hidden"
           />
+          <input
+            ref={docInputRef}
+            type="file"
+            accept="image/*,.pdf,.docx,.doc,.csv,.xlsx,.xls"
+            onChange={handleDocInput}
+            className="hidden"
+          />
 
-          {!capturedImage ? (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 py-16 transition-colors hover:border-primary/50 hover:bg-primary/10 active:bg-primary/15"
-            >
-              <div className="flex size-20 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <Camera className="size-10" />
-              </div>
-              <p className="mt-4 text-lg font-semibold text-primary">
-                Tap to Capture
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Use your camera to photograph the packing slip
-              </p>
-            </button>
+          {!capturedImage && !uploadedFile ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Camera capture */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 py-12 transition-colors hover:border-primary/50 hover:bg-primary/10 active:bg-primary/15"
+              >
+                <div className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Camera className="size-8" />
+                </div>
+                <p className="mt-3 text-base font-semibold text-primary">
+                  Capture with Camera
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Take a photo of the packing slip
+                </p>
+              </button>
+
+              {/* File upload with drag-and-drop */}
+              <button
+                onClick={() => docInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed py-12 transition-colors ${
+                  dragOver
+                    ? 'border-primary bg-primary/10'
+                    : 'border-muted-foreground/30 bg-muted/30 hover:border-muted-foreground/50 hover:bg-muted/50'
+                } active:bg-muted/60`}
+              >
+                <div className="flex size-16 items-center justify-center rounded-full bg-muted-foreground/10 text-muted-foreground">
+                  <Upload className="size-8" />
+                </div>
+                <p className="mt-3 text-base font-semibold text-foreground">
+                  Upload File
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground text-center px-4">
+                  Drag and drop or tap to browse
+                </p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  PDF, DOCX, CSV, Excel, or image
+                </p>
+              </button>
+            </div>
           ) : (
             <div className="space-y-4">
               {/* Preview */}
-              <div className="overflow-hidden rounded-xl border">
-                <img
-                  src={`data:image/jpeg;base64,${capturedImage}`}
-                  alt="Captured packing slip"
-                  className="w-full"
-                />
-              </div>
+              {capturedImage && (
+                <div className="overflow-hidden rounded-xl border">
+                  <img
+                    src={`data:image/jpeg;base64,${capturedImage}`}
+                    alt="Captured packing slip"
+                    className="w-full"
+                  />
+                </div>
+              )}
+              {uploadedFile && (
+                <div className="flex items-center gap-3 rounded-xl border p-4">
+                  <Upload className="size-8 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{uploadedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(uploadedFile.size / 1024).toFixed(0)} KB
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setCapturedImage(null);
+                    setUploadedFile(null);
                     if (fileInputRef.current) fileInputRef.current.value = '';
+                    if (docInputRef.current) docInputRef.current.value = '';
                   }}
                   className="flex-1"
                 >
-                  Retake
+                  {capturedImage ? 'Retake' : 'Remove'}
                 </Button>
                 <Button
                   onClick={handleProcess}
@@ -573,12 +692,12 @@ export default function ReceivingFlowPage() {
             </p>
           </div>
 
-          {/* Auto Scan toggle */}
-          <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
+          {/* Auto Scan toggle - mobile only (camera scanner) */}
+          <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3 md:hidden">
             <div>
-              <p className="text-sm font-medium">Auto Scan</p>
+              <p className="text-sm font-medium">Keep Camera Open</p>
               <p className="text-xs text-muted-foreground">
-                Keep scanner open after each scan
+                Camera stays open after each scan
               </p>
             </div>
             <Switch
@@ -649,33 +768,36 @@ export default function ReceivingFlowPage() {
                   {/* Tag input form */}
                   {isActive && !isComplete && (
                     <div className="mt-4 space-y-3 border-t pt-4">
-                      {/* Barcode Scanner */}
-                      {scannerOpen ? (
-                        <BarcodeScanner
-                          onScan={(value) => {
-                            setAssetTagInput(value);
-                            if (!autoScan) {
-                              setScannerOpen(false);
-                            }
-                          }}
-                          onClose={() => setScannerOpen(false)}
-                        />
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="w-full"
-                          onClick={() => setScannerOpen(true)}
-                        >
-                          <Camera className="mr-2 size-4" />
-                          Open Camera Scanner
-                        </Button>
-                      )}
+                      {/* Camera barcode scanner - mobile only */}
+                      <div className="md:hidden">
+                        {scannerOpen ? (
+                          <BarcodeScanner
+                            onScan={(value) => {
+                              setAssetTagInput(value);
+                              if (!autoScan) {
+                                setScannerOpen(false);
+                              }
+                            }}
+                            onClose={() => setScannerOpen(false)}
+                          />
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setScannerOpen(true)}
+                          >
+                            <Camera className="mr-2 size-4" />
+                            Open Camera Scanner
+                          </Button>
+                        )}
+                      </div>
 
                       <div>
                         <label className="mb-1 block text-sm font-medium">
                           Asset Tag *
                         </label>
                         <Input
+                          ref={tagInputRef}
                           placeholder="Scan or type asset tag..."
                           value={assetTagInput}
                           onChange={(e) => setAssetTagInput(e.target.value)}
@@ -737,12 +859,28 @@ export default function ReceivingFlowPage() {
                             className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm dark:bg-emerald-950/40"
                           >
                             <CheckCircle2 className="size-4 text-emerald-500" />
-                            <span className="font-mono">{asset.assetTag}</span>
+                            <span className="flex-1 font-mono">{asset.assetTag}</span>
                             {asset.serialNumber && (
                               <span className="text-muted-foreground">
                                 (SN: {asset.serialNumber})
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTaggedAssets((prev) => {
+                                  const filtered = prev.filter(
+                                    (a) => !(a.itemName === asset.itemName && a.assetTag === asset.assetTag),
+                                  );
+                                  return filtered;
+                                });
+                                if (!isActive) setActiveTagItem(index);
+                              }}
+                              className="ml-1 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                              title="Remove tag"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
                           </div>
                         ))}
                     </div>

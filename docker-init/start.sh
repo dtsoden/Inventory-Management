@@ -36,6 +36,9 @@ if [ ! -f "$DB" ]; then
   echo "[init] Database initialized."
 fi
 
+# --- Enable WAL mode for concurrent read/write --------------------
+sqlite3 "$DB" "PRAGMA journal_mode=WAL" > /dev/null 2>&1
+
 # --- Idempotent runtime migrations --------------------------------
 add_column_if_missing() {
   table="$1"

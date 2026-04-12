@@ -73,7 +73,7 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
   async extractPackingSlip(
     ctx: TenantContext,
     sessionId: string,
-    imageBase64: string
+    imageBase64: string,
   ): Promise<PackingSlipExtraction> {
     const session = await this.getByIdOrThrow(ctx, sessionId);
 
@@ -81,10 +81,8 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
       throw new ValidationError('Session is not in progress');
     }
 
-    // Call OpenAI Vision API
     const extractionResult = await extractPackingSlipData(imageBase64);
 
-    // Store the extraction data on the session
     await this.receivingRepo.update(ctx.tenantId, sessionId, {
       aiExtractionData: JSON.stringify(extractionResult),
       packingSlipImageUrl: `data:image/jpeg;base64,${imageBase64.substring(0, 50)}...`,
@@ -92,6 +90,48 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
 
     await this.logAudit(ctx, 'UPDATE', sessionId, {
       action: 'extractPackingSlip',
+      itemCount: extractionResult.lineItems.length,
+    });
+
+    return extractionResult;
+  }
+
+  async extractPackingSlipFromDocument(
+    ctx: TenantContext,
+    sessionId: string,
+    fileBuffer: Buffer,
+    mimeType: string,
+    fileName: string,
+  ): Promise<PackingSlipExtraction> {
+    const session = await this.getByIdOrThrow(ctx, sessionId);
+
+    if (session.status !== ReceivingStatus.IN_PROGRESS) {
+      throw new ValidationError('Session is not in progress');
+    }
+
+    const { isImageMime } = await import('./document-parser');
+
+    let extractionResult: PackingSlipExtraction;
+
+    if (isImageMime(mimeType)) {
+      const base64 = fileBuffer.toString('base64');
+      extractionResult = await extractPackingSlipData(base64);
+    } else {
+      const { extractTextFromDocument } = await import('./document-parser');
+      const text = await extractTextFromDocument(fileBuffer, mimeType);
+      const { extractPackingSlipFromText } = await import('./openai');
+      extractionResult = await extractPackingSlipFromText(text);
+    }
+
+    await this.receivingRepo.update(ctx.tenantId, sessionId, {
+      aiExtractionData: JSON.stringify(extractionResult),
+      packingSlipImageUrl: `[document] ${fileName}`,
+    });
+
+    await this.logAudit(ctx, 'UPDATE', sessionId, {
+      action: 'extractPackingSlipDocument',
+      fileName,
+      mimeType,
       itemCount: extractionResult.lineItems.length,
     });
 
