@@ -296,7 +296,12 @@ export default function ReceivingFlowPage() {
   // ------------------------------------------------------------------
 
   const handleTagAsset = async (itemIndex: number) => {
-    if (!assetTagInput.trim() || !extraction) return;
+    const trimmed = assetTagInput.trim();
+    if (!trimmed || !extraction) return;
+    if (taggedAssets.some((a) => a.assetTag === trimmed)) {
+      alert(`Duplicate: ${trimmed} has already been scanned.`);
+      return;
+    }
 
     const item = extraction.lineItems[itemIndex];
     setTagging(true);
@@ -692,22 +697,101 @@ export default function ReceivingFlowPage() {
             </p>
           </div>
 
-          {/* Auto Scan toggle - mobile only (camera scanner) */}
-          <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3 md:hidden">
-            <div>
-              <p className="text-sm font-medium">Keep Camera Open</p>
-              <p className="text-xs text-muted-foreground">
-                Camera stays open after each scan
-              </p>
-            </div>
-            <Switch
-              checked={autoScan}
-              onCheckedChange={setAutoScan}
-            />
-          </div>
+          {/* ---- MOBILE: persistent camera with status overlay ---- */}
+          {activeTagItem !== null && (() => {
+            const activeItem = extraction.lineItems[activeTagItem];
+            const activeTagged = getTagCountForItem(activeItem.name);
+            return (
+              <div className="md:hidden space-y-3">
+                {/* Status bar: what am I scanning and how many */}
+                <div className="rounded-xl border bg-card p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{activeItem.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Scanning {activeTagged + 1} of {activeItem.quantity}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="shrink-0">
+                      {totalTagged} / {totalExpectedItems} total
+                    </Badge>
+                  </div>
+                  <Progress
+                    value={totalExpectedItems > 0 ? (totalTagged / totalExpectedItems) * 100 : 0}
+                    className="mt-2 h-1.5"
+                  />
+                </div>
 
-          {/* Overall Progress */}
-          <div className="rounded-xl border bg-card p-4">
+                {/* Camera always open */}
+                <BarcodeScanner
+                  onScan={async (value) => {
+                    const trimmed = value.trim();
+                    if (!trimmed || tagging) return;
+                    if (taggedAssets.some((a) => a.assetTag === trimmed)) {
+                      alert(`Duplicate: ${trimmed} has already been scanned.`);
+                      return;
+                    }
+                    setTagging(true);
+                    try {
+                      const res = await apiFetch(`/api/receiving/${sessionId}/tag`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          itemName: activeItem.name,
+                          assetTag: trimmed,
+                        }),
+                      });
+                      const json = await res.json();
+                      if (json.success) {
+                        const newTag = { itemName: activeItem.name, assetTag: trimmed };
+                        const updatedTags = [...taggedAssets, newTag];
+                        setTaggedAssets(updatedTags);
+                        const newCount = updatedTags.filter((a) => a.itemName === activeItem.name).length;
+                        if (newCount >= activeItem.quantity) {
+                          const nextUntagged = extraction.lineItems.findIndex((li, idx) => {
+                            if (idx === activeTagItem) return false;
+                            return updatedTags.filter((a) => a.itemName === li.name).length < li.quantity;
+                          });
+                          setActiveTagItem(nextUntagged >= 0 ? nextUntagged : null);
+                        }
+                      }
+                    } catch { /* ignore */ }
+                    finally { setTagging(false); }
+                  }}
+                  onClose={() => setActiveTagItem(null)}
+                />
+
+                {/* Tagged items with delete capability */}
+                {taggedAssets.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto rounded-lg border bg-card p-2 space-y-1">
+                    {[...taggedAssets].reverse().map((asset, i) => (
+                      <div key={i} className="flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1 text-xs dark:bg-emerald-950/40">
+                        <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />
+                        <span className="truncate font-mono">{asset.assetTag}</span>
+                        <span className="shrink-0 text-muted-foreground">{asset.itemName}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTaggedAssets((prev) => prev.filter(
+                              (a) => !(a.itemName === asset.itemName && a.assetTag === asset.assetTag),
+                            ));
+                          }}
+                          className="ml-auto shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ---- DESKTOP: item list with inline inputs ---- */}
+
+          {/* Overall Progress - desktop */}
+          <div className="hidden rounded-xl border bg-card p-4 md:block">
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-semibold">
@@ -723,8 +807,8 @@ export default function ReceivingFlowPage() {
             />
           </div>
 
-          {/* Items to tag */}
-          <div className="space-y-3">
+          {/* Items to tag - desktop */}
+          <div className="hidden space-y-3 md:block">
             {extraction.lineItems.map((item, index) => {
               const tagged = getTagCountForItem(item.name);
               const isComplete = tagged >= item.quantity;
@@ -765,64 +849,9 @@ export default function ReceivingFlowPage() {
                     )}
                   </div>
 
-                  {/* Tag input form */}
+                  {/* Tag input form - desktop only */}
                   {isActive && !isComplete && (
                     <div className="mt-4 space-y-3 border-t pt-4">
-                      {/* Camera barcode scanner - mobile only */}
-                      <div className="md:hidden">
-                        {scannerOpen ? (
-                          <BarcodeScanner
-                            onScan={async (value) => {
-                              setAssetTagInput(value);
-                              if (!autoScan) setScannerOpen(false);
-                              // Auto-submit on mobile camera scan
-                              if (value.trim()) {
-                                setTagging(true);
-                                try {
-                                  const item = extraction!.lineItems[index];
-                                  const res = await apiFetch(`/api/receiving/${sessionId}/tag`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      itemName: item.name,
-                                      assetTag: value.trim(),
-                                      serialNumber: serialInput.trim() || undefined,
-                                    }),
-                                  });
-                                  const json = await res.json();
-                                  if (json.success) {
-                                    const newTag = { itemName: item.name, assetTag: value.trim(), serialNumber: serialInput.trim() || undefined };
-                                    const updatedTags = [...taggedAssets, newTag];
-                                    setTaggedAssets(updatedTags);
-                                    setAssetTagInput('');
-                                    setSerialInput('');
-                                    const newCount = updatedTags.filter((a) => a.itemName === item.name).length;
-                                    if (newCount >= item.quantity && extraction) {
-                                      const nextUntagged = extraction.lineItems.findIndex((li, idx) => {
-                                        if (idx === index) return false;
-                                        return updatedTags.filter((a) => a.itemName === li.name).length < li.quantity;
-                                      });
-                                      setActiveTagItem(nextUntagged >= 0 ? nextUntagged : null);
-                                    }
-                                  }
-                                } catch { /* ignore */ }
-                                finally { setTagging(false); }
-                              }
-                            }}
-                            onClose={() => setScannerOpen(false)}
-                          />
-                        ) : (
-                          <Button
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => setScannerOpen(true)}
-                          >
-                            <Camera className="mr-2 size-4" />
-                            Open Camera Scanner
-                          </Button>
-                        )}
-                      </div>
-
                       <div>
                         <label className="mb-1 block text-sm font-medium">
                           Asset Tag *
@@ -857,7 +886,6 @@ export default function ReceivingFlowPage() {
                             setActiveTagItem(null);
                             setAssetTagInput('');
                             setSerialInput('');
-                            setScannerOpen(false);
                           }}
                           className="flex-1"
                         >
@@ -920,6 +948,60 @@ export default function ReceivingFlowPage() {
               );
             })}
           </div>
+
+          {/* Mobile: summary + edit when camera is closed */}
+          {activeTagItem === null && taggedAssets.length > 0 && (
+            <div className="space-y-3 md:hidden">
+              <div className="rounded-xl border bg-card p-3">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Progress</span>
+                  <span className="font-semibold">{totalTagged} / {totalExpectedItems} tagged</span>
+                </div>
+                <Progress value={totalExpectedItems > 0 ? (totalTagged / totalExpectedItems) * 100 : 0} className="h-1.5" />
+              </div>
+              <div className="max-h-48 overflow-y-auto rounded-lg border bg-card p-2 space-y-1">
+                {taggedAssets.map((asset, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-md bg-emerald-50 px-2 py-1.5 text-xs dark:bg-emerald-950/40">
+                    <CheckCircle2 className="size-3 shrink-0 text-emerald-500" />
+                    <span className="truncate font-mono flex-1">{asset.assetTag}</span>
+                    <span className="shrink-0 text-muted-foreground">{asset.itemName}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTaggedAssets((prev) => prev.filter(
+                          (a) => !(a.itemName === asset.itemName && a.assetTag === asset.assetTag),
+                        ));
+                        if (extraction) {
+                          const idx = extraction.lineItems.findIndex((li) => li.name === asset.itemName);
+                          if (idx >= 0) setActiveTagItem(idx);
+                        }
+                      }}
+                      className="ml-1 shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {totalTagged < totalExpectedItems && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    if (extraction) {
+                      const nextUntagged = extraction.lineItems.findIndex(
+                        (li) => taggedAssets.filter((a) => a.itemName === li.name).length < li.quantity,
+                      );
+                      if (nextUntagged >= 0) setActiveTagItem(nextUntagged);
+                    }
+                  }}
+                >
+                  <Camera className="mr-2 size-4" />
+                  Resume Scanning
+                </Button>
+              )}
+            </div>
+          )}
 
           <Button
             onClick={handleComplete}
