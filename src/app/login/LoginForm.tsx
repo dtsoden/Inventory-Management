@@ -14,10 +14,20 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-export default function LoginForm({ branding }: { branding?: { primaryColor: string; logoUrl: string | null; appName: string } }) {
+interface LoginBranding {
+  primaryColor: string;
+  logoUrlLight: string | null;
+  logoUrlDark: string | null;
+  appName: string;
+  themeMode: string;
+}
+
+export default function LoginForm({ branding }: { branding?: LoginBranding }) {
   const primaryColor = branding?.primaryColor || 'var(--brand-green)';
-  const logoUrl = branding?.logoUrl || null;
+  const logoUrlLight = branding?.logoUrlLight || null;
+  const logoUrlDark = branding?.logoUrlDark || null;
   const appName = branding?.appName || 'Inventory Management Platform';
+  const themeMode = branding?.themeMode || 'auto';
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,10 +70,33 @@ export default function LoginForm({ branding }: { branding?: { primaryColor: str
     >
       {/* Inject branding color as CSS variable for this page */}
       <style dangerouslySetInnerHTML={{ __html: `:root { --brand-green: ${primaryColor}; }` }} />
+      {/* Force theme class on <html> when tenant locks the theme mode */}
+      {themeMode !== 'auto' && (
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `document.documentElement.classList.remove('light','dark');document.documentElement.classList.add('${themeMode}');document.documentElement.style.colorScheme='${themeMode}';`,
+          }}
+        />
+      )}
       <Card className="w-full max-w-md">
         <CardHeader className="flex flex-col items-center gap-4 pb-2">
-          {logoUrl ? (
-            <img src={logoUrl} alt={appName} className="h-14 max-w-[200px] object-contain" />
+          {logoUrlLight || logoUrlDark ? (
+            <>
+              {logoUrlLight && (
+                <img
+                  src={logoUrlLight}
+                  alt={appName}
+                  className={`h-14 max-w-[200px] object-contain ${logoUrlDark ? 'dark:hidden' : ''}`}
+                />
+              )}
+              {logoUrlDark && (
+                <img
+                  src={logoUrlDark}
+                  alt={appName}
+                  className={`h-14 max-w-[200px] object-contain ${logoUrlLight ? 'hidden dark:block' : ''}`}
+                />
+              )}
+            </>
           ) : (
             <div
               className="flex h-14 w-14 items-center justify-center rounded-full"
