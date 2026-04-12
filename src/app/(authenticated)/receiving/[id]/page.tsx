@@ -597,60 +597,109 @@ export default function ReceivingFlowPage() {
       )}
 
       {/* ============================================================ */}
-      {/* STEP 1: AI Extraction Results */}
+      {/* STEP 1: AI Extraction Results (editable) */}
       {/* ============================================================ */}
       {currentStep === 1 && extraction && (
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-lg font-semibold">Review Extracted Data</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Verify the extracted information is correct
+              Edit any fields the AI got wrong before continuing
             </p>
           </div>
 
-          {/* Order Info */}
+          {/* Order Info (editable) */}
           <div className="rounded-xl border bg-card p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">
+                <label className="mb-1 block text-xs font-medium uppercase text-muted-foreground">
                   Order Number
-                </p>
-                <p className="mt-1 font-semibold">
-                  {extraction.orderNumber ?? 'Not detected'}
-                </p>
+                </label>
+                <Input
+                  value={extraction.orderNumber ?? ''}
+                  onChange={(e) => setExtraction({
+                    ...extraction,
+                    orderNumber: e.target.value || null,
+                  })}
+                  placeholder="Enter order number..."
+                  className="h-10"
+                />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase text-muted-foreground">
+                <label className="mb-1 block text-xs font-medium uppercase text-muted-foreground">
                   Vendor
-                </p>
-                <p className="mt-1 font-semibold">
-                  {extraction.vendorName ?? 'Not detected'}
-                </p>
+                </label>
+                <Input
+                  value={extraction.vendorName ?? ''}
+                  onChange={(e) => setExtraction({
+                    ...extraction,
+                    vendorName: e.target.value || null,
+                  })}
+                  placeholder="Enter vendor name..."
+                  className="h-10"
+                />
               </div>
             </div>
           </div>
 
-          {/* Line Items */}
+          {/* Line Items (editable) */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase text-muted-foreground">
-              Line Items ({extraction.lineItems.length})
-            </h3>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+                Line Items ({extraction.lineItems.length})
+              </h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setExtraction({
+                  ...extraction,
+                  lineItems: [...extraction.lineItems, { name: '', quantity: 1, serialNumbers: [] }],
+                })}
+              >
+                + Add Item
+              </Button>
+            </div>
             <div className="space-y-3">
               {extraction.lineItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border bg-card p-4"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Qty: {item.quantity}
-                      </p>
+                <div key={index} className="rounded-xl border bg-card p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Input
+                        value={item.name}
+                        onChange={(e) => {
+                          const updated = [...extraction.lineItems];
+                          updated[index] = { ...updated[index], name: e.target.value };
+                          setExtraction({ ...extraction, lineItems: updated });
+                        }}
+                        placeholder="Item name..."
+                        className="h-9 text-sm font-medium"
+                      />
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-muted-foreground">Qty:</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.quantity}
+                          onChange={(e) => {
+                            const updated = [...extraction.lineItems];
+                            updated[index] = { ...updated[index], quantity: Math.max(1, parseInt(e.target.value) || 1) };
+                            setExtraction({ ...extraction, lineItems: updated });
+                          }}
+                          className="h-8 w-20 text-sm"
+                        />
+                      </div>
                     </div>
-                    <Badge variant="secondary">
-                      {item.quantity} unit{item.quantity !== 1 ? 's' : ''}
-                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        const updated = extraction.lineItems.filter((_, i) => i !== index);
+                        setExtraction({ ...extraction, lineItems: updated });
+                      }}
+                      className="shrink-0 text-destructive hover:text-destructive"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </Button>
                   </div>
                   {item.serialNumbers.length > 0 && (
                     <div className="mt-2">
@@ -675,13 +724,28 @@ export default function ReceivingFlowPage() {
             </div>
           </div>
 
-          <Button
-            onClick={handleConfirmExtraction}
-            className="h-14 w-full text-lg font-semibold"
-          >
-            <Check className="mr-2 size-5" />
-            Confirm &amp; Continue
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCurrentStep(0);
+                setCapturedImage(null);
+                setUploadedFile(null);
+                setExtraction(null);
+              }}
+              className="flex-1"
+            >
+              Re-scan
+            </Button>
+            <Button
+              onClick={handleConfirmExtraction}
+              disabled={extraction.lineItems.length === 0 || extraction.lineItems.some((li) => !li.name.trim())}
+              className="h-14 flex-1 text-lg font-semibold"
+            >
+              <Check className="mr-2 size-5" />
+              Confirm &amp; Continue
+            </Button>
+          </div>
         </div>
       )}
 
