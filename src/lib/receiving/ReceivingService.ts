@@ -180,12 +180,12 @@ export class ReceivingService extends BaseService<ReceivingSessionRecord> {
       }
     }
 
-    // Create the asset record
     const asset = await (this.prisma as any).asset.create({
       data: {
         tenantId: ctx.tenantId,
         itemId: data.itemId,
         purchaseOrderLineId,
+        receivingSessionId: sessionId,
         assetTag: data.assetTag,
         serialNumber: data.serialNumber ?? null,
         status: AssetStatus.AVAILABLE,

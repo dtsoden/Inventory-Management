@@ -57,6 +57,7 @@ add_column_if_missing Vendor  state     TEXT
 add_column_if_missing Vendor  zip       TEXT
 add_column_if_missing Vendor  country   TEXT
 add_column_if_missing Vendor  rating    INTEGER
+add_column_if_missing Asset   receivingSessionId TEXT
 
 # --- Check VAULT_KEY is set ---------------------------------------
 if [ -z "$VAULT_KEY" ]; then

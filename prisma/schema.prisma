@@ -252,6 +252,7 @@ model Asset {
   tenantId            String
   itemId              String
   purchaseOrderLineId String?
+  receivingSessionId  String?
   assetTag            String?
   serialNumber        String?
   status              String   @default("AVAILABLE")
@@ -267,10 +268,12 @@ model Asset {
   tenant            Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   item              Item               @relation(fields: [itemId], references: [id], onDelete: Restrict)
   purchaseOrderLine PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: SetNull)
+  receivingSession  ReceivingSession?  @relation(fields: [receivingSessionId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([itemId])
   @@index([purchaseOrderLineId])
+  @@index([receivingSessionId])
   @@index([status])
   @@index([assetTag])
 }
@@ -294,6 +297,7 @@ model ReceivingSession {
   updatedAt           DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assets Asset[]
 
   @@index([tenantId])
   @@index([status])
