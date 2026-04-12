@@ -39,6 +39,12 @@ if [ -z "$NEXTAUTH_SECRET" ]; then
   if [ -n "$SECRET" ]; then
     export NEXTAUTH_SECRET="$SECRET"
     echo "[init] NEXTAUTH_SECRET loaded from database"
+  else
+    # Fresh install: no setup yet. Generate a temporary secret so NextAuth
+    # can function during the setup wizard. Setup will store the permanent
+    # one in the database; next restart picks it up.
+    export NEXTAUTH_SECRET=$(head -c 48 /dev/urandom | base64)
+    echo "[init] NEXTAUTH_SECRET generated (temporary, pre-setup)"
   fi
 fi
 
