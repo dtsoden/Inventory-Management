@@ -78,7 +78,6 @@ async function saveDataUrlFavicon(
 }
 
 interface SetupPayload {
-  passphrase: string;
   platformName: string;
   adminEmail: string;
   adminPassword: string;
@@ -108,7 +107,6 @@ interface SetupPayload {
 }
 
 const REQUIRED_FIELDS: (keyof SetupPayload)[] = [
-  'passphrase',
   'platformName',
   'adminEmail',
   'adminPassword',
@@ -155,35 +153,36 @@ export async function POST(request: NextRequest) {
 
     const payload = body as SetupPayload;
 
-    // 3. Derive encryption key from passphrase
+    // 3. Read VAULT_KEY from environment
+    const vaultKeyHex = process.env.VAULT_KEY;
+    if (!vaultKeyHex || vaultKeyHex.length < 32) {
+      return NextResponse.json(
+        { error: 'VAULT_KEY environment variable is not set. Generate one with: openssl rand -hex 32' },
+        { status: 400 },
+      );
+    }
+    const vaultKey = Buffer.from(vaultKeyHex, 'hex');
     const encryption = new EncryptionService();
-    const salt = EncryptionService.generateSalt();
-    const derivedKey = await encryption.deriveKey(payload.passphrase, salt);
-    const keyHash = encryption.hashForVerification(derivedKey);
+    const keyHash = encryption.hashForVerification(vaultKey);
 
-    // 4. Create SetupState record with salt and key hash
+    // 4. Create SetupState record with key hash for verification
     await prisma.setupState.upsert({
       where: { id: 1 },
       create: {
         id: 1,
         isSetupComplete: false,
-        encryptionSalt: salt,
+        encryptionSalt: '',
         adminPasswordHash: keyHash,
       },
       update: {
-        encryptionSalt: salt,
+        encryptionSalt: '',
         adminPasswordHash: keyHash,
       },
     });
 
     // 5. Store config values via ConfigService
     const configService = new ConfigService(prisma, encryption);
-    configService.setVaultKey(derivedKey);
-
-    // Persist vault key so the app can auto-unlock on boot
-    const vaultKeyPath = path.join(process.cwd(), 'data', '.vault-key');
-    await mkdir(path.dirname(vaultKeyPath), { recursive: true });
-    await writeFile(vaultKeyPath, derivedKey.toString('hex'), { mode: 0o600 });
+    configService.setVaultKey(vaultKey);
 
     await configService.set('platform_name', payload.platformName, {
       isSecret: false,
@@ -361,12 +360,21 @@ export async function POST(request: NextRequest) {
       console.error('Default role seeding failed (non-fatal):', roleSeedError);
     }
 
-    // 8. Generate NEXTAUTH_SECRET if not set in environment
-    const nextAuthSecret = process.env.NEXTAUTH_SECRET || randomBytes(32).toString('base64');
-    await configService.set('nextauth_secret', nextAuthSecret, {
-      isSecret: true,
-      category: 'auth',
-      description: 'NextAuth.js secret for session signing',
+    // 8. Generate NEXTAUTH_SECRET and store unencrypted so start.sh can
+    // read it from SQLite and export it before the app boots. The signing
+    // key is useless without the running server, so plaintext storage in
+    // the DB is acceptable.
+    const nextAuthSecret = randomBytes(32).toString('base64');
+    await prisma.systemConfig.upsert({
+      where: { key: 'nextauth_secret' },
+      create: {
+        key: 'nextauth_secret',
+        value: nextAuthSecret,
+        isSecret: false,
+        category: 'auth',
+        description: 'NextAuth.js secret for session signing',
+      },
+      update: { value: nextAuthSecret },
     });
 
     // 9. Mark setup as complete

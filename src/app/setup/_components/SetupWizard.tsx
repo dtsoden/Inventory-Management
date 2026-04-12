@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { WelcomeStep } from './WelcomeStep';
 import { AdminStep } from './AdminStep';
 import { OrgStep } from './OrgStep';
 import { BrandingStep } from './BrandingStep';
@@ -14,7 +13,6 @@ import { CorsStep } from './CorsStep';
 import { ReviewStep } from './ReviewStep';
 
 export interface SetupData {
-  passphrase: string;
   adminEmail: string;
   adminPassword: string;
   adminFirstName: string;
@@ -43,7 +41,6 @@ export interface SetupData {
 }
 
 const STEP_TITLES = [
-  'Welcome',
   'Admin Account',
   'Organization',
   'Branding',
@@ -53,7 +50,6 @@ const STEP_TITLES = [
 ];
 
 const initialData: SetupData = {
-  passphrase: '',
   adminEmail: '',
   adminPassword: '',
   adminFirstName: '',
@@ -93,25 +89,22 @@ export function SetupWizard() {
 
   function validateCurrentStep(): string | null {
     switch (currentStep) {
-      case 0: // Welcome
-        if (data.passphrase.length < 12) return 'Encryption passphrase must be at least 12 characters.';
-        return null;
-      case 1: // Admin
+      case 0: // Admin
         if (!data.adminFirstName.trim()) return 'First name is required.';
         if (!data.adminLastName.trim()) return 'Last name is required.';
         if (!data.adminEmail.includes('@')) return 'A valid email address is required.';
         if (data.adminPassword.length < 8) return 'Password must be at least 8 characters.';
         return null;
-      case 2: // Org
+      case 1: // Org
         if (!data.orgName.trim()) return 'Organization name is required.';
         if (!data.orgSlug.trim()) return 'URL slug is required.';
         return null;
-      case 3: // Branding (all optional)
+      case 2: // Branding (all optional)
         return null;
-      case 4: // Integrations
+      case 3: // Integrations
         if (!data.openaiApiKey.trim()) return 'OpenAI API key is required for AI features.';
         return null;
-      case 5: // CORS (has default *)
+      case 4: // CORS (has default *)
         if (!data.corsOrigins.trim()) return 'CORS origins are required. Use * for all origins.';
         return null;
       default:
@@ -147,8 +140,6 @@ export function SetupWizard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          passphrase: data.passphrase,
-          // Platform name = organization name (single source of truth, single tenant)
           platformName: data.orgName,
           adminEmail: data.adminEmail,
           adminPassword: data.adminPassword,
@@ -197,7 +188,6 @@ export function SetupWizard() {
   }
 
   const stepComponent = [
-    <WelcomeStep key="welcome" data={data} onChange={updateData} />,
     <AdminStep key="admin" data={data} onChange={updateData} />,
     <OrgStep key="org" data={data} onChange={updateData} />,
     <BrandingStep key="branding" data={data} onChange={updateData} />,

@@ -5,6 +5,6 @@ services:
       - "5600:3000"
     volumes:
       - ./data:/app/data
-    environment:
-      - DATABASE_URL=file:/app/data/inventory.db
+    env_file:
+      - .env
     restart: unless-stopped

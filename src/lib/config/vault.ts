@@ -1,10 +1,6 @@
-import { readFileSync, existsSync } from 'fs';
-import path from 'path';
 import { prisma } from '@/lib/db';
 import { EncryptionService } from '@/lib/encryption/EncryptionService';
 import { ConfigService } from './ConfigService';
-
-const VAULT_KEY_PATH = path.join(process.cwd(), 'data', '.vault-key');
 
 let _configService: ConfigService | null = null;
 let _initAttempted = false;
@@ -14,14 +10,7 @@ function initVault(): ConfigService | null {
   _initAttempted = true;
 
   try {
-    let keyHex: string | undefined;
-
-    if (process.env.VAULT_KEY) {
-      keyHex = process.env.VAULT_KEY;
-    } else if (existsSync(VAULT_KEY_PATH)) {
-      keyHex = readFileSync(VAULT_KEY_PATH, 'utf-8').trim();
-    }
-
+    const keyHex = process.env.VAULT_KEY;
     if (!keyHex) return null;
 
     const key = Buffer.from(keyHex, 'hex');
@@ -46,9 +35,7 @@ export async function getVaultSecret(key: string): Promise<string | null> {
 }
 
 export async function getOpenAIKey(): Promise<string | null> {
-  const fromVault = await getVaultSecret('openai_api_key');
-  if (fromVault) return fromVault;
-  return process.env.OPENAI_API_KEY || null;
+  return getVaultSecret('openai_api_key');
 }
 
 export async function getOpenAIModel(): Promise<string> {

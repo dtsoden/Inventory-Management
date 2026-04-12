@@ -5,24 +5,6 @@
 
 DB=/app/data/inventory.db
 
-# --- Auto-generate NEXTAUTH_SECRET if not provided -----------------
-# Persists to /app/data/.nextauth-secret so the same value survives
-# container restarts without the user ever setting an env var.
-if [ -z "$NEXTAUTH_SECRET" ]; then
-  SECRET_FILE=/app/data/.nextauth-secret
-  if [ ! -f "$SECRET_FILE" ]; then
-    head -c 48 /dev/urandom | base64 > "$SECRET_FILE"
-    echo "[init] Generated NEXTAUTH_SECRET"
-  fi
-  export NEXTAUTH_SECRET=$(cat "$SECRET_FILE")
-fi
-
-# --- Default NEXTAUTH_URL to localhost if not set ------------------
-if [ -z "$NEXTAUTH_URL" ]; then
-  export NEXTAUTH_URL="http://localhost:${PORT:-3000}"
-  echo "[init] NEXTAUTH_URL defaulting to $NEXTAUTH_URL"
-fi
-
 # --- Initialize database if it doesn't exist ----------------------
 if [ ! -f "$DB" ]; then
   echo "[init] No database found, initializing from template..."
@@ -31,7 +13,6 @@ if [ ! -f "$DB" ]; then
 fi
 
 # --- Idempotent runtime migrations --------------------------------
-# Never delete user data, only ALTER TABLE additions.
 add_column_if_missing() {
   table="$1"
   column="$2"
@@ -49,6 +30,28 @@ add_column_if_missing Vendor  state     TEXT
 add_column_if_missing Vendor  zip       TEXT
 add_column_if_missing Vendor  country   TEXT
 add_column_if_missing Vendor  rating    INTEGER
+
+# --- Read NEXTAUTH_SECRET from the database -----------------------
+# Stored unencrypted in SystemConfig during setup. The signing key is
+# useless without the running server so plaintext in the DB is fine.
+if [ -z "$NEXTAUTH_SECRET" ]; then
+  SECRET=$(sqlite3 "$DB" "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1" 2>/dev/null)
+  if [ -n "$SECRET" ]; then
+    export NEXTAUTH_SECRET="$SECRET"
+    echo "[init] NEXTAUTH_SECRET loaded from database"
+  fi
+fi
+
+# --- Default NEXTAUTH_URL to localhost if not set ------------------
+if [ -z "$NEXTAUTH_URL" ]; then
+  export NEXTAUTH_URL="http://localhost:${PORT:-3000}"
+fi
+
+# --- Check VAULT_KEY is set ---------------------------------------
+if [ -z "$VAULT_KEY" ]; then
+  echo "[warn] VAULT_KEY is not set. Encrypted secrets will be unreadable."
+  echo "[warn] Set VAULT_KEY in your .env file. See README for details."
+fi
 
 # --- Start the application ----------------------------------------
 exec node server.js

@@ -38,16 +38,6 @@ export function ReviewStep({ data, onChange, onSubmit, isSubmitting }: ReviewSte
       <div className="space-y-1">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
-          Security
-        </h3>
-        <ReviewRow label="Passphrase" value={maskValue(data.passphrase)} />
-      </div>
-
-      <Separator />
-
-      <div className="space-y-1">
-        <h3 className="text-sm font-semibold flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--brand-green)' }} />
           Admin Account
         </h3>
         <ReviewRow label="Name" value={`${data.adminFirstName} ${data.adminLastName}`} />

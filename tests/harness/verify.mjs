@@ -27,9 +27,9 @@ const BASE = process.env.HARNESS_BASE_URL || 'http://localhost:5600';
 const TEST_EMAIL = `harness-${Date.now()}@local.test`;
 const TEST_PASSWORD = 'harness-test-1234';
 const TEST_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
-// Read NEXTAUTH_SECRET from the persisted file inside the container.
+// Read NEXTAUTH_SECRET from the database (stored unencrypted in SystemConfig).
 const NEXTAUTH_SECRET = execSync(
-  `docker exec shane-inventory-inventory-1 cat /app/data/.nextauth-secret`,
+  `docker exec shane-inventory-inventory-1 sqlite3 /app/data/inventory.db "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1"`,
   { encoding: 'utf8' },
 ).trim();
 // NEXTAUTH_URL now defaults to http://localhost:3000, so NextAuth uses
