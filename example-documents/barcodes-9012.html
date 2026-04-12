@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Asset Tag Barcodes - Packing Slip 02 (Dell)</title>
+<title>Asset Tag Barcodes - SAMPLE-PO-9012 (Logitech)</title>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <style>
@@ -38,32 +38,38 @@ p.subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
 </style>
 </head>
 <body>
-<h1>Asset Tag Barcodes - Dell Order (SAMPLE-PO-9005)</h1>
-<p class="subtitle">Each card has a Code 128 barcode (1D) and a QR code (2D). Your Netum C750 can scan either format.</p>
+<h1>Asset Tag Barcodes - SAMPLE-PO-9012 (Logitech)</h1>
+<p class="subtitle">Each card has a Code 128 barcode (1D) and a QR code (2D). Scan either format.</p>
 
 <div class="grid" id="cards"></div>
 
 <div class="tips">
-<strong>Scanning tips for screen reading:</strong>
+<strong>Scanning tips:</strong>
 <ul>
 <li>Set screen brightness to maximum</li>
 <li>Hold scanner 4-6 inches from screen</li>
-<li>Try the QR code if the barcode doesn't scan (2D codes are more reliable from screens)</li>
-<li>If neither scans, zoom in the browser (Ctrl+Plus) to make the codes larger</li>
-<li>Alternatively, print this page for the most reliable scanning</li>
+<li>Try the QR code if the barcode doesn't scan</li>
+<li>Zoom in (Ctrl+Plus) to make codes larger if needed</li>
+<li>Print this page for the most reliable scanning</li>
 </ul>
 </div>
 
 <script>
 const items = [
-  { label: 'Dell Latitude 5540 Laptop #1', value: 'SN-DL5540-7891' },
-  { label: 'Dell Latitude 5540 Laptop #2', value: 'SN-DL5540-7892' },
-  { label: 'Dell Latitude 5540 Laptop #3', value: 'SN-DL5540-7893' },
-  { label: 'Dell P2723QE Monitor #1', value: 'SN-DP27-4401' },
-  { label: 'Dell P2723QE Monitor #2', value: 'SN-DP27-4402' },
-  { label: 'Dell P2723QE Monitor #3', value: 'SN-DP27-4403' },
-  { label: 'Dell OptiPlex 7010 Desktop #1', value: 'SN-DO7010-2201' },
-  { label: 'Dell OptiPlex 7010 Desktop #2', value: 'SN-DO7010-2202' },
+  { label: "Dell UltraSharp U2723QE 27\" 4K Monitor", value: "CN0D7K2M01" },
+  { label: "Dell WD22TB4 Thunderbolt Dock", value: "CN0W4TB401" },
+  { label: "Dell WD22TB4 Thunderbolt Dock", value: "CN0W4TB402" },
+  { label: "Logitech Brio 4K Webcam", value: "2251LZ0001" },
+  { label: "Logitech Brio 4K Webcam", value: "2251LZ0002" },
+  { label: "Logitech Brio 4K Webcam", value: "2251LZ0003" },
+  { label: "Logitech Brio 4K Webcam", value: "2251LZ0004" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0001" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0002" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0003" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0004" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0005" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0006" },
+  { label: "Logitech MX Keys S Keyboard", value: "2252MK0007" }
 ];
 
 const container = document.getElementById('cards');
@@ -81,7 +87,6 @@ items.forEach((item, i) => {
   `;
   container.appendChild(card);
 
-  // Generate Code 128 barcode with wider bars
   JsBarcode(`#bar${i}`, item.value, {
     format: 'CODE128',
     width: 3,
@@ -92,7 +97,6 @@ items.forEach((item, i) => {
     lineColor: '#000000',
   });
 
-  // Generate QR code
   const qr = qrcode(0, 'M');
   qr.addData(item.value);
   qr.make();

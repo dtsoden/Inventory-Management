@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Packing Slip - SAMPLE-PO-9011</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; color: #222; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #333; padding-bottom: 16px; margin-bottom: 20px; }
+  .header h1 { font-size: 24px; }
+  .header .po-number { font-size: 20px; font-weight: bold; color: #333; text-align: right; }
+  .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; font-size: 14px; }
+  .meta-box { border: 1px solid #ddd; border-radius: 6px; padding: 12px; }
+  .meta-box h3 { font-size: 11px; text-transform: uppercase; color: #888; margin-bottom: 6px; letter-spacing: 1px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { background: #f5f5f5; border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; text-transform: uppercase; color: #555; }
+  tbody td { border: 1px solid #eee; padding: 8px; vertical-align: top; }
+  tbody tr:nth-child(4n+3) td, tbody tr:nth-child(4n+4) td { background: #fafafa; }
+  .total-row td { border-top: 2px solid #333; font-weight: bold; font-size: 16px; }
+  .footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 12px; color: #888; text-align: center; }
+  @media print { body { margin: 0; padding: 10px; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>PACKING SLIP</h1>
+      <p style="color:#666;font-size:14px;margin-top:4px">Apple Inc.</p>
+    </div>
+    <div class="po-number">
+      SAMPLE-PO-9011<br>
+      <span style="font-size:13px;font-weight:normal;color:#666">Date: 2026-04-11</span>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div class="meta-box">
+      <h3>Ship From</h3>
+      <p>Apple Inc.<br>Distribution Center</p>
+    </div>
+    <div class="meta-box">
+      <h3>Ship To</h3>
+      <p>Network Closet C, 800 Tech Park Way, San Jose CA 95110</p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">#</th>
+        <th>Item</th>
+        <th style="width:60px;text-align:center">Qty</th>
+        <th style="width:100px;text-align:right">Unit Price</th>
+        <th style="width:100px;text-align:right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+    <tr>
+      <td>1</td>
+      <td><strong>Cisco ISR 4331 Router</strong><br><span style="color:#666;font-size:12px">SKU: CIS-ISR4331</span></td>
+      <td style="text-align:center">2</td>
+      <td style="text-align:right">$3295.00</td>
+      <td style="text-align:right">$6590.00</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td colspan="4" style="font-size:11px;color:#555;padding:2px 8px 8px">
+        <strong>Serial Numbers:</strong> FDO2401C01, FDO2401C02
+      </td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>Cisco Meraki MR46 Access Point</strong><br><span style="color:#666;font-size:12px">SKU: CIS-MR46</span></td>
+      <td style="text-align:center">6</td>
+      <td style="text-align:right">$795.00</td>
+      <td style="text-align:right">$4770.00</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td colspan="4" style="font-size:11px;color:#555;padding:2px 8px 8px">
+        <strong>Serial Numbers:</strong> Q3AC-MR46-001, Q3AC-MR46-002, Q3AC-MR46-003, Q3AC-MR46-004, Q3AC-MR46-005, Q3AC-MR46-006
+      </td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>Cisco SFP-10G-SR Transceiver</strong><br><span style="color:#666;font-size:12px">SKU: CIS-SFP10GSR</span></td>
+      <td style="text-align:center">5</td>
+      <td style="text-align:right">$245.00</td>
+      <td style="text-align:right">$1225.00</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td colspan="4" style="font-size:11px;color:#555;padding:2px 8px 8px">
+        <strong>Serial Numbers:</strong> AVD2301SR01, AVD2301SR02, AVD2301SR03, AVD2301SR04, AVD2301SR05
+      </td>
+    </tr>
+      <tr class="total-row">
+        <td colspan="4" style="text-align:right">Subtotal</td>
+        <td style="text-align:right">$12585.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    This is a sample packing slip for testing purposes. Generated for Shane Inventory demo.
+  </div>
+</body>
+</html>
