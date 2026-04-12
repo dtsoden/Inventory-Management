@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
-import { authOptions } from '@/lib/auth-options';
+import { getAuthOptions } from '@/lib/auth-options';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,7 @@ export default async function RootPage() {
   }
 
   // 2. Check if user is authenticated
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
     redirect('/login');

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { authOptions } from '@/lib/auth-options';
+import { getAuthOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/db';
 import { parseBranding, hexToHsl } from '@/lib/branding';
 import { AppShell } from '@/components/shared/AppShell';
@@ -12,6 +12,7 @@ export default async function AuthenticatedLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {

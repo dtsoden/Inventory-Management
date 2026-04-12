@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import type { SessionUser } from '@/lib/types';
+import { getAuthSecret } from '@/lib/auth-secret';
 
 async function getClientIp(): Promise<string | undefined> {
   try {
@@ -19,7 +20,10 @@ async function getClientIp(): Promise<string | undefined> {
   }
 }
 
-export const authOptions: NextAuthOptions = {
+export async function getAuthOptions(): Promise<NextAuthOptions> {
+  const secret = await getAuthSecret();
+  return {
+    secret,
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -195,4 +199,5 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 8 * 60 * 60, // 8 hours
   },
-};
+  };
+}

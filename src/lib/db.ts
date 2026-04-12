@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
   prismaAdapter: PrismaLibSql | undefined;
 };
 
-const databaseUrl = process.env.DATABASE_URL || 'file:./data/inventory.db';
+const databaseUrl = 'file:./data/inventory.db';
 
 const adapter =
   globalForPrisma.prismaAdapter ??

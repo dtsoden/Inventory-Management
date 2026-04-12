@@ -1,10 +1,11 @@
 import { getServerSession } from 'next-auth';
 import { headers } from 'next/headers';
-import { authOptions } from '@/lib/auth-options';
+import { getAuthOptions } from '@/lib/auth-options';
 import { UnauthorizedError } from '@/lib/errors';
 import type { SessionUser, TenantContext } from '@/lib/types';
 
 export async function requireAuth(): Promise<SessionUser> {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     throw new UnauthorizedError();

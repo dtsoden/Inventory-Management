@@ -4,6 +4,30 @@
 # ----------------------------------------------------------------
 
 DB=/app/data/inventory.db
+DATA_DIR=/app/data
+
+# --- Verify data directory is a bind mount ------------------------
+# If /app/data is ephemeral container storage, all data will be lost
+# when the container is destroyed. Refuse to start.
+if ! mountpoint -q "$DATA_DIR" 2>/dev/null; then
+  echo ""
+  echo "============================================================"
+  echo "  FATAL: /app/data is NOT a bind mount."
+  echo ""
+  echo "  The data directory must be mapped to persistent storage"
+  echo "  outside the container, or ALL DATA WILL BE LOST when the"
+  echo "  container is destroyed."
+  echo ""
+  echo "  Add this to your docker-compose.yml:"
+  echo ""
+  echo "    volumes:"
+  echo "      - ./data:/app/data"
+  echo ""
+  echo "  Then restart: docker compose up -d"
+  echo "============================================================"
+  echo ""
+  exit 1
+fi
 
 # --- Initialize database if it doesn't exist ----------------------
 if [ ! -f "$DB" ]; then
@@ -30,28 +54,6 @@ add_column_if_missing Vendor  state     TEXT
 add_column_if_missing Vendor  zip       TEXT
 add_column_if_missing Vendor  country   TEXT
 add_column_if_missing Vendor  rating    INTEGER
-
-# --- Read NEXTAUTH_SECRET from the database -----------------------
-# Stored unencrypted in SystemConfig during setup. The signing key is
-# useless without the running server so plaintext in the DB is fine.
-if [ -z "$NEXTAUTH_SECRET" ]; then
-  SECRET=$(sqlite3 "$DB" "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1" 2>/dev/null)
-  if [ -n "$SECRET" ]; then
-    export NEXTAUTH_SECRET="$SECRET"
-    echo "[init] NEXTAUTH_SECRET loaded from database"
-  else
-    # Fresh install: no setup yet. Generate a temporary secret so NextAuth
-    # can function during the setup wizard. Setup will store the permanent
-    # one in the database; next restart picks it up.
-    export NEXTAUTH_SECRET=$(head -c 48 /dev/urandom | base64)
-    echo "[init] NEXTAUTH_SECRET generated (temporary, pre-setup)"
-  fi
-fi
-
-# --- Default NEXTAUTH_URL to localhost if not set ------------------
-if [ -z "$NEXTAUTH_URL" ]; then
-  export NEXTAUTH_URL="http://localhost:${PORT:-3000}"
-fi
 
 # --- Check VAULT_KEY is set ---------------------------------------
 if [ -z "$VAULT_KEY" ]; then

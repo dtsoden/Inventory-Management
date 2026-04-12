@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth-options';
+import { getAuthOptions } from '../auth-options';
 import {
   AppError,
   UnauthorizedError,
@@ -24,6 +24,7 @@ export abstract class BaseApiHandler {
   handle(method: string, options?: HandlerOptions) {
     return async (req: NextRequest): Promise<NextResponse> => {
       try {
+        const authOptions = await getAuthOptions();
         const session = await getServerSession(authOptions);
 
         if (!session?.user) {

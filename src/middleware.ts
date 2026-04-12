@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 import { applyCors, handlePreflight } from './lib/middleware/cors';
+import { getAuthSecret } from '@/lib/auth-secret';
 
 export async function middleware(req: NextRequest) {
   const preflightResponse = handlePreflight(req);
   if (preflightResponse) return applyCors(req, preflightResponse);
 
-  // Gate /docs/admin/* to authenticated ADMIN users only.
-  // Static Docusaurus output lives under /docs and is otherwise public.
   const { pathname } = req.nextUrl;
   if (pathname.startsWith('/docs/admin')) {
+    const secret = await getAuthSecret();
     const token = await getToken({
       req,
-      secret: process.env.NEXTAUTH_SECRET,
+      secret,
     });
     if (!token || (token as { role?: string }).role !== 'ADMIN') {
       const url = req.nextUrl.clone();

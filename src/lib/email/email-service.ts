@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { getVaultSecret } from '@/lib/config/vault';
+import { prisma } from '@/lib/db';
 
 export interface SendPurchaseOrderOptions {
   to: string;
@@ -9,28 +11,37 @@ export interface SendPurchaseOrderOptions {
   fromEmail?: string;
 }
 
+async function getSmtpConfig() {
+  const [host, port, user, password, from] = await Promise.all([
+    prisma.systemConfig.findUnique({ where: { key: 'smtp_host' } }).then(r => r?.value || null),
+    prisma.systemConfig.findUnique({ where: { key: 'smtp_port' } }).then(r => r?.value || '587'),
+    prisma.systemConfig.findUnique({ where: { key: 'smtp_user' } }).then(r => r?.value || null),
+    getVaultSecret('smtp_password'),
+    prisma.systemConfig.findUnique({ where: { key: 'smtp_from' } }).then(r => r?.value || null),
+  ]);
+  return { host, port, user, password, from };
+}
+
 export class EmailService {
   async sendPurchaseOrder(options: SendPurchaseOrderOptions): Promise<void> {
+    const smtp = await getSmtpConfig();
+    if (!smtp.host) {
+      throw new Error('SMTP not configured. Set it in Settings > Integrations.');
+    }
+
     const transport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'localhost',
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_SECURE === 'true',
+      host: smtp.host,
+      port: parseInt(smtp.port || '587', 10),
+      secure: parseInt(smtp.port || '587', 10) === 465,
       auth:
-        process.env.SMTP_USER && process.env.SMTP_PASS
-          ? {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            }
+        smtp.user && smtp.password
+          ? { user: smtp.user, pass: smtp.password }
           : undefined,
     });
 
     const fromAddress =
-      options.fromEmail ||
-      process.env.SMTP_FROM ||
-      'noreply@inventory.local';
+      options.fromEmail || smtp.from || 'noreply@inventory.local';
 
-    // Greet the contact by name when we have one, otherwise fall back to
-    // the company name.
     const greetingName =
       options.contactName && options.contactName.trim()
         ? options.contactName.trim()
