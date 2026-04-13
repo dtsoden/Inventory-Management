@@ -7,7 +7,7 @@ sidebar_label: Data Sources
 
 Path: `/settings/data-sources` and `/settings/data-sources/new`. Source: `src/app/(authenticated)/settings/data-sources/page.tsx` and `src/app/(authenticated)/settings/data-sources/new/page.tsx`. API: `/api/settings/data-sources` and `/api/settings/data-sources/:id/sync`. Data model: `ExternalDataSource` in `prisma/schema.prisma`.
 
-The External Data Sources feature lets an administrator hook Shane Inventory up to any JSON HTTP API that returns a list of catalog items, describe how the remote fields map onto the local `Item` schema, and then sync on demand. The mapping itself is assisted by OpenAI: the AI suggests a mapping based on the remote field names and sample values, then a human confirms or tweaks before anything is saved. This is the human in the loop model, by design.
+The External Data Sources feature lets an administrator hook Inventory Management up to any JSON HTTP API that returns a list of catalog items, describe how the remote fields map onto the local `Item` schema, and then sync on demand. The mapping itself is assisted by OpenAI: the AI suggests a mapping based on the remote field names and sample values, then a human confirms or tweaks before anything is saved. This is the human in the loop model, by design.
 
 ## List view
 

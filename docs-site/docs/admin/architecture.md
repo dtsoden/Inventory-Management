@@ -5,7 +5,7 @@ sidebar_label: Architecture
 
 # System Architecture
 
-Shane Inventory is a single container, single tenant Next.js 15 application backed by SQLite. It is designed to run in one Docker container, write to one mounted volume, and speak to the outside world over a single HTTPS port fronted by a reverse proxy or Cloudflared tunnel.
+Inventory Management is a single container, single tenant Next.js 15 application backed by SQLite. It is designed to run in one Docker container, write to one mounted volume, and speak to the outside world over a single HTTPS port fronted by a reverse proxy or Cloudflared tunnel.
 
 ```mermaid
 flowchart TB

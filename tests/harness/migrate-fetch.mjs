@@ -46,7 +46,7 @@ let totalFiles = 0;
 let skipped = [];
 
 for (const rel of FILES) {
-  const path = `C:/REPO/Shane-Inventory/${rel}`;
+  const path = `C:/REPO/Inventory-Management/${rel}`;
   let src;
   try {
     src = readFileSync(path, 'utf8');

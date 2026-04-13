@@ -5,7 +5,7 @@ sidebar_label: Runtime Migrations
 
 # Runtime Migrations
 
-Shane Inventory upgrades its schema in place on container startup using a small, boring, idempotent shell script. It does not run `prisma migrate` inside the container. This page explains why, how it works, and how to add a new column safely without nuking user data.
+Inventory Management upgrades its schema in place on container startup using a small, boring, idempotent shell script. It does not run `prisma migrate` inside the container. This page explains why, how it works, and how to add a new column safely without nuking user data.
 
 ## Why not `prisma migrate`
 

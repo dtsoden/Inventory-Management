@@ -1,4 +1,4 @@
-# Shane Inventory Management Platform - Design Specification
+# Inventory Management Management Platform - Design Specification
 
 ## Overview
 

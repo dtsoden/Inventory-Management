@@ -11,13 +11,13 @@ const TEST_EMAIL = `qa-${Date.now()}@local.test`;
 const TEST_PASSWORD = 'qa-1234';
 const TEST_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
 const NEXTAUTH_SECRET = execSync(
-  `docker exec shane-inventory-inventory-1 sqlite3 /app/data/inventory.db "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1"`,
+  `docker exec inventory-management-inventory-1 sqlite3 /app/data/inventory.db "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1"`,
   { encoding: 'utf8' },
 ).trim();
 
 function sqlite(sql) {
   return execSync(
-    'docker exec -i shane-inventory-inventory-1 sqlite3 /app/data/inventory.db',
+    'docker exec -i inventory-management-inventory-1 sqlite3 /app/data/inventory.db',
     { input: sql, encoding: 'utf8' },
   ).trim();
 }

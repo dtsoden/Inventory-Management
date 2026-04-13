@@ -5,7 +5,7 @@ sidebar_label: Settings Overview
 
 # Settings Overview
 
-The `/settings` area is the administrative control surface for a running Shane Inventory deployment. Every value that was collected during the setup wizard can be edited here, along with a few things the wizard does not expose (user management, password policy, custom roles, sample data, list customization).
+The `/settings` area is the administrative control surface for a running Inventory Management deployment. Every value that was collected during the setup wizard can be edited here, along with a few things the wizard does not expose (user management, password policy, custom roles, sample data, list customization).
 
 The settings layout is a two column page: a left hand nav with seven tabs, and a content area that renders the selected tab. The nav lives in `src/app/(authenticated)/settings/layout.tsx` and is the same on every settings page.
 

@@ -30,7 +30,7 @@ Open **Receiving** from the sidebar and click **Receive Shipment**.
 
 ### Scan the packing slip barcode
 
-Packing slips printed from Shane-Inventory include both a **Code 128** barcode and a **QR code** that encode the purchase order number. You have two ways to scan them:
+Packing slips printed from Inventory-Management include both a **Code 128** barcode and a **QR code** that encode the purchase order number. You have two ways to scan them:
 
 - **Netum handheld scanner.** Click the barcode field to give it focus, then pull the trigger on your scanner. The PO will load instantly.
 - **Camera scan.** If you do not have a handheld scanner nearby, click the camera icon next to the barcode field. Your browser will ask for camera permission, and you can aim your webcam or phone camera at the code. The system reads both Code 128 and QR codes.
@@ -43,7 +43,7 @@ Once the PO loads, you will see the vendor, the expected items, and the quantiti
 
 ## Step 2: Extract the packing slip with AI
 
-Shane-Inventory includes an AI extraction step that saves you from typing out every line on the packing slip.
+Inventory-Management includes an AI extraction step that saves you from typing out every line on the packing slip.
 
 1. Click **Upload Packing Slip** and choose a photo or PDF of the packing slip. You can snap a picture with your phone or use a scanned file.
 2. The AI reads the image and returns a proposed list of items and quantities.
@@ -54,7 +54,7 @@ If the AI misses a line, you can add it manually from the purchase order. If the
 
 ## Step 3: Scan the assets
 
-Most items in Shane-Inventory are tracked as individual assets: every unit has its own tag or serial number. During receiving, you scan each physical unit so the system knows exactly what landed in your warehouse.
+Most items in Inventory-Management are tracked as individual assets: every unit has its own tag or serial number. During receiving, you scan each physical unit so the system knows exactly what landed in your warehouse.
 
 1. Pick up the first unit from the shipment.
 2. Scan its asset tag (or serial number) with your handheld scanner, or click the camera icon to scan with your webcam.

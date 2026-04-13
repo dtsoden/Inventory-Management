@@ -41,11 +41,6 @@ export default function Home(): ReactNode {
               to="/admin/setup-wizard">
               Admin Guide
             </Link>
-            <Link
-              className="button button--secondary button--lg"
-              to="/comparison">
-              Shane Comparison
-            </Link>
           </div>
         </div>
       </header>
@@ -60,11 +55,6 @@ export default function Home(): ReactNode {
             <h3>For Administrators</h3>
             <p>Setup wizard, Docker deployment, every settings page in detail, runtime migrations, and architecture.</p>
             <Link to="/admin/setup-wizard">Read the Admin Guide →</Link>
-          </div>
-          <div style={{padding: '1.5rem', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: 8}}>
-            <h3>Why Pro-Code Won</h3>
-            <p>A side-by-side comparison against Shane Young&apos;s Power Platform demo, with the business case for AI-assisted pro-code.</p>
-            <Link to="/comparison">Read the Comparison →</Link>
           </div>
         </section>
       </main>

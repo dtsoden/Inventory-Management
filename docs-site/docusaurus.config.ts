@@ -12,11 +12,11 @@ const config: Config = {
   },
 
   // Served from the host Next.js app under /docs
-  url: 'https://shane-inventory.davidsoden.com',
+  url: 'https://inventory.davidsoden.com',
   baseUrl: '/docs/',
 
   organizationName: 'dtsoden',
-  projectName: 'Shane-Inventory',
+  projectName: 'Inventory-Management',
 
   onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
@@ -80,12 +80,7 @@ const config: Config = {
           label: 'Admin Guide',
         },
         {
-          to: '/comparison',
-          label: 'Shane Comparison',
-          position: 'left',
-        },
-        {
-          href: 'https://github.com/dtsoden/Shane-Inventory',
+          href: 'https://github.com/dtsoden/Inventory-Management',
           label: 'GitHub',
           position: 'right',
         },
@@ -99,7 +94,6 @@ const config: Config = {
           items: [
             {label: 'User Guide', to: '/user/getting-started'},
             {label: 'Admin Guide', to: '/admin/setup-wizard'},
-            {label: 'Shane Comparison', to: '/comparison'},
           ],
         },
         {
@@ -107,7 +101,7 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/dtsoden/Shane-Inventory',
+              href: 'https://github.com/dtsoden/Inventory-Management',
             },
           ],
         },

@@ -7,7 +7,7 @@ sidebar_label: Branding
 
 Path: `/settings` (the Branding tab on the Organization page). Source: `src/app/(authenticated)/settings/page.tsx`. Library: `src/lib/branding.ts`. API: `/api/settings/branding`, `/api/settings/branding/logo`, `/api/settings/branding/favicon`.
 
-Shane Inventory is a white label application. Every visual identity value (app name, logo, favicon, primary color, theme mode) is stored in the tenant's settings JSON and rendered server side on every page load. There is no flash of unstyled content on first paint because the branding block is inlined into the HTML before the first byte hits the client.
+Inventory Management is a white label application. Every visual identity value (app name, logo, favicon, primary color, theme mode) is stored in the tenant's settings JSON and rendered server side on every page load. There is no flash of unstyled content on first paint because the branding block is inlined into the HTML before the first byte hits the client.
 
 ## The branding shape
 
@@ -28,7 +28,7 @@ export interface TenantBranding {
 The default values:
 
 - `appName`: `"Inventory Management Platform"`. In practice this is always overwritten by the organization name set in the setup wizard or on the Organization tab. App name and organization name are a single source of truth.
-- `primaryColorLight` and `primaryColorDark`: `#7ed321` (Shane green).
+- `primaryColorLight` and `primaryColorDark`: `#7ed321` (default green).
 - `logoUrlLight`, `logoUrlDark`, `faviconUrl`: all `null`.
 - `themeMode`: `auto`.
 
@@ -86,7 +86,7 @@ On success, the page calls `refreshBranding()` from `BrandingProvider`, which re
 
 ## How server side rendering avoids the flash
 
-The standard approach of reading branding in a client side hook causes a visible flash: the page renders with the default color, then snaps to the tenant's color a few milliseconds later. Shane Inventory avoids this by:
+The standard approach of reading branding in a client side hook causes a visible flash: the page renders with the default color, then snaps to the tenant's color a few milliseconds later. Inventory Management avoids this by:
 
 1. The authenticated layout (`src/app/(authenticated)/layout.tsx`) reads the tenant's settings from SQLite on every request.
 2. `parseBranding()` parses the JSON and returns a `TenantBranding`.

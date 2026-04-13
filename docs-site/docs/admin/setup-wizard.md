@@ -5,7 +5,7 @@ sidebar_label: Setup Wizard
 
 # Initial Setup Wizard
 
-The setup wizard runs once, on the very first load of a fresh Shane Inventory deployment. It collects everything the platform needs to boot: admin credentials, organization identity, branding, integration keys, and CORS settings. When it finishes it flips `SetupState.isSetupComplete` to `true` and the wizard is never shown again.
+The setup wizard runs once, on the very first load of a fresh Inventory Management deployment. It collects everything the platform needs to boot: admin credentials, organization identity, branding, integration keys, and CORS settings. When it finishes it flips `SetupState.isSetupComplete` to `true` and the wizard is never shown again.
 
 **Before running the wizard**, you must have a `VAULT_KEY` set in your `.env` file. The wizard uses this key to encrypt all sensitive configuration. See the [Docker Deployment](/docs/admin/docker-deployment) guide for how to generate it.
 
@@ -26,7 +26,7 @@ Creates the first `ADMIN` user. This user is the only account that exists until 
 
 Component: `OrgStep`
 
-Defines the single tenant that will own all data. Shane Inventory is single-tenant per container.
+Defines the single tenant that will own all data. Inventory Management is single-tenant per container.
 
 - Fields: `orgName`, `orgSlug`
 - Validation: both required

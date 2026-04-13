@@ -7,7 +7,7 @@ sidebar_label: Integrations
 
 Path: `/settings/integrations`. Source: `src/app/(authenticated)/settings/integrations/page.tsx`. API: `/api/settings/integrations`, `/api/settings/ai-models`, `/api/settings/data-sources`.
 
-The Integrations page is a three tab control surface for the external services Shane Inventory talks to: OpenAI (for the AI assistant and field mapping), SMTP (for email notifications), and the External Data Sources catalog. All secret values on this page are encrypted in `SystemConfig` before they hit disk.
+The Integrations page is a three tab control surface for the external services Inventory Management talks to: OpenAI (for the AI assistant and field mapping), SMTP (for email notifications), and the External Data Sources catalog. All secret values on this page are encrypted in `SystemConfig` before they hit disk.
 
 ## AI tab
 
@@ -40,7 +40,7 @@ The Data Sources tab is where external catalog integrations live. Full details i
 
 ## SMTP tab
 
-Shane Inventory uses SMTP for outbound email notifications (low stock alerts, approval requests, order status changes). Everything lives in the `smtp` category of `SystemConfig`.
+Inventory Management uses SMTP for outbound email notifications (low stock alerts, approval requests, order status changes). Everything lives in the `smtp` category of `SystemConfig`.
 
 Fields:
 
@@ -56,7 +56,7 @@ When SMTP is not configured, the Notifications page shows a warning banner and a
 
 ## Catalog API URL
 
-The optional `catalogApiUrl` setting captured in the setup wizard is also surfaced here for later edits. It is persisted under the `integrations` category. The value is a single URL pointing at an external catalog service that Shane Inventory can query. Unlike the data sources feature, this is a legacy single URL integration kept for backward compatibility.
+The optional `catalogApiUrl` setting captured in the setup wizard is also surfaced here for later edits. It is persisted under the `integrations` category. The value is a single URL pointing at an external catalog service that Inventory Management can query. Unlike the data sources feature, this is a legacy single URL integration kept for backward compatibility.
 
 ## How secrets are stored
 

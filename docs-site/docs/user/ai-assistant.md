@@ -3,7 +3,7 @@ title: AI Assistant
 sidebar_label: AI Assistant
 ---
 
-The AI Assistant is a chat companion built into Shane-Inventory. Instead of clicking through pages and applying filters, you can simply ask a question in plain English and get an answer grounded in your live data.
+The AI Assistant is a chat companion built into Inventory-Management. Instead of clicking through pages and applying filters, you can simply ask a question in plain English and get an answer grounded in your live data.
 
 ## What you can do here
 
@@ -34,7 +34,7 @@ You can also ask follow-up questions. The assistant remembers the current thread
 
 ## How the assistant gets its answers
 
-When you ask a question, the assistant looks up the answer directly in your live Shane-Inventory database. It does not rely on cached snapshots or training data about your company. That means:
+When you ask a question, the assistant looks up the answer directly in your live Inventory-Management database. It does not rely on cached snapshots or training data about your company. That means:
 
 - Answers reflect the current state of your inventory, not yesterday's.
 - Anything you or a teammate just changed is available immediately.

@@ -3,7 +3,7 @@ title: Your Profile
 sidebar_label: Your Profile
 ---
 
-Your profile page is where you manage how you appear in Shane-Inventory and how you sign in. It is the single place to update your name, email, avatar, and password.
+Your profile page is where you manage how you appear in Inventory-Management and how you sign in. It is the single place to update your name, email, avatar, and password.
 
 ## What you can do here
 

@@ -11,7 +11,7 @@ The Users and Roles page is split into two tabs. The Users tab manages actual us
 
 ## Roles
 
-Shane Inventory ships with four default roles. They are defined in `src/lib/types.ts` and `src/lib/roles.ts` and used wherever role based gating happens.
+Inventory Management ships with four default roles. They are defined in `src/lib/types.ts` and `src/lib/roles.ts` and used wherever role based gating happens.
 
 - **ADMIN**: full access to everything including settings, users, vault, and integrations. Always has every permission. The permission switches are locked on the UI and cannot be edited. An `ADMIN` badge with a padlock icon marks this role in the selector.
 - **PURCHASING_MANAGER**: approves purchase orders and receives approval-request notifications. Can also do everything a Manager can (manage vendors, manage the catalog, create and edit POs). Along with `ADMIN`, this is one of the two roles that can approve, reject, or revoke a purchase order.

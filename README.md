@@ -2,7 +2,7 @@
 
 A single-tenant inventory management application built in Next.js 15, TypeScript, Prisma 7, SQLite, and OpenAI. End-to-end traceability from Manufacturer to Vendor to Item to Purchase Order to Asset, with a built-in AI assistant, real Code 128 / QR barcode scanning, full white-label branding, and a Docusaurus documentation site that ships inside the same container.
 
-This is a pro-code, AI-assisted replica of Shane Young's Power Platform inventory demo. The whole thing was built in roughly five hours of AI-assisted development with human-in-the-loop testing and validation. See `/docs/comparison` once it is running for the full feature parity matrix and the business case.
+This is a pro-code, AI-assisted inventory management platform.
 
 ## Quick start (Docker)
 
@@ -11,8 +11,8 @@ You need Docker Desktop (or Docker Engine) and Git.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/dtsoden/Shane-Inventory.git
-cd Shane-Inventory
+git clone https://github.com/dtsoden/Inventory-Management.git
+cd Inventory-Management
 ```
 
 ### 2. Generate your vault key
@@ -63,7 +63,7 @@ docker run -d \
   -p 5600:3000 \
   -v /path/on/host/data:/app/data \
   --env-file .env \
-  shane-inventory-inventory
+  inventory-management-inventory
 ```
 
 Replace `/path/on/host/data` with an absolute path to a directory on your host machine, VPS, or mounted external disk.
@@ -74,7 +74,7 @@ On a cloud VPS (AWS EC2, DigitalOcean, Hetzner, etc.), map `/app/data` to a dire
 
 ```yaml
 volumes:
-  - /mnt/data/shane-inventory:/app/data   # Persistent disk on the VPS
+  - /mnt/data/inventory-management:/app/data   # Persistent disk on the VPS
 ```
 
 On managed container platforms (ECS, Cloud Run, Azure Container Apps), attach a persistent volume or use a mounted network filesystem. **Do not rely on the container's own filesystem.**
@@ -180,7 +180,6 @@ Once the container is running, the full documentation site is bundled at:
 - `http://localhost:5600/docs` (landing)
 - `http://localhost:5600/docs/user/getting-started` (User Guide)
 - `http://localhost:5600/docs/admin/setup-wizard` (Admin Guide, ADMIN only)
-- `http://localhost:5600/docs/comparison` (Shane comparison, ADMIN only)
 
 ## Updating
 
@@ -203,4 +202,4 @@ The runtime migration step in `start.sh` applies any new schema changes to your 
 
 ## License and contributions
 
-This is a personal project. See the comparison page for the licensing tier model.
+This is a personal project.

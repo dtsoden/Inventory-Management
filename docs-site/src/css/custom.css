@@ -53,7 +53,7 @@
   display: block;
 }
 
-/* Align the left-side nav items (User Guide, Admin Guide, Shane Comparison)
+/* Align the left-side nav items (User Guide, Admin Guide, Comparison)
  * with the main content column. Confirmed visually in devtools at 30px. */
 @media (min-width: 997px) {
   .navbar__items > .navbar__brand ~ .navbar__item,

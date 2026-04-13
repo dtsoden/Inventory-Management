@@ -1,4 +1,4 @@
-// Prisma schema for Shane Inventory Management Platform
+// Prisma schema for Inventory Management Platform
 // Uses SQLite with UUID-based IDs for all models (except SetupState)
 
 generator client {

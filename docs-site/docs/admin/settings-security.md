@@ -17,7 +17,7 @@ Controls which origins are allowed to make cross origin requests to the API.
 - Persisted as `SystemConfig.security.corsOrigins`.
 - Read by the middleware in `src/middleware.ts` which echoes matching origins back as `Access-Control-Allow-Origin` headers on preflight responses.
 
-In production, list the exact origins you serve from. For the canonical deployment behind a Cloudflared tunnel, that is usually a single value like `https://shane-inventory.example.com`. A wildcard is fine for development but should never ship to production; it disables the same origin protections that keep hostile pages from hitting your API through a logged in user's browser.
+In production, list the exact origins you serve from. For the canonical deployment behind a Cloudflared tunnel, that is usually a single value like `https://inventory-management.example.com`. A wildcard is fine for development but should never ship to production; it disables the same origin protections that keep hostile pages from hitting your API through a logged in user's browser.
 
 Click **Save CORS Settings** to persist. Changes take effect on the next request; no restart needed.
 

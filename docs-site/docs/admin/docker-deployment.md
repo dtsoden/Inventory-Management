@@ -5,7 +5,7 @@ sidebar_label: Docker Deployment
 
 # Docker Deployment
 
-Shane Inventory ships as a single Docker image. A `docker-compose.yml` provides the canonical one-service stack: a port mapping, a persistent volume mount, and a `.env` file containing your vault key. All application configuration is stored in the database via the setup wizard.
+Inventory Management ships as a single Docker image. A `docker-compose.yml` provides the canonical one-service stack: a port mapping, a persistent volume mount, and a `.env` file containing your vault key. All application configuration is stored in the database via the setup wizard.
 
 ## Prerequisites
 
@@ -84,7 +84,7 @@ docker run -d \
   -p 5600:3000 \
   -v /absolute/path/on/host/data:/app/data \
   --env-file .env \
-  shane-inventory-inventory
+  inventory-management-inventory
 ```
 
 Replace `/absolute/path/on/host/data` with a real path on your host machine.
@@ -95,7 +95,7 @@ On a cloud VPS (AWS EC2, DigitalOcean, Hetzner, Azure VM, etc.), map `/app/data`
 
 ```yaml
 volumes:
-  - /mnt/data/shane-inventory:/app/data   # Persistent disk on the VPS
+  - /mnt/data/inventory-management:/app/data   # Persistent disk on the VPS
 ```
 
 On managed container platforms (ECS, Cloud Run, Azure Container Apps, Fly.io), attach a persistent volume or network-mounted filesystem. **Do not rely on the container's own filesystem.** If your platform does not support persistent volumes, you cannot run this application on it without data loss.
@@ -182,7 +182,7 @@ ingress:
 
 ## Single-tenant deployment
 
-Shane Inventory is single-tenant per container. To host multiple organizations, run multiple containers on different ports with different volumes and `.env` files.
+Inventory Management is single-tenant per container. To host multiple organizations, run multiple containers on different ports with different volumes and `.env` files.
 
 ## Upgrades
 

@@ -5,13 +5,13 @@ sidebar_label: Procurement Workflow
 
 # Procurement Workflow
 
-This document describes how a purchase order (PO) moves through Shane Inventory from the moment someone clicks "New Purchase Order" until the day the shipment lands on the receiving dock. It covers the roles involved, the state machine, the notification fan-out, the audit trail vocabulary, and the "Send to Vendor" email step.
+This document describes how a purchase order (PO) moves through Inventory Management from the moment someone clicks "New Purchase Order" until the day the shipment lands on the receiving dock. It covers the roles involved, the state machine, the notification fan-out, the audit trail vocabulary, and the "Send to Vendor" email step.
 
 The authoritative implementation lives in `src/lib/services/purchase-order-service.ts` (transitions, guards, audit writes) and the route handlers under `src/app/api/procurement/orders/`. Role definitions live in `src/lib/types.ts` and `src/lib/roles.ts`. The notification fan-out lives in `src/lib/services/notification-service.ts`.
 
 ## Roles and segregation of duties
 
-Shane Inventory enforces a strict split between the person who drafts a PO and the person who approves it. Prior to the rework, the `MANAGER` role could both create and approve, which violated basic segregation of duties (the same user could requisition supplies, self-approve, and send the email to the vendor). The rework introduces a dedicated approver role and removes the approval right from `MANAGER`.
+Inventory Management enforces a strict split between the person who drafts a PO and the person who approves it. Prior to the rework, the `MANAGER` role could both create and approve, which violated basic segregation of duties (the same user could requisition supplies, self-approve, and send the email to the vendor). The rework introduces a dedicated approver role and removes the approval right from `MANAGER`.
 
 | Capability | ADMIN | PURCHASING_MANAGER | MANAGER | WAREHOUSE_STAFF |
 |---|---|---|---|---|

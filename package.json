@@ -1,5 +1,5 @@
 {
-  "name": "shane-inventory",
+  "name": "inventory-management",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -18,15 +18,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dtsoden/Shane-Inventory.git"
+    "url": "git+https://github.com/dtsoden/Inventory-Management.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/dtsoden/Shane-Inventory/issues"
+    "url": "https://github.com/dtsoden/Inventory-Management/issues"
   },
-  "homepage": "https://github.com/dtsoden/Shane-Inventory#readme",
+  "homepage": "https://github.com/dtsoden/Inventory-Management#readme",
   "dependencies": {
     "@base-ui/react": "^1.3.0",
     "@libsql/client": "^0.8.1",

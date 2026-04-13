@@ -1,6 +1,6 @@
-# Shane Inventory Architecture (authoritative)
+# Inventory Management Architecture (authoritative)
 
-This file is the source-of-truth architecture diagram for Shane Inventory. It is mirrored into the Docusaurus admin guide at `docs-site/docs/admin/architecture.md` and `docs-site/docs/admin/_architecture-diagram.md`.
+This file is the source-of-truth architecture diagram for Inventory Management. It is mirrored into the Docusaurus admin guide at `docs-site/docs/admin/architecture.md` and `docs-site/docs/admin/_architecture-diagram.md`.
 
 ## Runtime architecture
 

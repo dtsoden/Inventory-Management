@@ -142,7 +142,7 @@ function generatePackingSlipHtml(po) {
   </table>
 
   <div class="footer">
-    This is a sample packing slip for testing purposes. Generated for Shane Inventory demo.
+    This is a sample packing slip for testing purposes. Generated for Inventory Management demo.
   </div>
 </body>
 </html>`;

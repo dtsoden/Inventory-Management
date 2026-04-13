@@ -82,7 +82,7 @@ export default function OrganizationSettingsPage() {
           setSettings({
             tenantName: orgRes.data.tenantName || '',
             tenantSlug: orgRes.data.tenantSlug || '',
-            platformName: orgRes.data.platformName || 'Shane Inventory',
+            platformName: orgRes.data.platformName || 'Inventory Management',
           });
         }
         if (brandingRes.success && brandingRes.data) {

@@ -7,7 +7,7 @@ sidebar_label: Notifications
 
 Path: `/settings/notifications`. Source: `src/app/(authenticated)/settings/notifications/page.tsx`. API: `/api/settings/notifications`.
 
-The Notifications page is where an administrator chooses which categories of platform events generate outbound email. There are five categories, each a simple on or off toggle. Every event Shane Inventory sends is also surfaced as an in app notification on the bell icon; the toggles on this page only control whether the event also becomes an email.
+The Notifications page is where an administrator chooses which categories of platform events generate outbound email. There are five categories, each a simple on or off toggle. Every event Inventory Management sends is also surfaced as an in app notification on the bell icon; the toggles on this page only control whether the event also becomes an email.
 
 ## Categories
 

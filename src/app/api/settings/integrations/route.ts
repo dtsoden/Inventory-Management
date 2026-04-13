@@ -39,7 +39,7 @@ class IntegrationsHandler extends BaseApiHandler {
         where: { id: ctx.tenantId },
         select: { name: true, slug: true },
       });
-      const platformName = (await getConfigValue('platform_name')) || 'Shane Inventory';
+      const platformName = (await getConfigValue('platform_name')) || 'Inventory Management';
       return this.success({
         tenantName: tenant?.name || '',
         tenantSlug: tenant?.slug || '',

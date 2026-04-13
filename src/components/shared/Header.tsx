@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, GitCompare, Sparkles, Building2, Boxes, ShoppingCart, Tag, Package } from 'lucide-react';
+import { Search, Sun, Moon, Bell, LogOut, User, CheckCheck, Bot, HelpCircle, BookOpen, ShieldCheck, Sparkles, Building2, Boxes, ShoppingCart, Tag, Package } from 'lucide-react';
 import {
   CommandDialog,
   CommandEmpty,
@@ -224,13 +224,6 @@ export function Header() {
                 >
                   <ShieldCheck className="mr-2 h-4 w-4" />
                   Admin Guide
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => window.open('/docs/comparison', '_blank')}
-                >
-                  <GitCompare className="mr-2 h-4 w-4" />
-                  Shane Comparison
                 </DropdownMenuItem>
               </>
             )}

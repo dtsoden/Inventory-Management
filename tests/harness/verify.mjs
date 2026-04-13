@@ -29,7 +29,7 @@ const TEST_PASSWORD = 'harness-test-1234';
 const TEST_HASH = bcrypt.hashSync(TEST_PASSWORD, 10);
 // Read NEXTAUTH_SECRET from the database (stored unencrypted in SystemConfig).
 const NEXTAUTH_SECRET = execSync(
-  `docker exec shane-inventory-inventory-1 sqlite3 /app/data/inventory.db "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1"`,
+  `docker exec inventory-management-inventory-1 sqlite3 /app/data/inventory.db "SELECT value FROM SystemConfig WHERE key = 'nextauth_secret' LIMIT 1"`,
   { encoding: 'utf8' },
 ).trim();
 // NEXTAUTH_URL now defaults to http://localhost:3000, so NextAuth uses
@@ -56,7 +56,7 @@ function record(name, ok, detail = '') {
 function sqlite(sql) {
   // Pipe SQL on stdin so we don't have to escape quotes through two
   // shell layers (the host shell and the container's sh -c).
-  return execSync('docker exec -i shane-inventory-inventory-1 sqlite3 /app/data/inventory.db', {
+  return execSync('docker exec -i inventory-management-inventory-1 sqlite3 /app/data/inventory.db', {
     input: sql,
     encoding: 'utf8',
   }).trim();

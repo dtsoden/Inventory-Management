@@ -3,7 +3,7 @@ title: Getting Started
 sidebar_label: Getting Started
 ---
 
-Welcome to Shane-Inventory. This guide walks you through signing in, finding your way around, and getting productive in the first few minutes.
+Welcome to Inventory-Management. This guide walks you through signing in, finding your way around, and getting productive in the first few minutes.
 
 ## What you can do here
 
@@ -14,7 +14,7 @@ Welcome to Shane-Inventory. This guide walks you through signing in, finding you
 
 ## Signing in
 
-1. Open Shane-Inventory in your web browser. Your organization will provide the exact URL.
+1. Open Inventory-Management in your web browser. Your organization will provide the exact URL.
 2. On the sign-in screen, enter the email address your administrator set up for you.
 3. Enter your password and click **Sign In**.
 4. If the credentials are valid, you will land on the **Dashboard**. If you see an error, double-check your email and password, then try again.
@@ -23,7 +23,7 @@ If you forget your password, contact your administrator to have it reset. You ca
 
 ## The overall layout
 
-Once you are signed in, every page in Shane-Inventory shares the same structure. Getting comfortable with these three regions will make the rest of the app feel predictable.
+Once you are signed in, every page in Inventory-Management shares the same structure. Getting comfortable with these three regions will make the rest of the app feel predictable.
 
 ### The sidebar (left)
 

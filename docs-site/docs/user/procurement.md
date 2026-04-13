@@ -38,11 +38,11 @@ Click **Add from Catalog** to open a picker that lists every item already in you
 
 ### From the vendor's online catalog
 
-Some vendors expose their live catalog to Shane-Inventory through an API. When that is the case, you will see an **Add from Vendor Catalog** button on the PO.
+Some vendors expose their live catalog to Inventory-Management through an API. When that is the case, you will see an **Add from Vendor Catalog** button on the PO.
 
 1. Click **Add from Vendor Catalog**. A panel opens showing the vendor's current products, with current prices and availability.
 2. Search or browse to the product you want.
-3. Click to add it to the PO. If the product is new to your system, Shane-Inventory will map it into your catalog so you can track it going forward.
+3. Click to add it to the PO. If the product is new to your system, Inventory-Management will map it into your catalog so you can track it going forward.
 4. Adjust the quantity and save.
 
 This is the fastest way to buy items you do not already stock, because you do not have to type part numbers or prices by hand.
@@ -89,7 +89,7 @@ Once a PO is in the **APPROVED** state, anyone with edit rights (typically the M
 
 This does three things in order:
 
-1. Shane-Inventory generates a branded PDF of the PO (your logo, your colors, all line items, pricing, ship-to details).
+1. Inventory-Management generates a branded PDF of the PO (your logo, your colors, all line items, pricing, ship-to details).
 2. It looks up the vendor's primary email address and primary contact name on the Vendors page, writes a greeting line using the contact name (or the company name if no contact is set), and emails the PDF as an attachment.
 3. Once the email is delivered, the PO moves from **APPROVED** to **SUBMITTED**.
 
@@ -111,7 +111,7 @@ Revoke & Amend is the only way to get an approved PO back into an editable state
 
 ## Receiving
 
-Receiving shipments against a PO happens on the Receiving page, not the Procurement page. The flow has not changed: open the PO from Receiving, record the quantities that actually showed up on the packing slip, and Shane-Inventory will advance the status to PARTIALLY_RECEIVED or RECEIVED automatically. See the Receiving guide for the details.
+Receiving shipments against a PO happens on the Receiving page, not the Procurement page. The flow has not changed: open the PO from Receiving, record the quantities that actually showed up on the packing slip, and Inventory-Management will advance the status to PARTIALLY_RECEIVED or RECEIVED automatically. See the Receiving guide for the details.
 
 ## Browsing and filtering orders
 
