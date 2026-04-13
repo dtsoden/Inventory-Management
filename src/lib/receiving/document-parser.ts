@@ -1,6 +1,9 @@
 /**
  * Extracts plain text from various document formats so it can be sent
  * to OpenAI for structured packing slip extraction.
+ *
+ * Follows the same OOP pattern as the rest of the application.
+ * Each format has a dedicated parser class implementing a common interface.
  */
 
 export type SupportedMimeType =
@@ -10,6 +13,46 @@ export type SupportedMimeType =
   | 'application/vnd.ms-excel'
   | 'text/csv';
 
+interface DocumentParser {
+  extract(buffer: Buffer): Promise<string>;
+}
+
+class PdfParser implements DocumentParser {
+  async extract(buffer: Buffer): Promise<string> {
+    const { extractText } = await import('unpdf');
+    const result = await extractText(new Uint8Array(buffer));
+    return Array.isArray(result.text) ? result.text.join('\n') : result.text;
+  }
+}
+
+class DocxParser implements DocumentParser {
+  async extract(buffer: Buffer): Promise<string> {
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
+  }
+}
+
+class ExcelParser implements DocumentParser {
+  async extract(buffer: Buffer): Promise<string> {
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const lines: string[] = [];
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      lines.push(`--- Sheet: ${sheetName} ---\n${csv}`);
+    }
+    return lines.join('\n\n');
+  }
+}
+
+class CsvParser implements DocumentParser {
+  async extract(buffer: Buffer): Promise<string> {
+    return buffer.toString('utf-8');
+  }
+}
+
 const MIME_MAP: Record<string, SupportedMimeType> = {
   pdf: 'application/pdf',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -18,8 +61,16 @@ const MIME_MAP: Record<string, SupportedMimeType> = {
   csv: 'text/csv',
 };
 
+const PARSERS: Record<string, DocumentParser> = {
+  'application/pdf': new PdfParser(),
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': new DocxParser(),
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': new ExcelParser(),
+  'application/vnd.ms-excel': new ExcelParser(),
+  'text/csv': new CsvParser(),
+};
+
 export function isDocumentMime(mime: string): boolean {
-  return Object.values(MIME_MAP).includes(mime as SupportedMimeType) || mime === 'text/csv';
+  return mime in PARSERS;
 }
 
 export function isImageMime(mime: string): boolean {
@@ -36,41 +87,9 @@ export async function extractTextFromDocument(
   buffer: Buffer,
   mimeType: string,
 ): Promise<string> {
-  switch (mimeType) {
-    case 'application/pdf':
-      return extractPdf(buffer);
-    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-      return extractDocx(buffer);
-    case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
-    case 'application/vnd.ms-excel':
-      return extractExcel(buffer);
-    case 'text/csv':
-      return buffer.toString('utf-8');
-    default:
-      throw new Error(`Unsupported document type: ${mimeType}`);
+  const parser = PARSERS[mimeType];
+  if (!parser) {
+    throw new Error(`Unsupported document type: ${mimeType}`);
   }
-}
-
-async function extractPdf(buffer: Buffer): Promise<string> {
-  const { extractText } = await import('unpdf');
-  const result = await extractText(new Uint8Array(buffer));
-  return Array.isArray(result.text) ? result.text.join('\n') : result.text;
-}
-
-async function extractDocx(buffer: Buffer): Promise<string> {
-  const mammoth = await import('mammoth');
-  const result = await mammoth.extractRawText({ buffer });
-  return result.value;
-}
-
-async function extractExcel(buffer: Buffer): Promise<string> {
-  const XLSX = await import('xlsx');
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const lines: string[] = [];
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const csv = XLSX.utils.sheet_to_csv(sheet);
-    lines.push(`--- Sheet: ${sheetName} ---\n${csv}`);
-  }
-  return lines.join('\n\n');
+  return parser.extract(buffer);
 }
