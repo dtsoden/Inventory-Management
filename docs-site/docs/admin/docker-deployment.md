@@ -162,12 +162,7 @@ Back up two things:
 
 ## HTTPS with a reverse proxy
 
-If you serve the app behind a reverse proxy (Nginx, Caddy, Traefik) or a Cloudflared tunnel, add `NEXTAUTH_URL` to your `.env`:
-
-```
-VAULT_KEY=your-64-character-hex-key-here
-NEXTAUTH_URL=https://inventory.example.com
-```
+The application automatically detects the URL it is served from using request headers. No additional configuration is needed for HTTPS.
 
 ### Cloudflared tunnel example
 

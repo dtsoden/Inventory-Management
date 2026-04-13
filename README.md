@@ -155,17 +155,6 @@ This file is read by Docker Compose on every container start. It is listed in `.
 
 `VAULT_KEY` is the **only** environment variable the application uses. Everything else is in the database.
 
-### Production with HTTPS
-
-If you serve the app behind a reverse proxy with HTTPS, add `NEXTAUTH_URL` to your `.env`:
-
-```
-VAULT_KEY=your-64-character-hex-key-here
-NEXTAUTH_URL=https://inventory.example.com
-```
-
-This tells NextAuth to use HTTPS-only session cookies and generate correct callback URLs.
-
 ## Persistence and backups
 
 Back up two things:
