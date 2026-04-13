@@ -153,7 +153,16 @@ export async function POST(request: NextRequest) {
 
     const payload = body as SetupPayload;
 
-    // 3. Read VAULT_KEY from environment
+    // 3. Store the app's public URL so NextAuth knows where it's served
+    const appUrl = request.headers.get('origin') || request.nextUrl.origin;
+    await prisma.systemConfig.upsert({
+      where: { key: 'app_url' },
+      create: { key: 'app_url', value: appUrl, isSecret: false, category: 'platform', description: 'Public URL of the application' },
+      update: { value: appUrl },
+    });
+    process.env.NEXTAUTH_URL = appUrl;
+
+    // 4. Read VAULT_KEY from environment
     const vaultKeyHex = process.env.VAULT_KEY;
     if (!vaultKeyHex || vaultKeyHex.length < 32) {
       return NextResponse.json(

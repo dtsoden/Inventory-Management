@@ -61,6 +61,13 @@ add_column_if_missing Asset   receivingSessionId TEXT
 add_column_if_missing User    resetToken          TEXT
 add_column_if_missing User    resetTokenExpiresAt TEXT
 
+# --- Read app URL from database for NextAuth ----------------------
+APP_URL=$(sqlite3 "$DB" "SELECT value FROM SystemConfig WHERE key = 'app_url' LIMIT 1" 2>/dev/null)
+if [ -n "$APP_URL" ]; then
+  export NEXTAUTH_URL="$APP_URL"
+  echo "[init] NEXTAUTH_URL loaded from database: $APP_URL"
+fi
+
 # --- Check VAULT_KEY is set ---------------------------------------
 if [ -z "$VAULT_KEY" ]; then
   echo "[warn] VAULT_KEY is not set. Encrypted secrets will be unreadable."
