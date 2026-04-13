@@ -52,9 +52,10 @@ export async function extractTextFromDocument(
 }
 
 async function extractPdf(buffer: Buffer): Promise<string> {
-  // @ts-ignore - pdf-parse v1 has no type declarations
-  const pdfParse = await import('pdf-parse');
-  const parse = typeof pdfParse === 'function' ? pdfParse : (pdfParse as any).default;
+  // pdf-parse v1 tries to load a test file on first require.
+  // Import the core module directly to skip that.
+  // @ts-ignore - no type declarations
+  const parse = (await import('pdf-parse/lib/pdf-parse.js')).default;
   const result = await parse(buffer);
   return result.text;
 }
