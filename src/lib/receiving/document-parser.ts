@@ -19,9 +19,18 @@ interface DocumentParser {
 
 class PdfParser implements DocumentParser {
   async extract(buffer: Buffer): Promise<string> {
-    const { extractText } = await import('unpdf');
-    const result = await extractText(new Uint8Array(buffer));
-    return Array.isArray(result.text) ? result.text.join('\n') : result.text;
+    const { default: PDFParser } = await import('pdf2json');
+    return new Promise((resolve, reject) => {
+      const parser = new PDFParser(null, true);
+      parser.on('pdfParser_dataError', (err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        reject(new Error(msg));
+      });
+      parser.on('pdfParser_dataReady', () => {
+        resolve(parser.getRawTextContent());
+      });
+      parser.parseBuffer(buffer);
+    });
   }
 }
 
