@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { getAuthOptions } from '@/lib/auth-options';
+import { isLandingEnabled } from '@/lib/landing';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,10 @@ export default async function RootPage() {
   const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
-    redirect('/login');
+    // When the landing page is enabled, an unauthenticated visitor lands on
+    // the public marketing page (which links through to /login). When it is
+    // off, behavior is unchanged: straight to the sign-in screen.
+    redirect(isLandingEnabled() ? '/landing' : '/login');
   }
 
   // 3. Authenticated user with complete setup: go to dashboard
