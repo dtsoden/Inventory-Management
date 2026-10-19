@@ -3,6 +3,10 @@ name: Publish container image
 # Pushing a release tag like v1.2.3 builds the image and publishes it to
 # ghcr.io/dtsoden/inventory-management as `latest`. Only `latest` is kept;
 # the version is baked into the image and shown in the app sidebar.
+#
+# Each architecture builds on its own native runner (no QEMU emulation),
+# pushes by digest, and a final job joins them into one `latest` tag.
+# Older, now untagged images are then deleted so versions never pile up.
 on:
   push:
     tags: ['v*.*.*']
@@ -14,12 +18,15 @@ permissions:
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/inventory-management
 
+concurrency:
+  group: publish-image
+  cancel-in-progress: true
+
 jobs:
-  publish:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Check tag matches package.json version
         run: |
           pkg="v$(node -p "require('./package.json').version")"
@@ -28,7 +35,21 @@ jobs:
             exit 1
           fi
 
-      - uses: docker/setup-qemu-action@v3
+  build:
+    needs: check
+    timeout-minutes: 30
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -41,17 +62,66 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE }}
-          tags: |
-            type=raw,value=latest
           labels: |
             org.opencontainers.image.title=Inventory Management Platform
 
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Attestations add extra untagged manifests to the registry.
+          provenance: false
+          sbom: false
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Save digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.runner }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag both architectures as latest
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create -t "$IMAGE:latest" \
+            $(printf "$IMAGE@sha256:%s " *)
+          docker buildx imagetools inspect "$IMAGE:latest"
+
+      # Removes the previous release's image (now untagged) and its
+      # per-architecture parts. Tagged `latest` and its parts are kept.
+      - name: Delete old untagged images
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        continue-on-error: true
+        with:
+          package: inventory-management
+          delete-untagged: true
+          validate: true

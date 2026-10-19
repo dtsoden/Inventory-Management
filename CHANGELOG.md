@@ -8,10 +8,7 @@ Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bott
 - `scripts/deploy-local.sh` pulls `latest` and restarts the local container, then checks it is running the pulled image and the expected version. It then deletes old images of this app and clears the Docker build cache so releases don't fill the disk.
 - `GET /api/health` returns the running version without signing in.
 - Removed a stale, unused Prisma client file that broke builds from a clean checkout.
-
-## 1.1.1 - 2026-10-19
-
-- Each release is published as a container image to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management:latest`, for x86-64 and ARM64. A GitHub Actions workflow builds it when a release tag is pushed. Only `latest` is kept.
+- Each release is published as a container image to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management:latest`, for x86-64 and ARM64. A GitHub Actions workflow builds it when a release tag is pushed, each architecture on its own native runner, then deletes the previous release's image so only `latest` is kept.
 - `docker-compose.yml` runs the published image with `pull_policy: always`, so `docker compose up -d` installs and updates it.
 
 ## 1.1.0 - 2026-10-19
