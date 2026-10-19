@@ -1,6 +1,6 @@
 # Inventory Management Platform
 
-A single-tenant inventory management application built in Next.js 15, TypeScript, Prisma 7, SQLite, and OpenAI. End-to-end traceability from Manufacturer to Vendor to Item to Purchase Order to Asset, with a built-in AI assistant, real Code 128 / QR barcode scanning, full white-label branding, and a Docusaurus documentation site that ships inside the same container.
+A single-tenant inventory management application built in Next.js 16, TypeScript, Prisma 7, SQLite, and OpenAI. End-to-end traceability from Manufacturer to Vendor to Item to Purchase Order to Asset, with a built-in AI assistant, real Code 128 / QR barcode scanning, full white-label branding, and a Docusaurus documentation site that ships inside the same container.
 
 This is a pro-code, AI-assisted inventory management platform.
 
@@ -29,7 +29,32 @@ This produces a 64-character hex string. This key encrypts all sensitive configu
 echo "VAULT_KEY=paste-your-64-char-hex-key-here" > .env
 ```
 
-### 4. Build and run
+### 4. Run it
+
+Pick one.
+
+**Use the published image (no build).** Each release is published to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management`, for x86-64 and ARM64. You only need the `.env` file from step 3 and this `docker-compose.yml` next to it, so step 1 is optional:
+
+```yaml
+services:
+  inventory:
+    image: ghcr.io/dtsoden/inventory-management:latest
+    ports:
+      - "5600:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    restart: unless-stopped
+```
+
+```bash
+docker compose up -d
+```
+
+To stay on one release, use a version tag such as `:1.1.1` in place of `:latest`. Releases and their notes are at https://github.com/dtsoden/Inventory-Management/releases.
+
+**Build from source.** From the cloned repo:
 
 ```bash
 docker compose up -d --build
@@ -172,10 +197,21 @@ Once the container is running, the full documentation site is bundled at:
 
 ## Updating
 
+With the published image:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+Building from source:
+
 ```bash
 git pull
 docker compose up -d --build
 ```
+
+The version you are running shows at the bottom of the app sidebar.
 
 The runtime migration step in `start.sh` applies any new schema changes to your existing database without losing data.
 

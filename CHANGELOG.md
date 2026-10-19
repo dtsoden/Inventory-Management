@@ -2,6 +2,11 @@
 
 Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bottom of the app sidebar and in the landing page footer.
 
+## 1.1.1 - 2026-10-19
+
+- Each release is published as a container image to the GitHub Container Registry, `ghcr.io/dtsoden/inventory-management`, tagged with its version and `latest`, for x86-64 and ARM64. A GitHub Actions workflow builds it when a version tag is pushed.
+- The README covers running the published image and updating it with `docker compose pull`.
+
 ## 1.1.0 - 2026-10-19
 
 ### Email
