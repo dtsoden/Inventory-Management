@@ -207,6 +207,18 @@ docker compose up -d
 
 The runtime migration step in `start.sh` applies any new schema changes to your existing database without losing data.
 
+## Releasing
+
+Releases are cut from `main` with one command, after you add a `## X.Y.Z - YYYY-MM-DD` section to `CHANGELOG.md` and commit your changes:
+
+```bash
+scripts/release.sh patch      # or minor, major, or an exact X.Y.Z
+```
+
+It bumps `package.json`, typechecks, commits, tags `vX.Y.Z` and pushes. GitHub Actions then builds the image from the tagged commit and publishes it as `ghcr.io/dtsoden/inventory-management:latest`. The script waits for that build, publishes the GitHub release with the changelog section as notes, pulls the new image, restarts the local container and checks that `/api/health` reports the new version. If the build fails, it stops before releasing or deploying anything.
+
+To re-pull and restart without releasing, run `scripts/deploy-local.sh`.
+
 ## Architecture (high level)
 
 - **Next.js 15** (App Router, standalone build, TypeScript)

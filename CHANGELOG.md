@@ -2,6 +2,13 @@
 
 Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bottom of the app sidebar and in the landing page footer.
 
+## 1.1.2 - 2026-10-19
+
+- `scripts/release.sh` cuts a release in one step: version bump, typecheck, tag, wait for the GitHub image build, GitHub release, then pull and restart the local container on the new image.
+- `scripts/deploy-local.sh` pulls `latest` and restarts the local container, then checks it is running the pulled image and the expected version.
+- `GET /api/health` returns the running version without signing in.
+- Removed a stale, unused Prisma client file that broke builds from a clean checkout.
+
 ## 1.1.1 - 2026-10-19
 
 - Each release is published as a container image to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management:latest`, for x86-64 and ARM64. A GitHub Actions workflow builds it when a release tag is pushed. Only `latest` is kept.
