@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Cut a release end to end:
-#   1. checks: on main, tracked changes committed, CHANGELOG section present
+#   1. checks: on main, nothing staged, in sync with origin, CHANGELOG section present
 #   2. bump package.json, typecheck, commit, tag vX.Y.Z, push
 #   3. wait for GitHub Actions to build and push :latest to GHCR
 #   4. publish the GitHub release with the CHANGELOG section as notes
@@ -22,7 +22,13 @@ die() { echo "error: $*" >&2; exit 1; }
 
 # ----- 1. checks -----
 [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || die "release from main"
-git diff --quiet && git diff --cached --quiet || die "commit or stash tracked changes first"
+git diff --cached --quiet || die "unstage or commit staged changes first; they would end up in the release commit"
+# The image is built from the tagged commit, so unrelated local edits are
+# left alone and never included. List them so nothing is a surprise.
+if ! git diff --quiet; then
+  echo "note: these uncommitted files are not part of the release:"
+  git diff --name-only | sed 's/^/    /'
+fi
 gh auth status --active 2>&1 | grep -q "account dtsoden" || die "switch gh to dtsoden: gh auth switch --user dtsoden"
 git fetch -q origin main
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || die "local main differs from origin/main; pull or push first"
