@@ -9,7 +9,10 @@ import {
   ScanLine,
   Boxes,
   Sparkles,
-  ShieldCheck,
+  ClipboardCheck,
+  Plug,
+  ChartColumn,
+  BellRing,
   ArrowRight,
   Package,
   Check,
@@ -43,22 +46,34 @@ const FEATURES = [
       'Stock levels, low-stock warnings, open orders, and recent activity the moment you sign in. No report to run, no spreadsheet to reconcile.',
   },
   {
+    icon: ClipboardCheck,
+    title: 'A to-do list that writes itself',
+    body:
+      'Orders waiting on your approval, receipts in progress, and items below their reorder point with nothing on order. Each person sees the work that is theirs as soon as they sign in.',
+  },
+  {
     icon: ShoppingCart,
     title: 'Purchasing that moves',
     body:
-      'Build purchase orders, route them for approval, and send clean PDFs to your vendors. Everyone sees the same status, so nothing gets ordered twice.',
+      'Build purchase orders, route them for approval, and email a clean PDF straight to the vendor. Everyone sees the same status, so nothing gets ordered twice.',
+  },
+  {
+    icon: Plug,
+    title: 'Vendor catalogs, pulled in',
+    body:
+      'Connect a vendor that publishes its catalog through an API and add products to an order at current prices. The assistant suggests how their fields map to yours, and you confirm before anything is saved.',
   },
   {
     icon: ScanLine,
     title: 'Receiving in minutes',
     body:
-      'Snap a photo of the packing slip. The assistant reads it, matches it to the order, and flags anything short or over. Scan asset tags with the phone already in your pocket.',
+      'Upload a photo or PDF of the packing slip and the assistant turns it into line items for you to check against the order. Scan asset tags with a handheld scanner or a phone camera. Partial shipments stay open until the rest arrives.',
   },
   {
     icon: Boxes,
     title: 'Every asset accounted for',
     body:
-      'Each unit gets a barcode and a full history: received, assigned, in maintenance, retired. You always know who has what and where it lives.',
+      'Each unit gets a barcode and a full history: received, assigned, in maintenance, retired. Trace any one of them back to the order, vendor, and price it came from.',
   },
   {
     icon: Sparkles,
@@ -67,11 +82,27 @@ const FEATURES = [
       'Ask what is running low, or what you bought from a vendor last quarter, and get a straight answer. No query to write, no analyst to wait on.',
   },
   {
-    icon: ShieldCheck,
-    title: 'Audit-ready by default',
+    icon: ChartColumn,
+    title: 'Insights you can take to a meeting',
     body:
-      'Role-based access, encrypted credentials, and a log of every action. When someone asks who changed what, you show them in seconds.',
+      'Spend, open commitments, approval times, vendor concentration, on-time delivery, and what needs reordering, computed from your own data and exportable as CSV. An AI summary sits on top, and you decide whether it sticks to the numbers or offers its read on them.',
   },
+  {
+    icon: BellRing,
+    title: 'The right people hear about it',
+    body: `Approval requests and order status changes land in the app and in each person's inbox, sent through your own mail server. Everyone picks which emails they want.`,
+  },
+];
+
+const INSTALL_LINES = [
+  '# 1. Create a vault key and keep a copy somewhere safe',
+  'openssl rand -hex 32',
+  '',
+  '# 2. Save it next to docker-compose.yml',
+  'echo "VAULT_KEY=your-key" > .env',
+  '',
+  '# 3. Start it, then open http://localhost:5600',
+  'docker compose up -d',
 ];
 
 const PROBLEMS = [
@@ -277,8 +308,8 @@ export default function LandingPage({
                 <p>{`Role-based permissions decide who can buy, approve, receive, and administer.`}</p>
               </div>
               <div className="landing-trust-item">
-                <h4>Separation between teams</h4>
-                <p>{`Multi-tenant isolation keeps each organization's data walled off from the rest.`}</p>
+                <h4>Your server, your data</h4>
+                <p>{`Each install keeps its data in its own database on infrastructure you control. Take a copy of the database and the container image whenever you like.`}</p>
               </div>
               <div className="landing-trust-item">
                 <h4>Secrets stay secret</h4>
@@ -290,9 +321,61 @@ export default function LandingPage({
               </div>
               <div className="landing-trust-item">
                 <h4>Runs where you do</h4>
-                <p>{`Ships as a single container you host alongside the rest of your systems.`}</p>
+                <p>{`Ships as a single container for x86 and ARM servers, hosted alongside the rest of your systems.`}</p>
+              </div>
+              <div className="landing-trust-item">
+                <h4>Logs you can search</h4>
+                <p>{`Server activity and errors are searchable and exportable from Settings, with keys and passwords masked.`}</p>
+              </div>
+              <div className="landing-trust-item">
+                <h4>Help built in</h4>
+                <p>{`User and admin guides ship inside the app and carry your branding.`}</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* ---------- Install ---------- */}
+        <section className="landing-section" id="install">
+          <div className="landing-shell landing-install">
+            <div>
+              <p className="landing-kicker">Run it yourself</p>
+              <h2 className="landing-h2">Up and running in a few minutes</h2>
+              <p className="landing-section-lead">
+                {`You need Docker and nothing else. Grab the docker-compose.yml from the repository, create a vault key that encrypts your settings, and start it. A setup wizard takes it from there.`}
+              </p>
+              <p className="landing-section-lead">
+                {`Updating is the same command. It pulls the newest release, and your data stays on your disk.`}
+              </p>
+              <div className="landing-cta-row">
+                <a
+                  href={`${REPO_URL}#quick-start-docker`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="landing-btn landing-btn-primary"
+                >
+                  <GithubMark size={18} />
+                  Install guide
+                </a>
+                <a
+                  href={releaseUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="landing-btn landing-btn-ghost"
+                >
+                  {`What's new in v${APP_VERSION}`}
+                </a>
+              </div>
+            </div>
+            <pre className="landing-code" aria-label="Install commands">
+              <code>
+                {INSTALL_LINES.map((line, i) => (
+                  <span key={i} className={line.startsWith('#') ? 'landing-code-line landing-code-comment' : 'landing-code-line'}>
+                    {line || ' '}
+                  </span>
+                ))}
+              </code>
+            </pre>
           </div>
         </section>
 
@@ -437,6 +520,16 @@ const LANDING_CSS = `
 .landing-nav-actions { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 520px) { .landing-nav-actions .landing-btn-ghost { display: none; } }
 .landing-cta-center { justify-content: center; }
+.landing-install { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+.landing-code {
+  margin: 0; padding: 24px 26px; border-radius: 16px;
+  background: var(--panel); border: 1px solid var(--line);
+  font-family: var(--font-mono), monospace; font-size: 0.86rem; line-height: 1.7;
+  color: var(--ink); overflow-x: auto; white-space: pre;
+}
+.landing-code-line { display: block; }
+.landing-code-comment { color: var(--muted); }
+@media (max-width: 860px) { .landing-install { grid-template-columns: 1fr; gap: 28px; } }
 .landing-footer-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .landing-footer-link:hover { color: var(--brand); }
 

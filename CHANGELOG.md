@@ -2,6 +2,14 @@
 
 Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bottom of the app sidebar and in the landing page footer.
 
+## 1.1.4 - 2026-10-19
+
+- The landing page covers the whole product: My Tasks, vendor catalog import with AI field mapping, AI Insights with CSV reports, and email notifications join the existing features.
+- A new install section shows the three commands to run it with Docker and links to the install guide and the current release notes.
+- The trust section drops an inaccurate multi-tenant claim. Each install is one organization with its own database, so it now says that. It adds searchable logs and the built-in guides.
+- The receiving description matches what the app does: the assistant turns a packing slip into line items for a person to check against the order.
+- The image workflow's remaining jobs run on ubuntu-24.04 instead of ubuntu-latest, so GitHub's move to Ubuntu 26 can't change the build without notice.
+
 ## 1.1.3 - 2026-10-19
 
 - The container runs on Node.js 24, the current LTS. Node.js 20 reached end of life in April 2026.
