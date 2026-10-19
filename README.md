@@ -33,12 +33,13 @@ echo "VAULT_KEY=paste-your-64-char-hex-key-here" > .env
 
 Pick one.
 
-**Use the published image (no build).** Each release is published to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management`, for x86-64 and ARM64. You only need the `.env` file from step 3 and this `docker-compose.yml` next to it, so step 1 is optional:
+Each release is published to the GitHub Container Registry as `ghcr.io/dtsoden/inventory-management:latest`, for x86-64 and ARM64. The `docker-compose.yml` in this repo runs that image, so cloning is optional: all you need is the `.env` file from step 3 and this `docker-compose.yml` next to it.
 
 ```yaml
 services:
   inventory:
     image: ghcr.io/dtsoden/inventory-management:latest
+    pull_policy: always
     ports:
       - "5600:3000"
     volumes:
@@ -52,12 +53,12 @@ services:
 docker compose up -d
 ```
 
-To stay on one release, use a version tag such as `:1.1.1` in place of `:latest`. Releases and their notes are at https://github.com/dtsoden/Inventory-Management/releases.
+Only `latest` is published. Release notes are at https://github.com/dtsoden/Inventory-Management/releases, and the running version shows at the bottom of the app sidebar.
 
-**Build from source.** From the cloned repo:
+To run your own changes instead, build an image from the cloned repo and point `image:` at it:
 
 ```bash
-docker compose up -d --build
+docker build -t inventory-management:dev .
 ```
 
 The app is now serving at **http://localhost:5600**. Open it in your browser. The setup wizard will walk you through creating an admin account, naming your organization, uploading branding, entering your OpenAI API key, and configuring integrations. Everything the wizard collects is encrypted and stored in the database.
@@ -152,7 +153,8 @@ The container runs Next.js on port 3000 internally. `docker-compose.yml` maps ho
 ```yaml
 services:
   inventory:
-    build: .
+    image: ghcr.io/dtsoden/inventory-management:latest
+    pull_policy: always
     ports:
       - "5600:3000"
     volumes:
@@ -197,21 +199,11 @@ Once the container is running, the full documentation site is bundled at:
 
 ## Updating
 
-With the published image:
-
 ```bash
-docker compose pull
 docker compose up -d
 ```
 
-Building from source:
-
-```bash
-git pull
-docker compose up -d --build
-```
-
-The version you are running shows at the bottom of the app sidebar.
+`pull_policy: always` fetches the newest `latest` image first. The version you are running shows at the bottom of the app sidebar.
 
 The runtime migration step in `start.sh` applies any new schema changes to your existing database without losing data.
 

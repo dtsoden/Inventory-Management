@@ -1,6 +1,9 @@
 services:
   inventory:
-    build: .
+    # Runs the published image. Releases replace `latest`; pull_policy
+    # makes `docker compose up -d` fetch the newest one every time.
+    image: ghcr.io/dtsoden/inventory-management:latest
+    pull_policy: always
     ports:
       - "5600:3000"
     volumes:
