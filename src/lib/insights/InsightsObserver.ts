@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { OpenAIClient } from '@/lib/ai/OpenAIClient';
 import { PrismaClient } from '@prisma/client';
 import type { InsightsSnapshot } from './InsightsService';
 
@@ -100,7 +100,7 @@ export class InsightsObserver {
     const apiKey = await getOpenAIKey();
     if (!apiKey) return [];
 
-    const openai = new OpenAI({ apiKey });
+    const openai = new OpenAIClient(apiKey);
     const modelId = await getOpenAIModel();
 
     const systemPrompt = `${SYSTEM_PROMPT_BASE}\n\n${MODE_INSTRUCTIONS[mode]}`;
@@ -108,16 +108,15 @@ export class InsightsObserver {
 
     let raw: string;
     try {
-      const response = await openai.chat.completions.create({
+      // Reasoning models ignore temperature; the client drops it for them
+      // and the mode's system prompt still governs speculation.
+      raw = await openai.text({
         model: modelId,
         temperature: MODE_TEMPERATURE[mode],
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: { type: 'json_object' },
+        instructions: systemPrompt,
+        input: userPrompt,
+        json: true,
       });
-      raw = response.choices[0]?.message?.content ?? '';
     } catch (err) {
       console.error('[Insights] OpenAI call failed:', err);
       return [];

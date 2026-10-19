@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_VERSION, releaseUrl } from '@/lib/app-info';
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -74,8 +75,17 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Collapse toggle */}
+        {/* Version + collapse toggle */}
         <div className="border-t p-2">
+          <a
+            href={releaseUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Release notes for v${APP_VERSION}`}
+            className="mb-1 block truncate rounded px-2 py-1 text-center text-xs text-muted-foreground hover:text-foreground"
+          >
+            v{APP_VERSION}
+          </a>
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="flex w-full items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"

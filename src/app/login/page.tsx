@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { parseBranding } from '@/lib/branding';
 import LoginForm from './LoginForm';
+import { smtpSettingsService } from '@/lib/email/SmtpSettingsService';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +26,7 @@ export default async function LoginPage() {
         themeMode: parsed.themeMode || 'auto',
       };
     }
-    const smtpHost = await prisma.systemConfig.findUnique({ where: { key: 'smtp_host' } });
-    smtpConfigured = !!smtpHost?.value;
+    smtpConfigured = await smtpSettingsService.isConfigured();
   } catch {
     // No tenant yet (fresh install), use defaults
   }

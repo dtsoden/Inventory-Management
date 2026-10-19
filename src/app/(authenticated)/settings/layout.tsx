@@ -10,6 +10,7 @@ import {
   Shield,
   Database,
   List,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ const settingsTabs = [
   { label: 'Security', href: '/settings/security', icon: Shield },
   { label: 'Manage Lists', href: '/settings/lists', icon: List },
   { label: 'Sample Data', href: '/settings/sample-data', icon: Database },
+  { label: 'Logs', href: '/settings/logs', icon: ScrollText },
 ];
 
 export default function SettingsLayout({

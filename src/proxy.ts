@@ -3,7 +3,7 @@ import { getToken } from 'next-auth/jwt';
 import { applyCors, handlePreflight } from './lib/middleware/cors';
 import { getAuthSecret } from '@/lib/auth-secret';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const preflightResponse = handlePreflight(req);
   if (preflightResponse) return applyCors(req, preflightResponse);
 

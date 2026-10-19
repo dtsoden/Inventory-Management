@@ -9,6 +9,7 @@ import { ConfigService } from '@/lib/config/ConfigService';
 import { mergeBrandingIntoSettings, DEFAULT_BRANDING } from '@/lib/branding';
 import { insertSampleData } from '@/lib/seed/sample-data';
 import { getDefaultRoles } from '@/lib/roles';
+import { smtpSettingsService } from '@/lib/email/SmtpSettingsService';
 
 const BRANDING_UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads', 'branding');
 
@@ -219,38 +220,12 @@ export async function POST(request: NextRequest) {
 
     // Store optional SMTP settings if provided
     if (payload.smtpHost) {
-      await configService.set('smtp_host', payload.smtpHost, {
-        isSecret: false,
-        category: 'email',
-        description: 'SMTP server hostname',
-      });
-    }
-    if (payload.smtpPort) {
-      await configService.set('smtp_port', payload.smtpPort, {
-        isSecret: false,
-        category: 'email',
-        description: 'SMTP server port',
-      });
-    }
-    if (payload.smtpUser) {
-      await configService.set('smtp_user', payload.smtpUser, {
-        isSecret: false,
-        category: 'email',
-        description: 'SMTP username',
-      });
-    }
-    if (payload.smtpPassword) {
-      await configService.set('smtp_password', payload.smtpPassword, {
-        isSecret: true,
-        category: 'email',
-        description: 'SMTP password',
-      });
-    }
-    if (payload.smtpFrom) {
-      await configService.set('smtp_from', payload.smtpFrom, {
-        isSecret: false,
-        category: 'email',
-        description: 'Default sender email address',
+      await smtpSettingsService.save({
+        smtp_host: payload.smtpHost,
+        smtp_port: payload.smtpPort,
+        smtp_user: payload.smtpUser,
+        smtp_password: payload.smtpPassword,
+        smtp_from: payload.smtpFrom,
       });
     }
     if (payload.catalogApiUrl) {

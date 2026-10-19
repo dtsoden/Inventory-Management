@@ -156,6 +156,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
           // Refresh conversation list to get updated titles
           loadConversations();
+        } else {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `err-${Date.now()}`,
+              role: 'ASSISTANT',
+              content: `The assistant could not answer: ${data.error || `request failed (${res.status})`}`,
+              createdAt: new Date().toISOString(),
+            },
+          ]);
         }
       } catch (err) {
         console.error('Failed to send message:', err);

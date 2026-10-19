@@ -1,5 +1,6 @@
-import OpenAI from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type OpenAI from 'openai';
+import { OpenAIClient } from '@/lib/ai/OpenAIClient';
+import type { ResponseInputItem } from 'openai/resources/responses/responses';
 import { PrismaClient } from '@prisma/client';
 import { ChatRepository } from './ChatRepository';
 import type { TenantContext } from '@/lib/types';
@@ -165,7 +166,7 @@ const functionDefinitions: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
-const SYSTEM_PROMPT = `You are an AI assistant for an inventory management platform with FULL access to the database through function calls. You MUST use your available tools to answer every question. NEVER say you don't have access to data. You have these capabilities:
+const SYSTEM_PROMPT = `You are an AI assistant for an inventory management platform with FULL access to the database through function calls. You MUST use your available tools to answer every question about inventory, orders, vendors, users or other data. NEVER say you don't have access to data. For greetings, thanks and small talk, reply briefly without calling any tool. You have these capabilities:
 
 - searchInventory: Search assets by status, category name, or free-text. USE THIS for any question about inventory, assets, laptops, equipment, categories, etc.
 - getOrderStatus: Look up purchase orders by number.
@@ -230,70 +231,26 @@ export class AssistantService {
       throw new Error('Conversation not found');
     }
 
-    const messages: ChatCompletionMessageParam[] = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...conversation.messages.map((m) => ({
-        role: (m.role === 'USER'
-          ? 'user'
-          : m.role === 'SYSTEM'
-            ? 'system'
-            : 'assistant') as 'user' | 'system' | 'assistant',
-        content: m.content,
-      })),
-    ];
+    const history: ResponseInputItem[] = conversation.messages.map((m) => ({
+      role: m.role === 'USER' ? 'user' : m.role === 'SYSTEM' ? 'developer' : 'assistant',
+      content: m.content,
+    }));
 
-    // 3. Call OpenAI (key + model from vault, env fallback)
-    const { getOpenAIKey, getOpenAIModel } = await import('@/lib/config/vault');
-    const apiKey = await getOpenAIKey();
-    if (!apiKey) throw new Error('OpenAI API key not configured. Set it in Settings > Integrations or via OPENAI_API_KEY env.');
-    const openai = new OpenAI({ apiKey });
-    const modelId = await getOpenAIModel();
-
-    let response = await openai.chat.completions.create({
-      model: modelId,
-      messages,
-      tools: functionDefinitions,
-      tool_choice: 'auto',
+    // 3. Call OpenAI through the Responses API (key + model from the vault)
+    const { client, model } = await OpenAIClient.fromSettings();
+    const answer = await client.runTools({
+      model,
+      instructions: SYSTEM_PROMPT,
+      input: history,
+      // Chat needs to feel instant; tool lookups do the heavy lifting.
+      reasoningEffort: 'none',
+      tools: functionDefinitions
+        .filter((t) => t.type === 'function')
+        .map((t) => OpenAIClient.functionTool(t.function)),
+      execute: (name, args) => this.executeFunction(ctx, name, args),
     });
 
-    let assistantMessage = response.choices[0]?.message;
-
-    // 4. Handle function calls (loop for multiple tool calls)
-    while (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
-      // Add the assistant's message with tool_calls to history
-      messages.push({
-        role: 'assistant',
-        content: assistantMessage.content || '',
-        tool_calls: assistantMessage.tool_calls,
-      });
-
-      // Execute each function call and add results
-      for (const toolCall of assistantMessage.tool_calls) {
-        if (toolCall.type !== 'function') continue;
-        const fnName = toolCall.function.name;
-        const fnArgs = JSON.parse(toolCall.function.arguments);
-        const result = await this.executeFunction(ctx, fnName, fnArgs);
-
-        messages.push({
-          role: 'tool',
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(result),
-        });
-      }
-
-      // Call OpenAI again with function results
-      response = await openai.chat.completions.create({
-        model: modelId,
-        messages,
-        tools: functionDefinitions,
-        tool_choice: 'auto',
-      });
-
-      assistantMessage = response.choices[0]?.message;
-    }
-
-    const responseContent =
-      assistantMessage?.content || 'I was unable to generate a response.';
+    const responseContent = answer.trim() || 'I was unable to generate a response.';
 
     // 5. Save assistant response
     await this.repo.addMessage(conversationId, 'ASSISTANT', responseContent);

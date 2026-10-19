@@ -1,0 +1,38 @@
+# Changelog
+
+Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bottom of the app sidebar and in the landing page footer.
+
+## 1.1.0 - 2026-10-19
+
+### Email
+
+- One global SMTP configuration under Settings > Integrations > Email now drives every email the app sends: purchase orders, password resets and notification emails.
+- The SMTP password is stored encrypted in the vault. Earlier builds saved it in plain text from the settings page, which made every send fail its login. Existing plain-text values are re-encrypted on first use.
+- The test button now logs in to the mail server and sends a real email to an address you choose, and shows the result or the server's error on the page.
+- Notifications are emailed to each recipient when SMTP is set up and their Settings > Notifications preference for that type is on. Email failures are logged and never block the action that raised the notification.
+- Purchase order notifications go through the shared notification service.
+
+### AI assistant and OpenAI
+
+- Every OpenAI call (assistant, insights, packing slip extraction, catalog field mapping) now uses the Responses API, so current models such as gpt-6-luna work, tools included.
+- Optional parameters a model rejects, such as temperature on reasoning models, are dropped automatically and the request retried.
+- Settings > Integrations > AI has a Test Key and Model button that sends one request with the saved key and selected model.
+- The model dropdown lists only text models your key can use, without dated snapshot duplicates. If OpenAI can't be reached, it says so instead of falling back to a stale hardcoded list.
+- The assistant chat shows the actual error when a request fails.
+- The assistant runs with reasoning turned off. Reasoning models default to medium effort, which with the assistant's tools attached took 10 to 13 seconds to answer "hi". It now takes 1 to 2 seconds per OpenAI call.
+- Every OpenAI call is logged with its model, duration and token counts.
+- Saving a new OpenAI key from the settings page stores it encrypted. Plain-text keys saved by earlier builds are re-encrypted on first use.
+
+### App
+
+- Toast notifications appear again. Their container was never mounted, so every success and error message in the app was being dropped.
+- The app version shows in the sidebar and links to its GitHub release.
+- The landing page links to the GitHub repository and releases.
+- Vault read failures are logged instead of being silently ignored.
+- Settings > Logs shows server logs with search, level, source and time filters, auto-refresh, and CSV or JSON export. Logs are kept for 14 days as daily files in data/logs on the Docker volume, and keys, tokens and passwords are masked.
+- Opening the Admin Guide no longer returns a 500 error. Its access check lived in src/middleware.ts on the edge runtime, which can't load the database code it needed, and now runs as src/proxy.ts on Node.js.
+- The documentation site uses the logo from Organization settings, or the app icon when none is set, in place of the Docusaurus logo. Its favicon matches the app's.
+
+## 1.0.0
+
+- First version.

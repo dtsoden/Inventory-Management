@@ -1,4 +1,5 @@
-import OpenAI from 'openai';
+import type { ResponseInput } from 'openai/resources/responses/responses';
+import { OpenAIClient } from '@/lib/ai/OpenAIClient';
 
 export interface ExtractedLineItem {
   name: string;
@@ -47,70 +48,44 @@ function parseExtractionResponse(content: string): PackingSlipExtraction {
   };
 }
 
-async function getOpenAI() {
-  const { getOpenAIKey, getOpenAIModel } = await import('@/lib/config/vault');
-  const apiKey = await getOpenAIKey();
-  if (!apiKey) {
-    throw new Error('OpenAI API key not configured. Set it in Settings > Integrations.');
-  }
-  const modelId = await getOpenAIModel();
-  return { client: new OpenAI({ apiKey }), modelId };
+async function extract(input: string | ResponseInput): Promise<PackingSlipExtraction> {
+  const { client, model } = await OpenAIClient.fromSettings();
+  const content = await client.text({
+    model,
+    instructions: SYSTEM_PROMPT,
+    input,
+    json: true,
+    temperature: 0.1,
+  });
+  if (!content) throw new Error('No response received from OpenAI');
+  return parseExtractionResponse(content);
 }
 
 export async function extractPackingSlipData(
   imageBase64: string,
 ): Promise<PackingSlipExtraction> {
-  const { client, modelId } = await getOpenAI();
-
-  const response = await client.chat.completions.create({
-    model: modelId,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Extract the order number, vendor name, and all line items from this packing slip image. Return the data as JSON.',
-          },
-          {
-            type: 'image_url',
-            image_url: {
-              url: `data:image/jpeg;base64,${imageBase64}`,
-              detail: 'high',
-            },
-          },
-        ],
-      },
-    ],
-    max_completion_tokens: 2000,
-    temperature: 0.1,
-  });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error('No response received from OpenAI');
-  return parseExtractionResponse(content);
+  return extract([
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'input_text',
+          text: 'Extract the order number, vendor name, and all line items from this packing slip image. Return the data as JSON.',
+        },
+        {
+          type: 'input_image',
+          image_url: `data:image/jpeg;base64,${imageBase64}`,
+          detail: 'high',
+        },
+      ],
+    },
+  ]);
 }
 
 export async function extractPackingSlipFromText(
   text: string,
 ): Promise<PackingSlipExtraction> {
-  const { client, modelId } = await getOpenAI();
-
-  const response = await client.chat.completions.create({
-    model: modelId,
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      {
-        role: 'user',
-        content: `Extract the order number, vendor name, and all line items from this packing slip document. Return the data as JSON.\n\n---\n\n${text}`,
-      },
-    ],
-    max_completion_tokens: 2000,
-    temperature: 0.1,
-  });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error('No response received from OpenAI');
-  return parseExtractionResponse(content);
+  return extract(
+    `Extract the order number, vendor name, and all line items from this packing slip document. Return the data as JSON.\n\n---\n\n${text}`,
+  );
 }

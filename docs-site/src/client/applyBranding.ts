@@ -75,7 +75,12 @@ function setPrimaryColor(hex: string) {
   }
 }
 
+let faviconApplied = false;
+
 function setFavicon(url: string) {
+  // Applied once per page load; reapplies would churn the <head>.
+  if (faviconApplied) return;
+  faviconApplied = true;
   // Remove every existing favicon link so the browser can't fall back
   // to the static one Docusaurus baked into the HTML head.
   const existing = document.querySelectorAll<HTMLLinkElement>(
@@ -109,8 +114,9 @@ function setNavbarLogo(lightUrl: string | null, darkUrl: string | null) {
   const imgs = document.querySelectorAll<HTMLImageElement>('.navbar__logo img');
   if (imgs.length === 0) return;
   const isDark = document.documentElement.dataset.theme === 'dark';
-  const url = isDark ? darkUrl || lightUrl : lightUrl || darkUrl;
-  if (!url) return;
+  // No logo in Organization settings: use the app icon, which is the
+  // custom favicon if one is set, or the default generated icon.
+  const url = (isDark ? darkUrl || lightUrl : lightUrl || darkUrl) || APP_ICON_URL;
   imgs.forEach((img) => {
     const currentSrc = img.getAttribute('src');
     if (img.hasAttribute('srcset')) {
@@ -142,13 +148,17 @@ function setNavbarTitle(name: string) {
   }
 }
 
+// Serves the tenant favicon, or the default icon generated from the
+// primary color. Same icon the app itself uses in the browser tab.
+const APP_ICON_URL = '/api/favicon';
+
 // Cache the branding response so re-application is instant and never
 // blocked on a network round-trip.
 let cachedBranding: PublicBranding | null = null;
 
 function applyAll(branding: PublicBranding) {
   if (branding.appName) setNavbarTitle(branding.appName);
-  if (branding.faviconUrl) setFavicon(branding.faviconUrl);
+  setFavicon(APP_ICON_URL);
   setNavbarLogo(branding.logoUrlLight, branding.logoUrlDark);
 
   const isDark = document.documentElement.dataset.theme === 'dark';

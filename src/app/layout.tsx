@@ -4,6 +4,7 @@ import { Roboto } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
 import { prisma } from "@/lib/db";
 
 const roboto = Roboto({
@@ -40,6 +41,7 @@ export default function RootLayout({
         <SessionProvider>
           <ThemeProvider>
             {children}
+            <Toaster position="top-right" richColors closeButton />
           </ThemeProvider>
         </SessionProvider>
       </body>

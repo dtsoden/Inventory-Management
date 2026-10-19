@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import {
   Plug,
   Eye,
@@ -19,6 +20,7 @@ import {
   Loader2,
   Sparkles,
   ChevronDown,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -164,6 +166,9 @@ export default function IntegrationsSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState('gpt-5.4-nano');
+  const [aiTesting, setAiTesting] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [aiTestResult, setAiTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [availableModels, setAvailableModels] = useState<{ id: string }[]>([]);
 
   // Data sources state
@@ -181,6 +186,12 @@ export default function IntegrationsSettingsPage() {
   const [showSmtpPassword, setShowSmtpPassword] = useState(false);
   const [smtpLoading, setSmtpLoading] = useState(true);
   const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpPasswordSet, setSmtpPasswordSet] = useState(false);
+  const [smtpTestTo, setSmtpTestTo] = useState('');
+  const [smtpTestResult, setSmtpTestResult] = useState<
+    { ok: true; message: string } | { ok: false; message: string } | null
+  >(null);
+  const { data: session } = useSession();
 
   // Wizard state
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -221,11 +232,12 @@ export default function IntegrationsSettingsPage() {
       .then((res) => {
         if (res.success && res.data) {
           setAvailableModels(res.data);
+          setModelsError(null);
+        } else {
+          setModelsError(res.error || 'Could not load models from OpenAI');
         }
       })
-      .catch(() => {
-        // Silent failure - dropdown will fall back to defaults
-      });
+      .catch(() => setModelsError('Could not load models from OpenAI'));
 
     fetchSources();
 
@@ -237,13 +249,17 @@ export default function IntegrationsSettingsPage() {
           setSmtpHost(res.data.smtp_host || '');
           setSmtpPort(res.data.smtp_port || '587');
           setSmtpUser(res.data.smtp_user || '');
-          setSmtpPassword(res.data.smtp_password || '');
+          setSmtpPasswordSet(!!res.data.passwordSet);
           setSmtpFrom(res.data.smtp_from || '');
         }
       })
       .catch(console.error)
       .finally(() => setSmtpLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!smtpTestTo && session?.user?.email) setSmtpTestTo(session.user.email);
+  }, [session?.user?.email, smtpTestTo]);
 
   const fetchSources = useCallback(async () => {
     try {
@@ -260,6 +276,34 @@ export default function IntegrationsSettingsPage() {
   }, []);
 
   /* ---- AI Tab handlers ---- */
+
+  async function testOpenAI() {
+    setAiTesting(true);
+    setAiTestResult(null);
+    try {
+      const res = await apiFetch('/api/settings/ai-models/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: selectedModel }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiTestResult({
+          ok: true,
+          message: `API key works and ${data.data.model} answered "${data.data.reply}" in ${data.data.latencyMs} ms, with tools enabled the same way the assistant uses them.`,
+        });
+        toast.success('OpenAI connection works');
+      } else {
+        setAiTestResult({ ok: false, message: data.error || `Test failed (${res.status})` });
+        toast.error('OpenAI test failed');
+      }
+    } catch {
+      setAiTestResult({ ok: false, message: 'Could not reach the server to run the test.' });
+      toast.error('OpenAI test failed');
+    } finally {
+      setAiTesting(false);
+    }
+  }
 
   async function saveOpenAIKey() {
     if (!openaiKey) {
@@ -320,25 +364,28 @@ export default function IntegrationsSettingsPage() {
 
   /* ---- SMTP Tab handlers ---- */
 
+  function smtpFormValues() {
+    return {
+      smtp_host: smtpHost,
+      smtp_port: smtpPort,
+      smtp_user: smtpUser,
+      smtp_password: smtpPassword,
+      smtp_from: smtpFrom,
+    };
+  }
+
   async function saveSmtpSettings() {
     setSaving('smtp');
     try {
       const res = await apiFetch('/api/settings/integrations', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: 'smtp',
-          settings: {
-            smtp_host: smtpHost,
-            smtp_port: smtpPort,
-            smtp_user: smtpUser,
-            smtp_password: smtpPassword,
-            smtp_from: smtpFrom,
-          },
-        }),
+        body: JSON.stringify({ category: 'smtp', settings: smtpFormValues() }),
       });
       const data = await res.json();
       if (data.success) {
+        if (smtpPassword) setSmtpPasswordSet(true);
+        setSmtpPassword('');
         toast.success('SMTP settings saved');
       } else {
         toast.error(data.error || 'Failed to save SMTP settings');
@@ -350,23 +397,39 @@ export default function IntegrationsSettingsPage() {
     }
   }
 
-  async function testSmtpConnection() {
+  async function sendSmtpTest() {
     if (!smtpHost.trim()) {
       toast.error('Please enter an SMTP host first');
       return;
     }
+    if (!smtpTestTo.trim()) {
+      toast.error('Enter an email address to send the test to');
+      return;
+    }
     setSmtpTesting(true);
-    // For now we just validate that settings are present
-    setTimeout(() => {
-      if (smtpHost && smtpPort) {
-        toast.success(
-          'SMTP settings look valid. Save them first, then send a test email to verify delivery.'
-        );
+    setSmtpTestResult(null);
+    try {
+      const res = await apiFetch('/api/settings/integrations/smtp-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: smtpTestTo.trim(), settings: smtpFormValues() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const message = `Test email sent to ${data.data.to} from ${data.data.from} via ${data.data.host}:${data.data.port}. Check that inbox (and its spam folder).`;
+        setSmtpTestResult({ ok: true, message });
+        toast.success(`Test email sent to ${data.data.to}`);
       } else {
-        toast.error('Please fill in at least the SMTP host and port');
+        const message = data.error || 'SMTP test failed';
+        setSmtpTestResult({ ok: false, message });
+        toast.error('SMTP test failed');
       }
+    } catch {
+      setSmtpTestResult({ ok: false, message: 'Could not reach the server to run the test.' });
+      toast.error('SMTP test failed');
+    } finally {
       setSmtpTesting(false);
-    }, 800);
+    }
   }
 
   /* ---- Catalog API: Source list handlers ---- */
@@ -749,16 +812,9 @@ export default function IntegrationsSettingsPage() {
                 <Label htmlFor="model-select">Model</Label>
                 <div className="mt-1.5 flex gap-2">
                   {(() => {
-                    // Build a stable union list of fallback + fetched models that always
-                    // includes the currently selected value so the Select can resolve it.
-                    const fallbackModels = [
-                      'gpt-5.4-nano',
-                      'gpt-4o-mini',
-                      'gpt-4o',
-                      'gpt-4-turbo',
-                      'gpt-3.5-turbo',
-                    ];
-                    const modelIds = new Set<string>(fallbackModels);
+                    // Only models the saved key can actually use, plus the current
+                    // value so the Select can resolve it.
+                    const modelIds = new Set<string>();
                     availableModels.forEach((m) => modelIds.add(m.id));
                     if (selectedModel) modelIds.add(selectedModel);
                     const allModels = Array.from(modelIds).sort();
@@ -788,9 +844,50 @@ export default function IntegrationsSettingsPage() {
                     {saving === 'model' ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
+                {modelsError && (
+                  <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">
+                    Model list unavailable: {modelsError}
+                  </p>
+                )}
                 <p className="mt-1.5 text-xs text-muted-foreground">
                   Current model: <code className="rounded bg-muted px-1 py-0.5 font-mono">{selectedModel}</code>
                 </p>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={testOpenAI}
+                  disabled={aiTesting || !openaiKeyMasked}
+                >
+                  {aiTesting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  {aiTesting ? 'Testing...' : 'Test Key and Model'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Sends one small request to OpenAI with the saved key and the model selected above, saved or not.
+                </p>
+                {aiTestResult && (
+                  <div
+                    className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                      aiTestResult.ok
+                        ? 'border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400'
+                        : 'border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/20 dark:text-red-400'
+                    }`}
+                  >
+                    {aiTestResult.ok ? (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    ) : (
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    )}
+                    <span className="break-words">{aiTestResult.message}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1472,7 +1569,7 @@ export default function IntegrationsSettingsPage() {
                   Email / SMTP Configuration
                 </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Configure outbound email settings for notifications and alerts.
+                  Global outbound email settings. Purchase orders, password resets and notification emails all send through this server.
                 </p>
               </div>
               <Badge variant={smtpHost ? 'default' : 'secondary'}>
@@ -1530,7 +1627,7 @@ export default function IntegrationsSettingsPage() {
                         type={showSmtpPassword ? 'text' : 'password'}
                         value={smtpPassword}
                         onChange={(e) => setSmtpPassword(e.target.value)}
-                        placeholder="Enter password"
+                        placeholder={smtpPasswordSet ? 'Saved. Leave blank to keep it.' : 'Enter password'}
                         className="pr-10"
                       />
                       <Button
@@ -1562,6 +1659,21 @@ export default function IntegrationsSettingsPage() {
                   />
                 </div>
 
+                <div>
+                  <Label htmlFor="smtp-test-to">Send Test Email To</Label>
+                  <Input
+                    id="smtp-test-to"
+                    type="email"
+                    value={smtpTestTo}
+                    onChange={(e) => setSmtpTestTo(e.target.value)}
+                    placeholder="you@example.com"
+                    className="mt-1.5"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    The test logs in to the server and sends a real email here, using the values above, saved or not.
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-3 pt-2">
                   <Button
                     onClick={saveSmtpSettings}
@@ -1572,19 +1684,36 @@ export default function IntegrationsSettingsPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={testSmtpConnection}
-                    disabled={smtpTesting || !smtpHost.trim()}
+                    onClick={sendSmtpTest}
+                    disabled={smtpTesting || !smtpHost.trim() || !smtpTestTo.trim()}
                     size="sm"
                     className="gap-1.5"
                   >
                     {smtpTesting ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <RefreshCw className="h-3.5 w-3.5" />
+                      <Send className="h-3.5 w-3.5" />
                     )}
-                    {smtpTesting ? 'Testing...' : 'Test Connection'}
+                    {smtpTesting ? 'Sending...' : 'Send Test Email'}
                   </Button>
                 </div>
+
+                {smtpTestResult && (
+                  <div
+                    className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                      smtpTestResult.ok
+                        ? 'border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/20 dark:text-emerald-400'
+                        : 'border-red-500/30 bg-red-50 text-red-800 dark:bg-red-950/20 dark:text-red-400'
+                    }`}
+                  >
+                    {smtpTestResult.ok ? (
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    ) : (
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    )}
+                    <span className="break-words">{smtpTestResult.message}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

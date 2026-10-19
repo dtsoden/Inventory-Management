@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { OpenAIClient } from '@/lib/ai/OpenAIClient';
 import { prisma } from '@/lib/db';
 import type { FieldMapping, ApiSchemaField, TestConnectionResult } from './types';
 import { TARGET_FIELDS } from './types';
@@ -147,7 +147,8 @@ export async function suggestMappings(
   schema: ApiSchemaField[],
   openaiApiKey: string
 ): Promise<FieldMapping[]> {
-  const client = new OpenAI({ apiKey: openaiApiKey });
+  const client = new OpenAIClient(openaiApiKey);
+  const { getOpenAIModel } = await import('@/lib/config/vault');
 
   const targetFieldDescriptions = TARGET_FIELDS.map(
     (f) => `${f.name} (${f.type}${f.required ? ', required' : ''})`
@@ -157,14 +158,11 @@ export async function suggestMappings(
     .map((f) => `${f.name} (${f.type}, sample: ${JSON.stringify(f.sampleValue)})`)
     .join('\n');
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
+  const content = await client.text({
+    model: await getOpenAIModel(),
     temperature: 0,
-    response_format: { type: 'json_object' },
-    messages: [
-      {
-        role: 'system',
-        content: `You are mapping fields from an external API response to an inventory item model.
+    json: true,
+    instructions: `You are mapping fields from an external API response to an inventory item model.
 
 Target fields: ${targetFieldDescriptions}
 
@@ -177,15 +175,8 @@ Return a JSON object with a "mappings" key containing an array of objects, each 
 - confidence: a number 0-1 indicating your confidence in this mapping
 
 Only include mappings where you have a reasonable match (confidence > 0.3). Consider field names, sample values, and data types when making matches.`,
-      },
-      {
-        role: 'user',
-        content: `Source fields detected:\n${sourceFieldDescriptions}`,
-      },
-    ],
+    input: `Source fields detected:\n${sourceFieldDescriptions}`,
   });
-
-  const content = response.choices[0]?.message?.content;
   if (!content) return [];
 
   try {

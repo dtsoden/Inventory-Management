@@ -18,7 +18,10 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'If an account with that email exists, a reset link has been sent.',
     });
-  } catch {
+  } catch (err) {
+    // Same response either way so the endpoint can't be used to probe
+    // which emails exist, but log delivery failures for the admin.
+    console.error('Password reset email failed:', err);
     return NextResponse.json({
       success: true,
       message: 'If an account with that email exists, a reset link has been sent.',

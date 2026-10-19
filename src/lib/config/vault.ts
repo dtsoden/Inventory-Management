@@ -11,7 +11,10 @@ function initVault(): ConfigService | null {
 
   try {
     const keyHex = process.env.VAULT_KEY;
-    if (!keyHex) return null;
+    if (!keyHex) {
+      console.error('[vault] VAULT_KEY is not set; encrypted settings cannot be read.');
+      return null;
+    }
 
     const key = Buffer.from(keyHex, 'hex');
     const encryption = new EncryptionService();
@@ -24,12 +27,18 @@ function initVault(): ConfigService | null {
   }
 }
 
+/** The vault-backed ConfigService, or null when VAULT_KEY is not set. */
+export function getConfigService(): ConfigService | null {
+  return initVault();
+}
+
 export async function getVaultSecret(key: string): Promise<string | null> {
   const svc = initVault();
   if (!svc) return null;
   try {
     return await svc.get(key);
-  } catch {
+  } catch (err) {
+    console.error(`[vault] Could not read "${key}":`, err instanceof Error ? err.message : err);
     return null;
   }
 }

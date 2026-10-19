@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { BaseService } from '@/lib/base/BaseService';
 import { TenantContext } from '@/lib/types';
 import { ValidationError, ForbiddenError } from '@/lib/errors';
+import { NotificationService } from '@/lib/notifications/NotificationService';
 import {
   PurchaseOrderRepository,
   PurchaseOrderWithLines,
@@ -24,10 +25,12 @@ const APPROVER_ROLES = new Set(['ADMIN', 'PURCHASING_MANAGER']);
 
 export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
   private readonly orderRepo: PurchaseOrderRepository;
+  private readonly notifications: NotificationService;
 
   constructor(repository: PurchaseOrderRepository, prisma: PrismaClient) {
     super(repository, prisma);
     this.orderRepo = repository;
+    this.notifications = new NotificationService(prisma);
   }
 
   protected get entityName(): string {
@@ -295,17 +298,11 @@ export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
     });
     if (approvers.length === 0) return;
 
-    await this.prisma.notification.createMany({
-      data: approvers.map((u) => ({
-        tenantId,
-        userId: u.id,
-        type: payload.type,
-        title: payload.title,
-        message: payload.message,
-        link: payload.link,
-        isRead: false,
-      })),
-    });
+    await this.notifications.notifyUsers(
+      tenantId,
+      approvers.map((u) => u.id),
+      payload,
+    );
   }
 
   private async notifyUser(
@@ -319,17 +316,7 @@ export class PurchaseOrderService extends BaseService<PurchaseOrderWithLines> {
     }
   ): Promise<void> {
     try {
-      await this.prisma.notification.create({
-        data: {
-          tenantId,
-          userId,
-          type: payload.type,
-          title: payload.title,
-          message: payload.message,
-          link: payload.link,
-          isRead: false,
-        },
-      });
+      await this.notifications.notifyUsers(tenantId, [userId], payload);
     } catch (e) {
       console.error('Failed to write user notification:', e);
     }

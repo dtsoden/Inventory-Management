@@ -45,9 +45,28 @@ export class ConfigService {
     if (!config) return null;
     if (config.isSecret) {
       this.requireVaultKey();
-      return this.encryption.decrypt(config.value, this.vaultKey!);
+      try {
+        return this.encryption.decrypt(config.value, this.vaultKey!);
+      } catch (err) {
+        // Older builds of the settings page stored some secrets (SMTP
+        // password, OpenAI key) as plain text with isSecret = true. If the
+        // value is clearly not our ciphertext, re-save it encrypted.
+        if (this.looksEncrypted(config.value)) throw err;
+        await this.set(key, config.value, {
+          isSecret: true,
+          category: config.category,
+          description: config.description ?? undefined,
+        });
+        return config.value;
+      }
     }
     return config.value;
+  }
+
+  /** Base64 of IV (12) + ciphertext (1+) + auth tag (16). */
+  private looksEncrypted(value: string): boolean {
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value)) return false;
+    return Buffer.from(value, 'base64').length > 28;
   }
 
   async set(key: string, value: string, options: SetConfigOptions): Promise<void> {

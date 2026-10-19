@@ -15,10 +15,7 @@ export class PasswordResetService {
   constructor(private readonly prisma: PrismaClient = defaultPrisma) {}
 
   async isSmtpConfigured(): Promise<boolean> {
-    const host = await this.prisma.systemConfig.findUnique({
-      where: { key: 'smtp_host' },
-    });
-    return !!host?.value;
+    return emailService.isConfigured();
   }
 
   async requestReset(email: string, baseUrl: string): Promise<void> {
@@ -38,34 +35,14 @@ export class PasswordResetService {
       },
     });
 
+    if (!(await emailService.isConfigured())) return;
+
     const resetUrl = `${baseUrl}/login/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
-    const smtp = await this.getSmtpConfig();
-    if (!smtp.host) return;
-
-    const nodemailer = await import('nodemailer');
-    const transport = nodemailer.default.createTransport({
-      host: smtp.host,
-      port: parseInt(smtp.port || '587', 10),
-      secure: parseInt(smtp.port || '587', 10) === 465,
-      auth: smtp.user && smtp.password
-        ? { user: smtp.user, pass: smtp.password }
-        : undefined,
-    });
-
-    const platformName = await this.prisma.systemConfig.findUnique({
-      where: { key: 'platform_name' },
-    });
-
-    await transport.sendMail({
-      from: smtp.from || 'noreply@inventory.local',
+    await emailService.sendPasswordReset({
       to: email,
-      subject: `Password Reset - ${platformName?.value || 'Inventory'}`,
-      html: [
-        `<p>Hello ${user.name},</p>`,
-        `<p>A password reset was requested for your account. Click the link below to set a new password:</p>`,
-        `<p><a href="${resetUrl}">${resetUrl}</a></p>`,
-        `<p>This link expires in ${TOKEN_EXPIRY_HOURS} hours. If you did not request this, ignore this email.</p>`,
-      ].join('\n'),
+      name: user.name,
+      resetUrl,
+      expiryHours: TOKEN_EXPIRY_HOURS,
     });
   }
 
@@ -106,20 +83,11 @@ export class PasswordResetService {
       where: { id: userId, tenantId },
     });
     if (!user) throw new NotFoundError('User', userId);
+    if (!(await emailService.isConfigured())) {
+      throw new ValidationError('SMTP is not configured. Set it up in Settings > Integrations > Email first.');
+    }
 
     await this.requestReset(user.email, baseUrl);
-  }
-
-  private async getSmtpConfig() {
-    const { getVaultSecret } = await import('@/lib/config/vault');
-    const [host, port, user, password, from] = await Promise.all([
-      this.prisma.systemConfig.findUnique({ where: { key: 'smtp_host' } }).then(r => r?.value || null),
-      this.prisma.systemConfig.findUnique({ where: { key: 'smtp_port' } }).then(r => r?.value || '587'),
-      this.prisma.systemConfig.findUnique({ where: { key: 'smtp_user' } }).then(r => r?.value || null),
-      getVaultSecret('smtp_password'),
-      this.prisma.systemConfig.findUnique({ where: { key: 'smtp_from' } }).then(r => r?.value || null),
-    ]);
-    return { host, port, user, password, from };
   }
 }
 

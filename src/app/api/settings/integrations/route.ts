@@ -3,6 +3,9 @@ import { BaseApiHandler } from '@/lib/base/BaseApiHandler';
 import { TenantContext, UserRole } from '@/lib/types';
 import { prisma } from '@/lib/db';
 import { SystemConfigRepository } from '@/lib/config/SystemConfigRepository';
+import { smtpSettingsService } from '@/lib/email/SmtpSettingsService';
+import { getConfigService } from '@/lib/config/vault';
+import { ValidationError } from '@/lib/errors';
 
 const systemConfigRepo = new SystemConfigRepository(prisma);
 
@@ -54,34 +57,11 @@ class IntegrationsHandler extends BaseApiHandler {
     }
 
     if (category === 'smtp_check') {
-      const smtpHost = await getConfigValue('smtp_host');
-      return this.success({ smtpConfigured: !!smtpHost });
+      return this.success({ smtpConfigured: await smtpSettingsService.isConfigured() });
     }
 
     if (category === 'smtp') {
-      const map = await getConfigsByKeys([
-        'smtp_host',
-        'smtp_port',
-        'smtp_user',
-        'smtp_password',
-        'smtp_from',
-      ]);
-
-      let maskedPassword = '';
-      if (map['smtp_password']) {
-        maskedPassword =
-          map['smtp_password'].length > 4
-            ? '\u2022'.repeat(map['smtp_password'].length - 4) + map['smtp_password'].slice(-4)
-            : '\u2022'.repeat(8);
-      }
-
-      return this.success({
-        smtp_host: map['smtp_host'] || '',
-        smtp_port: map['smtp_port'] || '587',
-        smtp_user: map['smtp_user'] || '',
-        smtp_password: maskedPassword,
-        smtp_from: map['smtp_from'] || '',
-      });
+      return this.success(await smtpSettingsService.getView());
     }
 
     if (category === 'password_policy') {
@@ -169,31 +149,21 @@ class IntegrationsHandler extends BaseApiHandler {
     }
 
     if (category === 'smtp') {
-      const smtpFields: Record<string, string> = {
-        smtp_host: settings.smtp_host || '',
-        smtp_port: settings.smtp_port || '587',
-        smtp_user: settings.smtp_user || '',
-        smtp_password: settings.smtp_password || '',
-        smtp_from: settings.smtp_from || '',
-      };
-      for (const [key, value] of Object.entries(smtpFields)) {
-        // Skip writing the password if it's a masked display value.
-        if (key === 'smtp_password' && value.includes('\u2022')) continue;
-        await setConfig(
-          key,
-          value,
-          'email',
-          `SMTP setting: ${key}`,
-          key === 'smtp_password',
-        );
-      }
+      await smtpSettingsService.save(settings);
       await this.audit(ctx, 'Updated SMTP email settings');
       return this.success(null);
     }
 
     // Default: integrations category
     if (settings.openaiApiKey) {
-      await setConfig('openai_api_key', settings.openaiApiKey, 'ai', 'OpenAI API key', true);
+      // Secrets must go through the vault so readers can decrypt them.
+      const vault = getConfigService();
+      if (!vault) throw new ValidationError('VAULT_KEY is not set, so the API key cannot be stored.');
+      await vault.set('openai_api_key', String(settings.openaiApiKey).trim(), {
+        isSecret: true,
+        category: 'ai',
+        description: 'OpenAI API key',
+      });
     }
     if (settings.openaiModel !== undefined) {
       await setConfig(
