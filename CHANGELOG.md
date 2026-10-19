@@ -5,7 +5,7 @@ Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bott
 ## 1.1.2 - 2026-10-19
 
 - `scripts/release.sh` cuts a release in one step: version bump, typecheck, tag, wait for the GitHub image build, GitHub release, then pull and restart the local container on the new image.
-- `scripts/deploy-local.sh` pulls `latest` and restarts the local container, then checks it is running the pulled image and the expected version.
+- `scripts/deploy-local.sh` pulls `latest` and restarts the local container, then checks it is running the pulled image and the expected version. It then deletes old images of this app and clears the Docker build cache so releases don't fill the disk.
 - `GET /api/health` returns the running version without signing in.
 - Removed a stale, unused Prisma client file that broke builds from a clean checkout.
 
