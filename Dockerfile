@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
 # ----- Next.js dependencies -----
 FROM base AS deps
@@ -26,12 +26,13 @@ COPY --from=docs /docs/build ./public/docs
 # Generate Prisma client (outputs to node_modules/@prisma/client)
 RUN npx prisma generate
 
-# Set build-time env vars (required by Next.js at build time)
-ENV DATABASE_URL="file:./data/inventory.db"
-ENV NEXTAUTH_URL="http://localhost:3000"
-ENV NEXTAUTH_SECRET="build-time-placeholder"
-
-RUN npm run build
+# Build-time values Next.js needs to compile. They are placeholders, set
+# only for this command so none of them are baked into the image; the
+# real secret is generated at setup and read from the database.
+RUN DATABASE_URL="file:./data/inventory.db" \
+    NEXTAUTH_URL="http://localhost:3000" \
+    NEXTAUTH_SECRET="build-time-placeholder" \
+    npm run build
 
 # ----- Production image -----
 FROM base AS runner

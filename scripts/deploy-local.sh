@@ -4,6 +4,8 @@
 #
 #   scripts/deploy-local.sh [expected-version]
 #
+# Set INVENTORY_PORT if the app is not on host port 5600.
+#
 # With an expected version, fails unless the restarted app reports it.
 # Afterwards it deletes old images of this app and clears Docker's build
 # cache so releases don't fill the disk.
@@ -11,7 +13,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 IMAGE="ghcr.io/dtsoden/inventory-management:latest"
-PORT="${PORT:-5600}"
+# Not PORT: that name is common in shells and would point at another app.
+PORT="${INVENTORY_PORT:-5600}"
 EXPECTED="${1:-}"
 
 echo "==> Pulling $IMAGE"

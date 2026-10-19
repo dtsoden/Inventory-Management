@@ -2,6 +2,13 @@
 
 Each release is tagged `vX.Y.Z` on GitHub. The running version shows at the bottom of the app sidebar and in the landing page footer.
 
+## 1.1.3 - 2026-10-19
+
+- The container runs on Node.js 24, the current LTS. Node.js 20 reached end of life in April 2026.
+- The image build workflow uses the Node.js 24 releases of its GitHub Actions, which clears GitHub's Node.js 20 deprecation warning.
+- The Dockerfile passes its build-time placeholder values only to the build command, so they are not stored in the image.
+- `scripts/deploy-local.sh` reads the port from `INVENTORY_PORT` (default 5600). It used `PORT`, which is often already set in a shell for another app.
+
 ## 1.1.2 - 2026-10-19
 
 - `scripts/release.sh` cuts a release in one step: version bump, typecheck, tag, wait for the GitHub image build, GitHub release, then pull and restart the local container on the new image.
